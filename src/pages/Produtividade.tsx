@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useDailySales, useUpsertDailySales, useBulkInsertDailySales, useDeleteDailySales, type DailySalesInput } from '@/hooks/useDailySales';
+import { supabase } from '@/integrations/supabase/client';
 import { generateProductivityData, formatCurrency, formatDecimal, formatDateBR, getSectorOrder } from '@/lib/productivityEngine';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Printer, Upload, Plus, Pencil, Trash2, BarChart3, FileSpreadsheet, AlertCircle, Check } from 'lucide-react';
+import { Download, Printer, Upload, Plus, Pencil, Trash2, BarChart3, FileSpreadsheet, AlertCircle, Check, History } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, Legend } from 'recharts';
 import * as XLSX from 'xlsx';
 
@@ -56,6 +57,11 @@ export default function Produtividade() {
   });
   const printRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const histFileInputRef = useRef<HTMLInputElement>(null);
+  const [histDialogOpen, setHistDialogOpen] = useState(false);
+  const [histPreview, setHistPreview] = useState<ImportPreviewRow[]>([]);
+  const [histError, setHistError] = useState('');
+  const [histExistingDates, setHistExistingDates] = useState<string[]>([]);
   const { toast } = useToast();
 
   const { data: collaborators = [] } = useCollaborators();
@@ -305,6 +311,128 @@ export default function Produtividade() {
     }
   };
 
+  // ====== HISTORICAL IMPORT ======
+  const HIST_START_DATE = new Date(2026, 1, 23); // 23/02/2026
+
+  const handleHistFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setHistError('');
+    setHistPreview([]);
+    setHistExistingDates([]);
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      if (raw.length < 2) {
+        setHistError('Planilha vazia ou sem dados.');
+        setHistDialogOpen(true);
+        return;
+      }
+
+      const preview: ImportPreviewRow[] = [];
+      let dayOffset = 0;
+
+      for (let i = 1; i < raw.length; i++) {
+        const row = raw[i];
+        if (!row || row.length === 0) continue;
+
+        const colB = row[1];
+        const colC = row[2];
+        const colD = row[3];
+        const colE = row[4];
+        const colH = row[7];
+        const colI = row[8];
+
+        if (!colB && !colC && !colD && !colE && !colH && !colI) continue;
+        const colA = String(row[0] || '').trim().toUpperCase();
+        if (colA === 'TOTAL') continue;
+
+        const errors: string[] = [];
+        const parseNum = (val: any, colName: string): number => {
+          if (val === '' || val === null || val === undefined) return 0;
+          const n = Number(val);
+          if (isNaN(n)) {
+            errors.push(`Coluna ${colName}: valor "${val}" não é numérico`);
+            return 0;
+          }
+          return n;
+        };
+
+        // Date by line position: line 2 = 23/02/2026, line 3 = 24/02/2026 ...
+        const d = new Date(HIST_START_DATE);
+        d.setDate(d.getDate() + dayOffset);
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        dayOffset++;
+
+        preview.push({
+          date: dateStr,
+          pedidos_totais: parseNum(colB, 'B'),
+          faturamento_total: parseNum(colC, 'C'),
+          pedidos_tele: parseNum(colD, 'D'),
+          faturamento_tele: parseNum(colE, 'E'),
+          pedidos_salao: parseNum(colH, 'H'),
+          faturamento_salao: parseNum(colI, 'I'),
+          errors,
+        });
+      }
+
+      if (preview.length === 0) {
+        setHistError('Nenhuma linha de dados válida encontrada na planilha.');
+      } else {
+        // Check for existing dates
+        const dates = preview.map(r => r.date);
+        const { data: existing } = await supabase
+          .from('daily_sales')
+          .select('date')
+          .in('date', dates);
+        if (existing && existing.length > 0) {
+          setHistExistingDates(existing.map((e: any) => e.date));
+        }
+      }
+
+      setHistPreview(preview);
+      setHistDialogOpen(true);
+    } catch {
+      setHistError('Erro ao ler a planilha.');
+      setHistDialogOpen(true);
+    }
+
+    e.target.value = '';
+  };
+
+  const handleConfirmHistImport = async () => {
+    const validRows = histPreview.filter(r => r.errors.length === 0);
+    if (validRows.length === 0) {
+      toast({ title: 'Nenhum dado válido para importar', variant: 'destructive' });
+      return;
+    }
+
+    const mapped: DailySalesInput[] = validRows.map(r => ({
+      date: r.date,
+      faturamento_total: r.faturamento_total,
+      pedidos_totais: r.pedidos_totais,
+      faturamento_salao: r.faturamento_salao,
+      pedidos_salao: r.pedidos_salao,
+      faturamento_tele: r.faturamento_tele,
+      pedidos_tele: r.pedidos_tele,
+    }));
+
+    try {
+      await bulkMut.mutateAsync(mapped);
+      const firstDate = formatDateBR(mapped[0].date);
+      const lastDate = formatDateBR(mapped[mapped.length - 1].date);
+      toast({ title: `${mapped.length} dias históricos importados com sucesso, de ${firstDate} até ${lastDate}.` });
+      setHistDialogOpen(false);
+      setHistPreview([]);
+    } catch {
+      toast({ title: 'Erro ao salvar dados históricos', variant: 'destructive' });
+    }
+  };
+
   const hasRowsWithoutDate = importPreview.some(r => !r.date);
 
   const handleExport = () => {
@@ -383,7 +511,7 @@ export default function Produtividade() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <input
               ref={fileInputRef}
               type="file"
@@ -391,12 +519,30 @@ export default function Produtividade() {
               className="hidden"
               onChange={handleFileSelect}
             />
+            <input
+              ref={histFileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={handleHistFileSelect}
+            />
             <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
               <Upload className="w-4 h-4 mr-1" /> Importar Planilha
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => histFileInputRef.current?.click()}>
+              <History className="w-4 h-4 mr-1" /> Carga Histórica
             </Button>
             <Button size="sm" onClick={openNew}>
               <Plus className="w-4 h-4 mr-1" /> Cadastrar Dia
             </Button>
+          </div>
+
+          {/* Historical import description */}
+          <div className="rounded-lg border border-border bg-muted/30 p-3 flex items-start gap-2">
+            <History className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+            <p className="text-xs text-muted-foreground">
+              <strong className="text-foreground">Carga Histórica:</strong> use esta opção para carregar os dados históricos desde 23/02/2026 a partir do arquivo base preenchido. Cada linha da planilha (a partir da linha 2) corresponde a um dia sequencial.
+            </p>
           </div>
 
           {/* Column mapping reference */}
@@ -809,6 +955,110 @@ export default function Produtividade() {
                     disabled={importPreview.filter(r => r.errors.length === 0).length === 0}
                   >
                     <Check className="w-4 h-4 mr-1" /> Confirmar Importação
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Historical Import Dialog */}
+      <Dialog open={histDialogOpen} onOpenChange={setHistDialogOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="w-5 h-5" />
+              Carga Histórica Inicial
+            </DialogTitle>
+            <DialogDescription>
+              Importação de dados retroativos desde 23/02/2026. Cada linha da planilha corresponde a um dia sequencial.
+            </DialogDescription>
+          </DialogHeader>
+
+          {histError && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+              <p className="text-sm text-destructive">{histError}</p>
+            </div>
+          )}
+
+          {histPreview.length > 0 && (
+            <div className="space-y-4">
+              {histExistingDates.length > 0 && (
+                <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 shrink-0" />
+                  <div className="text-sm text-yellow-700">
+                    <p className="font-medium">Atenção: {histExistingDates.length} dia(s) já possuem dados cadastrados.</p>
+                    <p className="text-xs mt-1">Os dados existentes serão sobrescritos ao confirmar a importação.</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                <p><strong>{histPreview.length}</strong> dias detectados: <strong>{formatDateBR(histPreview[0].date)}</strong> até <strong>{formatDateBR(histPreview[histPreview.length - 1].date)}</strong></p>
+                <p className="mt-1">Linha 2 = 23/02/2026, incrementando 1 dia por linha.</p>
+              </div>
+
+              <div className="border rounded-lg overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Data</TableHead>
+                      <TableHead className="text-xs text-right">Ped. Total (B)</TableHead>
+                      <TableHead className="text-xs text-right">Fat. Total (C)</TableHead>
+                      <TableHead className="text-xs text-right">Ped. Tele (D)</TableHead>
+                      <TableHead className="text-xs text-right">Fat. Tele (E)</TableHead>
+                      <TableHead className="text-xs text-right">Ped. Salão (H)</TableHead>
+                      <TableHead className="text-xs text-right">Fat. Salão (I)</TableHead>
+                      <TableHead className="text-xs w-8"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {histPreview.map((row, idx) => (
+                      <TableRow
+                        key={idx}
+                        className={`${row.errors.length > 0 ? 'bg-destructive/5' : ''} ${histExistingDates.includes(row.date) ? 'bg-yellow-500/5' : ''}`}
+                      >
+                        <TableCell className="text-xs font-medium">
+                          {formatDateBR(row.date)}
+                          {histExistingDates.includes(row.date) && (
+                            <span className="ml-1 text-yellow-600" title="Dados existentes serão sobrescritos">⚠</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{row.pedidos_totais}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{formatCurrency(row.faturamento_total)}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{row.pedidos_tele}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{formatCurrency(row.faturamento_tele)}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{row.pedidos_salao}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{formatCurrency(row.faturamento_salao)}</TableCell>
+                        <TableCell>
+                          {row.errors.length > 0 ? (
+                            <span title={row.errors.join('; ')}><AlertCircle className="w-3.5 h-3.5 text-destructive" /></span>
+                          ) : (
+                            <Check className="w-3.5 h-3.5 text-green-600" />
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="flex justify-between items-center pt-2">
+                <span className="text-xs text-muted-foreground">
+                  {histPreview.filter(r => r.errors.length === 0).length} de {histPreview.length} linha(s) válida(s)
+                </span>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setHistDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleConfirmHistImport}
+                    disabled={histPreview.filter(r => r.errors.length === 0).length === 0}
+                  >
+                    <Check className="w-4 h-4 mr-1" /> Confirmar Carga Histórica
                   </Button>
                 </div>
               </div>
