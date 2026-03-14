@@ -533,11 +533,17 @@ export default function Produtividade() {
               <History className="w-4 h-4 mr-1" /> Carga Histórica
             </Button>
             <Button size="sm" onClick={openNew}>
-              <Plus className="w-4 h-4 mr-1" /> Cadastrar Dia
-            </Button>
             <Button size="sm" onClick={openNew}>
               <Plus className="w-4 h-4 mr-1" /> Cadastrar Dia
             </Button>
+          </div>
+
+          {/* Historical import description */}
+          <div className="rounded-lg border border-border bg-muted/30 p-3 flex items-start gap-2">
+            <History className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+            <p className="text-xs text-muted-foreground">
+              <strong className="text-foreground">Carga Histórica:</strong> use esta opção para carregar os dados históricos desde 23/02/2026 a partir do arquivo base preenchido. Cada linha da planilha (a partir da linha 2) corresponde a um dia sequencial.
+            </p>
           </div>
 
           {/* Column mapping reference */}
