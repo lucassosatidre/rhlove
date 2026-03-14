@@ -162,7 +162,7 @@ export function generateSchedule(
       const collaboratorsBySector: Record<string, string[]> = {};
 
       for (const collab of collaborators) {
-        const displayName = getDisplayName(collab, date);
+        const displayName = getDisplayName(collab, date, scheduledVacations);
         if (!displayName) continue;
 
         if (!collaboratorsBySector[collab.sector]) {

@@ -106,10 +106,10 @@ export function generateProductivityData(
   for (const sale of salesData) {
     const d = new Date(sale.date + 'T00:00:00');
 
-    const pCozinha = countPeopleBySectorOnDate(collaborators, 'COZINHA', d) + getFreelancerCount(freelancers, sale.date, 'COZINHA');
-    const pDiurno = countPeopleBySectorOnDate(collaborators, 'DIURNO', d);
-    const pSalao = countPeopleBySectorOnDate(collaborators, 'SALÃO', d) + getFreelancerCount(freelancers, sale.date, 'SALÃO');
-    const pTele = countPeopleBySectorOnDate(collaborators, 'TELE - ENTREGA', d) + getFreelancerCount(freelancers, sale.date, 'TELE - ENTREGA');
+    const pCozinha = countPeopleBySectorOnDate(collaborators, 'COZINHA', d, scheduledVacations) + getFreelancerCount(freelancers, sale.date, 'COZINHA');
+    const pDiurno = countPeopleBySectorOnDate(collaborators, 'DIURNO', d, scheduledVacations);
+    const pSalao = countPeopleBySectorOnDate(collaborators, 'SALÃO', d, scheduledVacations) + getFreelancerCount(freelancers, sale.date, 'SALÃO');
+    const pTele = countPeopleBySectorOnDate(collaborators, 'TELE - ENTREGA', d, scheduledVacations) + getFreelancerCount(freelancers, sale.date, 'TELE - ENTREGA');
 
     const ft = Number(sale.faturamento_total) || 0;
     const pt = Number(sale.pedidos_totais) || 0;
