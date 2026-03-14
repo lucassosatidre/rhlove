@@ -180,6 +180,41 @@ export default function Colaboradores() {
     e.target.value = '';
   };
 
+  const handleExport = () => {
+    const DAY_EXPORT: Record<string, string> = {
+      SEGUNDA: 'Segunda', TERCA: 'Terça', QUARTA: 'Quarta',
+      QUINTA: 'Quinta', SEXTA: 'Sexta', SABADO: 'Sábado', DOMINGO: 'Domingo',
+    };
+    const rows = collaborators.map(c => ({
+      nome: c.collaborator_name,
+      setor: c.sector,
+      tipo_escala: c.tipo_escala,
+      folgas_semanais: c.folgas_semanais.map(d => DAY_EXPORT[d] || d).join(', '),
+      domingo_n: c.sunday_n,
+      status: c.status,
+      data_retorno: c.data_retorno ?? '',
+      data_fim_experiencia: c.data_fim_experiencia ?? '',
+      data_fim_aviso: c.data_fim_aviso ?? '',
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    // Bold header
+    const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const addr = XLSX.utils.encode_cell({ r: 0, c });
+      if (ws[addr]) ws[addr].s = { font: { bold: true } };
+    }
+    // Auto column widths
+    const cols = Object.keys(rows[0] || {});
+    ws['!cols'] = cols.map((key, i) => {
+      const maxLen = Math.max(key.length, ...rows.map(r => String((r as any)[key]).length));
+      return { wch: maxLen + 2 };
+    });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Colaboradores');
+    const today = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `colaboradores_estrela_rh_${today}.xlsx`);
+  };
+
   const grouped = collaborators.reduce<Record<string, Collaborator[]>>((acc, c) => {
     (acc[c.sector] ??= []).push(c);
     return acc;
