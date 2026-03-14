@@ -101,6 +101,13 @@ export default function Escala() {
 
   const SECTOR_ORDER = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'];
 
+  const SECTOR_HEADER_CLASSES: Record<string, string> = {
+    'COZINHA': 'bg-sector-cozinha text-white',
+    'SALÃO': 'bg-sector-salao text-white',
+    'TELE - ENTREGA': 'bg-sector-tele text-white',
+    'DIURNO': 'bg-sector-diurno text-white',
+  };
+
   const DAY_HEADERS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
   const formatDateBR = (d: Date) =>
@@ -138,7 +145,7 @@ export default function Escala() {
                   <tr>
                     <th
                       colSpan={7}
-                      className={`border border-border ${compact ? 'px-2 py-1' : 'px-3 py-2'} text-left font-bold bg-secondary text-secondary-foreground uppercase tracking-wide`}
+                      className={`border border-border ${compact ? 'px-2 py-1' : 'px-3 py-2'} text-left font-bold uppercase tracking-wide ${SECTOR_HEADER_CLASSES[sector] || 'bg-secondary text-secondary-foreground'}`}
                     >
                       {sectorPeriod}
                     </th>

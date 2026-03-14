@@ -19,10 +19,10 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import * as XLSX from 'xlsx';
 
 const SECTOR_COLORS: Record<string, string> = {
-  'COZINHA': 'hsl(220, 15%, 25%)',
-  'DIURNO': 'hsl(220, 10%, 45%)',
-  'SALÃO': 'hsl(220, 8%, 65%)',
-  'TELE - ENTREGA': 'hsl(220, 5%, 80%)',
+  'COZINHA': 'hsl(var(--sector-cozinha))',
+  'SALÃO': 'hsl(var(--sector-salao))',
+  'TELE - ENTREGA': 'hsl(var(--sector-tele))',
+  'DIURNO': 'hsl(var(--sector-diurno))',
 };
 
 interface ImportPreviewRow {
@@ -472,7 +472,7 @@ export default function Produtividade() {
   };
 
   const tmtChartConfig = {
-    TMT: { label: 'TMT', color: 'hsl(220, 15%, 25%)' },
+    TMT: { label: 'TMT', color: 'hsl(var(--primary))' },
   };
 
   return (
@@ -726,13 +726,13 @@ export default function Produtividade() {
                     <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line type="monotone" dataKey="TMT" stroke="hsl(220, 15%, 25%)" strokeWidth={2} dot={{ r: 4, fill: 'hsl(220, 15%, 25%)' }} name="TMT">
+                    <Line type="monotone" dataKey="TMT" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 4, fill: 'hsl(var(--primary))' }} name="TMT">
                       <LabelList
                         dataKey="TMT"
                         position="top"
                         offset={10}
                         formatter={(v: number) => `R$ ${Math.round(v).toLocaleString('pt-BR')}`}
-                        style={{ fontSize: 10, fontWeight: 600, fill: 'hsl(220, 15%, 25%)' }}
+                        style={{ fontSize: 10, fontWeight: 600, fill: 'hsl(var(--primary))' }}
                       />
                     </Line>
                   </LineChart>
