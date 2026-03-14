@@ -643,7 +643,7 @@ export default function Produtividade() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <BarChart3 className="w-4 h-4" />
-                  Produtividade por Pessoa
+                   Produtividade por Colaborador
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -655,9 +655,9 @@ export default function Produtividade() {
                         <TableHead className="font-bold">Setor</TableHead>
                         <TableHead className="text-right font-bold">Vendas</TableHead>
                         <TableHead className="text-right font-bold">Pedidos</TableHead>
-                        <TableHead className="text-right font-bold">Nº Pessoas</TableHead>
-                        <TableHead className="text-right font-bold">TMP</TableHead>
-                        <TableHead className="text-right font-bold">PPP</TableHead>
+                        <TableHead className="text-right font-bold">Nº Colaboradores</TableHead>
+                        <TableHead className="text-right font-bold">TCS</TableHead>
+                        <TableHead className="text-right font-bold">PCS</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -670,7 +670,7 @@ export default function Produtividade() {
                                 ? 'bg-muted/60 font-semibold border-t-2 border-border'
                                 : ''
                             } ${
-                              row.sector === 'TMT' && dateIdx < groupedByDate.length - 1
+                              row.sector === 'PCT' && dateIdx < groupedByDate.length - 1
                                 ? 'border-b-4 border-border'
                                 : ''
                             }`}
@@ -691,10 +691,10 @@ export default function Produtividade() {
                               {row.numero_pessoas || '-'}
                             </TableCell>
                             <TableCell className="text-right tabular-nums">
-                              {row.tmp ? formatCurrency(row.tmp) : '-'}
+                              {row.tcs ? formatCurrency(row.tcs) : '-'}
                             </TableCell>
                             <TableCell className="text-right tabular-nums">
-                              {row.ppp ? formatDecimal(row.ppp) : '-'}
+                              {row.pcs ? formatDecimal(row.pcs) : '-'}
                             </TableCell>
                           </TableRow>
                         ))
@@ -707,14 +707,14 @@ export default function Produtividade() {
           </TabsContent>
 
           <TabsContent value="charts" className="space-y-6">
-            {/* 1. PPP */}
+            {/* 1. PCS — Pedidos por Colaborador - Setor */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">PPP — Pedidos por Pessoa</CardTitle>
+                <CardTitle className="text-sm">PCS — Pedidos por Colaborador - Setor</CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={tmpChartConfig} className="h-[300px] w-full">
-                  <BarChart data={chartPPP}>
+                <ChartContainer config={tcsChartConfig} className="h-[300px] w-full">
+                  <BarChart data={chartPCS}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
@@ -729,21 +729,21 @@ export default function Produtividade() {
               </CardContent>
             </Card>
 
-            {/* 2. TMT with permanent labels */}
+            {/* 2. TCT — Ticket por Colaborador - Time */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">TMT — Ticket Médio do Time</CardTitle>
+                <CardTitle className="text-sm">TCT — Ticket por Colaborador - Time</CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={tmtChartConfig} className="h-[320px] w-full">
-                  <LineChart data={chartTMT} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
+                <ChartContainer config={tctChartConfig} className="h-[320px] w-full">
+                  <LineChart data={chartTCT} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line type="monotone" dataKey="TMT" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 4, fill: 'hsl(var(--primary))' }} name="TMT">
+                    <Line type="monotone" dataKey="TCT" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 4, fill: 'hsl(var(--primary))' }} name="TCT">
                       <LabelList
-                        dataKey="TMT"
+                        dataKey="TCT"
                         position="top"
                         offset={10}
                         formatter={(v: number) => `R$ ${Math.round(v).toLocaleString('pt-BR')}`}
@@ -755,11 +755,37 @@ export default function Produtividade() {
               </CardContent>
             </Card>
 
-            {/* 3. TMP with sector filter */}
+            {/* 3. PCT — Pedidos por Colaborador - Time */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">PCT — Pedidos por Colaborador - Time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={pctChartConfig} className="h-[320px] w-full">
+                  <LineChart data={chartPCT} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Line type="monotone" dataKey="PCT" stroke="hsl(160, 60%, 45%)" strokeWidth={2.5} dot={{ r: 4, fill: 'hsl(160, 60%, 45%)' }} name="PCT">
+                      <LabelList
+                        dataKey="PCT"
+                        position="top"
+                        offset={10}
+                        formatter={(v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        style={{ fontSize: 10, fontWeight: 600, fill: 'hsl(160, 60%, 45%)' }}
+                      />
+                    </Line>
+                  </LineChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
+            {/* 4. TCS — Ticket por Colaborador - Setor */}
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <CardTitle className="text-sm">TMP — Ticket Médio por Pessoa</CardTitle>
+                  <CardTitle className="text-sm">TCS — Ticket por Colaborador - Setor</CardTitle>
                   <ToggleGroup
                     type="single"
                     value={tmpSectorFilter}
@@ -777,8 +803,8 @@ export default function Produtividade() {
               </CardHeader>
               <CardContent>
                 {tmpSectorFilter === 'ALL' ? (
-                  <ChartContainer config={tmpChartConfig} className="h-[300px] w-full">
-                    <BarChart data={chartTMP}>
+                  <ChartContainer config={tcsChartConfig} className="h-[300px] w-full">
+                    <BarChart data={chartTCS}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 11 }} />
@@ -792,7 +818,7 @@ export default function Produtividade() {
                   </ChartContainer>
                 ) : (
                   <ChartContainer config={{ [tmpSectorFilter]: { label: tmpSectorFilter, color: SECTOR_COLORS[tmpSectorFilter] || 'hsl(220, 15%, 25%)' } }} className="h-[320px] w-full">
-                    <LineChart data={chartTMP} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
+                    <LineChart data={chartTCS} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 11 }} />
