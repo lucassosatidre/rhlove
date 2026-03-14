@@ -279,7 +279,7 @@ export default function Escala() {
                           if (!sale) {
                             return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>TCS: -</td>;
                           }
-                          const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date);
+                          const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date, scheduledVacations);
                           const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
                           const total = scheduled + frees;
                           const { vendas } = getSectorSales(sale, sector);
