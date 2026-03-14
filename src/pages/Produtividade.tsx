@@ -91,7 +91,7 @@ export default function Produtividade() {
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [productivityRows]);
 
-  const chartTMP = useMemo(() => {
+  const chartTCS = useMemo(() => {
     const sectors = tmpSectorFilter === 'ALL'
       ? ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO']
       : [tmpSectorFilter];
@@ -100,33 +100,44 @@ export default function Produtividade() {
       const row: Record<string, any> = { date: formatDateBR(date) };
       for (const r of productivityRows.filter(r => r.date === date)) {
         if (sectors.includes(r.sector)) {
-          row[r.sector] = Math.round(r.tmp * 100) / 100;
+          row[r.sector] = Math.round(r.tcs * 100) / 100;
         }
       }
       return row;
     });
   }, [productivityRows, tmpSectorFilter]);
 
-  const chartPPP = useMemo(() => {
+  const chartPCS = useMemo(() => {
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
     return dates.map(date => {
       const row: Record<string, any> = { date: formatDateBR(date) };
       for (const r of productivityRows.filter(r => r.date === date)) {
         if (['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'].includes(r.sector)) {
-          row[r.sector] = Math.round(r.ppp * 100) / 100;
+          row[r.sector] = Math.round(r.pcs * 100) / 100;
         }
       }
       return row;
     });
   }, [productivityRows]);
 
-  const chartTMT = useMemo(() => {
+  const chartTCT = useMemo(() => {
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
     return dates.map(date => {
-      const tmtRow = productivityRows.find(r => r.date === date && r.sector === 'TMT');
+      const tctRow = productivityRows.find(r => r.date === date && r.sector === 'TCT');
       return {
         date: formatDateBR(date),
-        TMT: tmtRow ? Math.round(tmtRow.tmp * 100) / 100 : 0,
+        TCT: tctRow ? Math.round(tctRow.tcs * 100) / 100 : 0,
+      };
+    });
+  }, [productivityRows]);
+
+  const chartPCT = useMemo(() => {
+    const dates = [...new Set(productivityRows.map(r => r.date))].sort();
+    return dates.map(date => {
+      const pctRow = productivityRows.find(r => r.date === date && r.sector === 'PCT');
+      return {
+        date: formatDateBR(date),
+        PCT: pctRow ? Math.round(pctRow.pcs * 100) / 100 : 0,
       };
     });
   }, [productivityRows]);
