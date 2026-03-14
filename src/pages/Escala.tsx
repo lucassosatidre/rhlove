@@ -36,10 +36,11 @@ export default function Escala() {
   const printRef = useRef<HTMLDivElement>(null);
 
   const { data: collaborators = [] } = useCollaborators();
+  const { data: scheduledVacations = [] } = useScheduledVacations();
 
   const weeks = useMemo(
-    () => generateSchedule(collaborators, year, month),
-    [collaborators, year, month]
+    () => generateSchedule(collaborators, year, month, scheduledVacations),
+    [collaborators, year, month, scheduledVacations]
   );
 
   // Compute date range for data queries
