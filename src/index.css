@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,26 +6,26 @@
 
 @layer base {
   :root {
-    --background: 40 20% 98%;
-    --foreground: 220 20% 12%;
+    --background: 210 20% 98%;
+    --foreground: 222 20% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 12%;
+    --card-foreground: 222 20% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 12%;
+    --popover-foreground: 222 20% 12%;
 
-    --primary: 162 63% 35%;
+    --primary: 12 80% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 40 15% 93%;
-    --secondary-foreground: 220 20% 12%;
+    --secondary: 210 15% 93%;
+    --secondary-foreground: 222 20% 12%;
 
-    --muted: 40 10% 95%;
+    --muted: 210 10% 95%;
     --muted-foreground: 220 10% 46%;
 
-    --accent: 162 40% 92%;
-    --accent-foreground: 162 63% 25%;
+    --accent: 12 60% 94%;
+    --accent-foreground: 12 80% 35%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
@@ -38,54 +38,54 @@
 
     --border: 220 13% 90%;
     --input: 220 13% 90%;
-    --ring: 162 63% 35%;
+    --ring: 12 80% 50%;
 
-    --radius: 0.75rem;
+    --radius: 0.625rem;
 
-    --sidebar-background: 220 20% 12%;
-    --sidebar-foreground: 40 10% 90%;
-    --sidebar-primary: 162 63% 45%;
+    --sidebar-background: 222 22% 10%;
+    --sidebar-foreground: 210 10% 90%;
+    --sidebar-primary: 12 80% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 15% 18%;
-    --sidebar-accent-foreground: 40 10% 90%;
-    --sidebar-border: 220 15% 20%;
-    --sidebar-ring: 162 63% 45%;
+    --sidebar-accent: 222 18% 16%;
+    --sidebar-accent-foreground: 210 10% 90%;
+    --sidebar-border: 222 18% 18%;
+    --sidebar-ring: 12 80% 55%;
 
-    --font-sans: 'DM Sans', system-ui, sans-serif;
+    --font-sans: 'Inter', system-ui, sans-serif;
   }
 
   .dark {
-    --background: 220 20% 8%;
-    --foreground: 40 10% 95%;
-    --card: 220 18% 12%;
-    --card-foreground: 40 10% 95%;
-    --popover: 220 18% 12%;
-    --popover-foreground: 40 10% 95%;
-    --primary: 162 63% 45%;
+    --background: 222 22% 6%;
+    --foreground: 210 10% 95%;
+    --card: 222 20% 10%;
+    --card-foreground: 210 10% 95%;
+    --popover: 222 20% 10%;
+    --popover-foreground: 210 10% 95%;
+    --primary: 12 80% 55%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 15% 18%;
-    --secondary-foreground: 40 10% 95%;
-    --muted: 220 15% 16%;
+    --secondary: 222 18% 16%;
+    --secondary-foreground: 210 10% 95%;
+    --muted: 222 15% 14%;
     --muted-foreground: 220 10% 55%;
-    --accent: 162 30% 18%;
-    --accent-foreground: 162 60% 70%;
+    --accent: 12 40% 16%;
+    --accent-foreground: 12 70% 70%;
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 100%;
     --success: 142 55% 45%;
     --success-foreground: 0 0% 100%;
     --warning: 38 85% 55%;
     --warning-foreground: 0 0% 100%;
-    --border: 220 15% 20%;
-    --input: 220 15% 20%;
-    --ring: 162 63% 45%;
-    --sidebar-background: 220 22% 6%;
-    --sidebar-foreground: 40 10% 90%;
-    --sidebar-primary: 162 63% 45%;
+    --border: 222 18% 18%;
+    --input: 222 18% 18%;
+    --ring: 12 80% 55%;
+    --sidebar-background: 222 24% 5%;
+    --sidebar-foreground: 210 10% 90%;
+    --sidebar-primary: 12 80% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 18% 12%;
-    --sidebar-accent-foreground: 40 10% 90%;
-    --sidebar-border: 220 18% 12%;
-    --sidebar-ring: 162 63% 45%;
+    --sidebar-accent: 222 20% 10%;
+    --sidebar-accent-foreground: 210 10% 90%;
+    --sidebar-border: 222 20% 10%;
+    --sidebar-ring: 12 80% 55%;
   }
 }
 
@@ -99,11 +99,7 @@
   }
 }
 
-@layer utilities {
-  .currency-positive {
-    @apply text-success;
-  }
-  .currency-negative {
-    @apply text-destructive;
-  }
+@media print {
+  .no-print { display: none !important; }
+  body { background: white; }
 }
