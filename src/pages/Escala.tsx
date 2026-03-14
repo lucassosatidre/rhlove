@@ -2,6 +2,7 @@ import { useState, useMemo, useRef } from 'react';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useFreelancers } from '@/hooks/useFreelancers';
 import { useDailySales } from '@/hooks/useDailySales';
+import { useScheduledVacations } from '@/hooks/useScheduledVacations';
 import { generateSchedule, getMonthLabel, type ScheduleWeek } from '@/lib/scheduleEngine';
 import { countPeopleBySectorOnDate } from '@/lib/productivityEngine';
 import { Button } from '@/components/ui/button';
