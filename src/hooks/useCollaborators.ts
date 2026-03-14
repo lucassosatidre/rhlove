@@ -9,6 +9,11 @@ export interface CollaboratorInput {
   folgas_semanais: DayOfWeek[];
   sunday_n: number;
   status: CollaboratorStatus;
+  inicio_na_empresa?: string | null;
+  data_desligamento?: string | null;
+  inicio_periodo?: string | null;
+  fim_periodo?: string | null;
+  // legacy
   data_retorno?: string | null;
   data_fim_experiencia?: string | null;
   data_fim_aviso?: string | null;
@@ -23,9 +28,13 @@ function toDbRow(c: CollaboratorInput) {
     sunday_n: c.sunday_n,
     status: c.status,
     weekly_day_off: c.folgas_semanais[0]?.toLowerCase() ?? 'segunda',
-    data_retorno: c.data_retorno || null,
-    data_fim_experiencia: c.data_fim_experiencia || null,
-    data_fim_aviso: c.data_fim_aviso || null,
+    inicio_na_empresa: c.inicio_na_empresa || null,
+    data_desligamento: c.data_desligamento || null,
+    inicio_periodo: c.inicio_periodo || null,
+    fim_periodo: c.fim_periodo || null,
+    data_retorno: c.data_retorno || c.fim_periodo || null,
+    data_fim_experiencia: c.data_fim_experiencia || (c.status === 'EXPERIENCIA' ? c.fim_periodo : null) || null,
+    data_fim_aviso: c.data_fim_aviso || (c.status === 'AVISO_PREVIO' ? c.fim_periodo : null) || null,
   };
 }
 
@@ -35,6 +44,10 @@ function fromDbRow(row: any): Collaborator {
     folgas_semanais: row.folgas_semanais ?? [row.weekly_day_off?.toUpperCase() ?? 'SEGUNDA'],
     tipo_escala: row.tipo_escala ?? '6x1',
     status: row.status ?? 'ATIVO',
+    inicio_na_empresa: row.inicio_na_empresa ?? null,
+    data_desligamento: row.data_desligamento ?? null,
+    inicio_periodo: row.inicio_periodo ?? null,
+    fim_periodo: row.fim_periodo ?? null,
   } as Collaborator;
 }
 
