@@ -732,7 +732,7 @@ export default function Produtividade() {
                         position="top"
                         offset={10}
                         formatter={(v: number) => `R$ ${Math.round(v).toLocaleString('pt-BR')}`}
-                        style={{ fontSize: 10, fontWeight: 600, fill: 'hsl(220, 15%, 25%)' }}
+                        style={{ fontSize: 10, fontWeight: 600, fill: 'hsl(var(--primary))' }}
                       />
                     </Line>
                   </LineChart>
