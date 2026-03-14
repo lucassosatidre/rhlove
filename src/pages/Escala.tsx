@@ -272,6 +272,13 @@ export default function Escala() {
                   Semana {i + 1}
                 </Button>
               ))}
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => { setFreesWeekIdx(selectedWeek); setFreesDialogOpen(true); }}
+              >
+                <Users className="w-4 h-4 mr-1" /> FREES
+              </Button>
             </div>
             {weeks[selectedWeek] && (
               <Card>
