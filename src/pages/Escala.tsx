@@ -1,6 +1,9 @@
 import { useState, useMemo, useRef } from 'react';
 import { useCollaborators } from '@/hooks/useCollaborators';
+import { useFreelancers } from '@/hooks/useFreelancers';
+import { useDailySales } from '@/hooks/useDailySales';
 import { generateSchedule, getMonthLabel, type ScheduleWeek } from '@/lib/scheduleEngine';
+import { countPeopleBySectorOnDate } from '@/lib/productivityEngine';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,6 +19,8 @@ const MONTHS = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
 
+const DAY_NAMES = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+
 export default function Escala() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -23,6 +28,7 @@ export default function Escala() {
   const [compact, setCompact] = useState(false);
   const [fontSize, setFontSize] = useState<'sm' | 'base' | 'lg'>('sm');
   const [showSectorTitles, setShowSectorTitles] = useState(true);
+  const [showPerformance, setShowPerformance] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState(0);
   const [freesDialogOpen, setFreesDialogOpen] = useState(false);
   const [freesWeekIdx, setFreesWeekIdx] = useState(0);
@@ -34,6 +40,35 @@ export default function Escala() {
     () => generateSchedule(collaborators, year, month),
     [collaborators, year, month]
   );
+
+  // Compute date range for data queries
+  const dateRange = useMemo(() => {
+    if (weeks.length === 0) return { start: '', end: '' };
+    const first = weeks[0].days[0].date;
+    const last = weeks[weeks.length - 1].days[6].date;
+    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return { start: fmt(first), end: fmt(last) };
+  }, [weeks]);
+
+  const { data: freelancers = [] } = useFreelancers(dateRange.start, dateRange.end);
+  const { data: salesData = [] } = useDailySales(dateRange.start, dateRange.end);
+
+  // Build lookup maps
+  const freelancerMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const f of freelancers) {
+      map[`${f.date}|${f.sector}`] = f.quantity;
+    }
+    return map;
+  }, [freelancers]);
+
+  const salesMap = useMemo(() => {
+    const map: Record<string, typeof salesData[0]> = {};
+    for (const s of salesData) {
+      map[s.date] = s;
+    }
+    return map;
+  }, [salesData]);
 
   const prevMonth = () => {
     if (month === 0) { setMonth(11); setYear(y => y - 1); }
@@ -108,16 +143,37 @@ export default function Escala() {
     'DIURNO': 'bg-sector-diurno text-white',
   };
 
-  const DAY_HEADERS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
-
   const formatDateBR = (d: Date) =>
     `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+  const formatDateKey = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+  const getSectorSales = (sale: typeof salesData[0] | undefined, sector: string) => {
+    if (!sale) return { vendas: 0, pedidos: 0 };
+    const ft = Number(sale.faturamento_total) || 0;
+    const pt = Number(sale.pedidos_totais) || 0;
+    const fs = Number(sale.faturamento_salao) || 0;
+    const ps = Number(sale.pedidos_salao) || 0;
+    const fte = Number(sale.faturamento_tele) || 0;
+    const pte = Number(sale.pedidos_tele) || 0;
+
+    switch (sector) {
+      case 'COZINHA': return { vendas: ft, pedidos: pt };
+      case 'DIURNO': return { vendas: ft, pedidos: pt };
+      case 'SALÃO': return { vendas: fs, pedidos: ps };
+      case 'TELE - ENTREGA': return { vendas: fte, pedidos: pte };
+      default: return { vendas: 0, pedidos: 0 };
+    }
+  };
+
+  const formatNum = (v: number) =>
+    v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const renderWeek = (week: ScheduleWeek) => {
     const allSectors = new Set<string>();
     week.days.forEach(d => Object.keys(d.collaboratorsBySector).forEach(s => allSectors.add(s)));
     const sortedSectors = SECTOR_ORDER.filter(s => allSectors.has(s));
-    // Add any sectors not in the predefined order
     [...allSectors].sort().forEach(s => {
       if (!sortedSectors.includes(s)) sortedSectors.push(s);
     });
@@ -151,15 +207,15 @@ export default function Escala() {
                     </th>
                   </tr>
                   <tr>
-                    {DAY_HEADERS.map((day, i) => (
+                    {week.days.map((d, i) => (
                       <th
-                        key={day}
+                        key={i}
                         className={`border border-border px-2 ${compact ? 'py-1' : 'py-2'} text-center font-semibold bg-muted ${
                           i === 6 ? 'bg-accent text-accent-foreground' : ''
                         }`}
                         style={{ minWidth: '110px' }}
                       >
-                        {day}
+                        {DAY_NAMES[i]} {formatDateBR(d.date)}
                       </th>
                     ))}
                   </tr>
@@ -174,7 +230,7 @@ export default function Escala() {
                         const numbered = name ? `${idx + 1} - ${name}` : '';
                         return (
                           <td
-                            key={d.label}
+                            key={di}
                             className={`border border-border px-2 ${compact ? 'py-0.5' : 'py-1'} text-left ${
                               di === 6 ? 'bg-accent/30' : ''
                             } ${hasAlert ? 'bg-warning/20 font-semibold' : ''}`}
@@ -187,6 +243,73 @@ export default function Escala() {
                       })}
                     </tr>
                   ))}
+                  {/* Performance summary rows */}
+                  {showPerformance && (
+                    <>
+                      <tr>
+                        {week.days.map((d, di) => {
+                          const dateKey = formatDateKey(d.date);
+                          const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
+                          return (
+                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
+                              Frees: {frees}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                      <tr>
+                        {week.days.map((d, di) => {
+                          const dateKey = formatDateKey(d.date);
+                          const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date);
+                          const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
+                          const total = scheduled + frees;
+                          return (
+                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
+                              Total: {total}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                      <tr>
+                        {week.days.map((d, di) => {
+                          const dateKey = formatDateKey(d.date);
+                          const sale = salesMap[dateKey];
+                          if (!sale) {
+                            return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>TMP: -</td>;
+                          }
+                          const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date);
+                          const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
+                          const total = scheduled + frees;
+                          const { vendas } = getSectorSales(sale, sector);
+                          const tmp = total > 0 ? vendas / total : 0;
+                          return (
+                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
+                              TMP: {tmp > 0 ? formatNum(tmp) : '-'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                      <tr>
+                        {week.days.map((d, di) => {
+                          const dateKey = formatDateKey(d.date);
+                          const sale = salesMap[dateKey];
+                          if (!sale) {
+                            return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>PPP: -</td>;
+                          }
+                          const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date);
+                          const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
+                          const total = scheduled + frees;
+                          const { pedidos } = getSectorSales(sale, sector);
+                          const ppp = total > 0 ? pedidos / total : 0;
+                          return (
+                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
+                              PPP: {ppp > 0 ? formatNum(ppp) : '-'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    </>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -230,6 +353,10 @@ export default function Escala() {
           <div className="flex items-center gap-2">
             <Label className="text-xs">Setores</Label>
             <Switch checked={showSectorTitles} onCheckedChange={setShowSectorTitles} />
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs">Desempenho</Label>
+            <Switch checked={showPerformance} onCheckedChange={setShowPerformance} />
           </div>
           <div className="flex items-center gap-2">
             <Label className="text-xs">Fonte</Label>
@@ -341,7 +468,6 @@ export default function Escala() {
         </Tabs>
       )}
 
-      {/* FreesDialog */}
       {weeks[freesWeekIdx] && (
         <FreesDialog
           open={freesDialogOpen}
