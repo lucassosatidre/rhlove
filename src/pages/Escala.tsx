@@ -262,7 +262,7 @@ export default function Escala() {
                       <tr>
                         {week.days.map((d, di) => {
                           const dateKey = formatDateKey(d.date);
-                          const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date);
+                          const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date, scheduledVacations);
                           const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
                           const total = scheduled + frees;
                           return (
