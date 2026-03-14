@@ -1,4 +1,6 @@
 import type { Collaborator, DayOfWeek } from '@/types/collaborator';
+import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
+import { isOnScheduledVacation } from '@/hooks/useScheduledVacations';
 
 export interface ScheduleWeek {
   weekNumber: number;
@@ -56,7 +58,7 @@ function parseDate(s: string | null): Date | null {
  * Check if collaborator should appear on a given schedule date.
  * Returns null if excluded, or the display name (possibly with alert suffix).
  */
-function getDisplayName(collab: Collaborator, scheduleDate: Date): string | null {
+function getDisplayName(collab: Collaborator, scheduleDate: Date, scheduledVacations: ScheduledVacation[] = []): string | null {
   const sd = dateOnly(scheduleDate);
   const dayKey = JS_DAY_TO_KEY[sd.getDay()];
 
@@ -70,6 +72,9 @@ function getDisplayName(collab: Collaborator, scheduleDate: Date): string | null
     if (deslig && sd > deslig) return null;
     if (!deslig) return null; // no end date = don't show
   }
+
+  // STEP 0.5 — SCHEDULED VACATIONS
+  if (isOnScheduledVacation(scheduledVacations, collab.id, sd)) return null;
 
   // STEP 1 — STATUS with periodo
   if (collab.status === 'FERIAS' || collab.status === 'AFASTADO') {
@@ -133,7 +138,8 @@ function getDisplayName(collab: Collaborator, scheduleDate: Date): string | null
 export function generateSchedule(
   collaborators: Collaborator[],
   year: number,
-  month: number
+  month: number,
+  scheduledVacations: ScheduledVacation[] = []
 ): ScheduleWeek[] {
   const firstMonday = getFirstMondayOfMonthGrid(year, month);
   const weeks: ScheduleWeek[] = [];
@@ -156,7 +162,7 @@ export function generateSchedule(
       const collaboratorsBySector: Record<string, string[]> = {};
 
       for (const collab of collaborators) {
-        const displayName = getDisplayName(collab, date);
+        const displayName = getDisplayName(collab, date, scheduledVacations);
         if (!displayName) continue;
 
         if (!collaboratorsBySector[collab.sector]) {

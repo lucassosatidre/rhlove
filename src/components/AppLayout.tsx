@@ -1,12 +1,13 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, CalendarDays, Menu, X, BarChart3 } from 'lucide-react';
+import { Users, CalendarDays, Menu, X, BarChart3, Palmtree } from 'lucide-react';
 import logo from '@/assets/logo.png';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Escala', icon: CalendarDays },
   { to: '/colaboradores', label: 'Colaboradores', icon: Users },
   { to: '/produtividade', label: 'Produtividade', icon: BarChart3 },
+  { to: '/ferias', label: 'Férias', icon: Palmtree },
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {

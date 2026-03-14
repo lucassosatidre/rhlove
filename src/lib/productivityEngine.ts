@@ -1,6 +1,8 @@
 import type { Collaborator, DayOfWeek } from '@/types/collaborator';
 import type { DailySales } from '@/hooks/useDailySales';
 import type { Freelancer } from '@/hooks/useFreelancers';
+import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
+import { isOnScheduledVacation } from '@/hooks/useScheduledVacations';
 
 const JS_DAY_TO_KEY: DayOfWeek[] = [
   'DOMINGO', 'SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO',
@@ -24,7 +26,8 @@ function getSundayNumber(date: Date): number {
 export function countPeopleBySectorOnDate(
   collaborators: Collaborator[],
   sector: string,
-  date: Date
+  date: Date,
+  scheduledVacations: ScheduledVacation[] = []
 ): number {
   const sd = dateOnly(date);
   const dayKey = JS_DAY_TO_KEY[sd.getDay()];
@@ -42,6 +45,9 @@ export function countPeopleBySectorOnDate(
       const deslig = parseDate(c.data_desligamento);
       if (!deslig || sd > deslig) continue;
     }
+
+    // Scheduled vacations
+    if (isOnScheduledVacation(scheduledVacations, c.id, sd)) continue;
 
     // Status check with periodo
     if (c.status === 'FERIAS' || c.status === 'AFASTADO') {
@@ -92,17 +98,18 @@ function getFreelancerCount(freelancers: Freelancer[], date: string, sector: str
 export function generateProductivityData(
   salesData: DailySales[],
   collaborators: Collaborator[],
-  freelancers: Freelancer[] = []
+  freelancers: Freelancer[] = [],
+  scheduledVacations: ScheduledVacation[] = []
 ): ProductivityRow[] {
   const rows: ProductivityRow[] = [];
 
   for (const sale of salesData) {
     const d = new Date(sale.date + 'T00:00:00');
 
-    const pCozinha = countPeopleBySectorOnDate(collaborators, 'COZINHA', d) + getFreelancerCount(freelancers, sale.date, 'COZINHA');
-    const pDiurno = countPeopleBySectorOnDate(collaborators, 'DIURNO', d);
-    const pSalao = countPeopleBySectorOnDate(collaborators, 'SALÃO', d) + getFreelancerCount(freelancers, sale.date, 'SALÃO');
-    const pTele = countPeopleBySectorOnDate(collaborators, 'TELE - ENTREGA', d) + getFreelancerCount(freelancers, sale.date, 'TELE - ENTREGA');
+    const pCozinha = countPeopleBySectorOnDate(collaborators, 'COZINHA', d, scheduledVacations) + getFreelancerCount(freelancers, sale.date, 'COZINHA');
+    const pDiurno = countPeopleBySectorOnDate(collaborators, 'DIURNO', d, scheduledVacations);
+    const pSalao = countPeopleBySectorOnDate(collaborators, 'SALÃO', d, scheduledVacations) + getFreelancerCount(freelancers, sale.date, 'SALÃO');
+    const pTele = countPeopleBySectorOnDate(collaborators, 'TELE - ENTREGA', d, scheduledVacations) + getFreelancerCount(freelancers, sale.date, 'TELE - ENTREGA');
 
     const ft = Number(sale.faturamento_total) || 0;
     const pt = Number(sale.pedidos_totais) || 0;

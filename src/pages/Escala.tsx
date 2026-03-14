@@ -2,6 +2,7 @@ import { useState, useMemo, useRef } from 'react';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useFreelancers } from '@/hooks/useFreelancers';
 import { useDailySales } from '@/hooks/useDailySales';
+import { useScheduledVacations } from '@/hooks/useScheduledVacations';
 import { generateSchedule, getMonthLabel, type ScheduleWeek } from '@/lib/scheduleEngine';
 import { countPeopleBySectorOnDate } from '@/lib/productivityEngine';
 import { Button } from '@/components/ui/button';
@@ -35,10 +36,11 @@ export default function Escala() {
   const printRef = useRef<HTMLDivElement>(null);
 
   const { data: collaborators = [] } = useCollaborators();
+  const { data: scheduledVacations = [] } = useScheduledVacations();
 
   const weeks = useMemo(
-    () => generateSchedule(collaborators, year, month),
-    [collaborators, year, month]
+    () => generateSchedule(collaborators, year, month, scheduledVacations),
+    [collaborators, year, month, scheduledVacations]
   );
 
   // Compute date range for data queries
@@ -260,7 +262,7 @@ export default function Escala() {
                       <tr>
                         {week.days.map((d, di) => {
                           const dateKey = formatDateKey(d.date);
-                          const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date);
+                          const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date, scheduledVacations);
                           const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
                           const total = scheduled + frees;
                           return (
@@ -277,7 +279,7 @@ export default function Escala() {
                           if (!sale) {
                             return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>TCS: -</td>;
                           }
-                          const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date);
+                          const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date, scheduledVacations);
                           const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
                           const total = scheduled + frees;
                           const { vendas } = getSectorSales(sale, sector);
@@ -296,7 +298,7 @@ export default function Escala() {
                           if (!sale) {
                             return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>PCS: -</td>;
                           }
-                          const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date);
+                          const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date, scheduledVacations);
                           const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
                           const total = scheduled + frees;
                           const { pedidos } = getSectorSales(sale, sector);

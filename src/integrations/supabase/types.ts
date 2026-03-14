@@ -140,6 +140,53 @@ export type Database = {
         }
         Relationships: []
       }
+      scheduled_vacations: {
+        Row: {
+          collaborator_id: string
+          collaborator_name: string
+          created_at: string
+          data_fim_ferias: string
+          data_inicio_ferias: string
+          id: string
+          observacao: string | null
+          sector: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          collaborator_id: string
+          collaborator_name: string
+          created_at?: string
+          data_fim_ferias: string
+          data_inicio_ferias: string
+          id?: string
+          observacao?: string | null
+          sector: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          collaborator_id?: string
+          collaborator_name?: string
+          created_at?: string
+          data_fim_ferias?: string
+          data_inicio_ferias?: string
+          id?: string
+          observacao?: string | null
+          sector?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_vacations_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
