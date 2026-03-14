@@ -140,6 +140,80 @@ export type Database = {
         }
         Relationships: []
       }
+      holiday_compensations: {
+        Row: {
+          collaborator_id: string
+          collaborator_name: string
+          compensation_date: string | null
+          created_at: string
+          eligible: boolean
+          holiday_date: string
+          holiday_name: string
+          id: string
+          observacao: string | null
+          sector: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          collaborator_id: string
+          collaborator_name: string
+          compensation_date?: string | null
+          created_at?: string
+          eligible?: boolean
+          holiday_date: string
+          holiday_name: string
+          id?: string
+          observacao?: string | null
+          sector: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          collaborator_id?: string
+          collaborator_name?: string
+          compensation_date?: string | null
+          created_at?: string
+          eligible?: boolean
+          holiday_date?: string
+          holiday_name?: string
+          id?: string
+          observacao?: string | null
+          sector?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "holiday_compensations_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      holidays: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       scheduled_vacations: {
         Row: {
           collaborator_id: string
