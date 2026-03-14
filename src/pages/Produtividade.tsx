@@ -5,14 +5,14 @@ import { generateProductivityData, formatCurrency, formatDecimal, formatDateBR, 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Printer, Upload, Plus, Pencil, Trash2, BarChart3 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, ResponsiveContainer, Legend } from 'recharts';
+import { Download, Printer, Upload, Plus, Pencil, Trash2, BarChart3, FileSpreadsheet, AlertCircle, Check } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, Legend } from 'recharts';
 import * as XLSX from 'xlsx';
 
 const SECTOR_COLORS: Record<string, string> = {
@@ -22,6 +22,17 @@ const SECTOR_COLORS: Record<string, string> = {
   'TELE - ENTREGA': 'hsl(220, 5%, 80%)',
 };
 
+interface ImportPreviewRow {
+  date: string;
+  pedidos_totais: number;
+  faturamento_total: number;
+  pedidos_tele: number;
+  faturamento_tele: number;
+  pedidos_salao: number;
+  faturamento_salao: number;
+  errors: string[];
+}
+
 export default function Produtividade() {
   const now = new Date();
   const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
@@ -30,6 +41,10 @@ export default function Produtividade() {
   const [startDate, setStartDate] = useState(firstOfMonth);
   const [endDate, setEndDate] = useState(lastOfMonth);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importDate, setImportDate] = useState(new Date().toISOString().split('T')[0]);
+  const [importPreview, setImportPreview] = useState<ImportPreviewRow[]>([]);
+  const [importError, setImportError] = useState('');
   const [form, setForm] = useState<DailySalesInput>({
     date: '',
     faturamento_total: 0,
@@ -40,6 +55,7 @@ export default function Produtividade() {
     pedidos_tele: 0,
   });
   const printRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const { data: collaborators = [] } = useCollaborators();
@@ -53,21 +69,18 @@ export default function Produtividade() {
     [salesData, collaborators]
   );
 
-  // Group by date for table rendering
   const groupedByDate = useMemo(() => {
     const map = new Map<string, typeof productivityRows>();
     for (const row of productivityRows) {
       if (!map.has(row.date)) map.set(row.date, []);
       map.get(row.date)!.push(row);
     }
-    // Sort sectors within each date
     for (const [, rows] of map) {
       rows.sort((a, b) => getSectorOrder(a.sector) - getSectorOrder(b.sector));
     }
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [productivityRows]);
 
-  // Chart data
   const chartTMP = useMemo(() => {
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
     return dates.map(date => {
@@ -156,51 +169,143 @@ export default function Produtividade() {
     }
   };
 
-  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ====== NEW IMPORT LOGIC: read by column position ======
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setImportError('');
+    setImportPreview([]);
+
     try {
       const buffer = await file.arrayBuffer();
-      const wb = XLSX.read(buffer);
+      const wb = XLSX.read(buffer, { type: 'array' });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<Record<string, any>>(ws);
 
-      const mapped: DailySalesInput[] = rows
-        .map(row => {
-          let dateVal = row['data'] || row['Data'] || row['date'] || '';
-          // Handle Excel serial dates
-          if (typeof dateVal === 'number') {
-            const d = XLSX.SSF.parse_date_code(dateVal);
-            dateVal = `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}`;
-          } else if (typeof dateVal === 'string' && dateVal.includes('/')) {
-            const parts = dateVal.split('/');
-            if (parts.length === 3) {
-              dateVal = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-            }
-          }
-          return {
-            date: String(dateVal),
-            faturamento_total: Number(row['faturamento_total'] || row['Faturamento Total'] || 0),
-            pedidos_totais: Number(row['pedidos_totais'] || row['Pedidos Totais'] || 0),
-            faturamento_salao: Number(row['faturamento_salao'] || row['Faturamento Salão'] || row['Faturamento Salao'] || 0),
-            pedidos_salao: Number(row['pedidos_salao'] || row['Pedidos Salão'] || row['Pedidos Salao'] || 0),
-            faturamento_tele: Number(row['faturamento_tele'] || row['Faturamento Tele'] || 0),
-            pedidos_tele: Number(row['pedidos_tele'] || row['Pedidos Tele'] || 0),
-          };
-        })
-        .filter(r => r.date && r.date.length >= 8);
+      // Read as array of arrays (raw, by position)
+      const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
-      if (mapped.length === 0) {
-        toast({ title: 'Nenhum dado encontrado', variant: 'destructive' });
+      if (raw.length < 2) {
+        setImportError('Planilha vazia ou sem dados. Esperado ao menos 1 linha de cabeçalho + 1 de dados.');
+        setImportDialogOpen(true);
         return;
       }
-      await bulkMut.mutateAsync(mapped);
-      toast({ title: `${mapped.length} dias importados` });
+
+      // Skip header (row 0), read data rows
+      const preview: ImportPreviewRow[] = [];
+
+      for (let i = 1; i < raw.length; i++) {
+        const row = raw[i];
+        if (!row || row.length === 0) continue;
+
+        // Check if row has any meaningful data (at least column B)
+        const colB = row[1]; // B = index 1 = total pedidos
+        const colC = row[2]; // C = index 2 = total vendas
+        const colD = row[3]; // D = index 3 = pedidos tele
+        const colE = row[4]; // E = index 4 = vendas tele
+        const colH = row[7]; // H = index 7 = pedidos salão
+        const colI = row[8]; // I = index 8 = vendas salão
+
+        // Skip rows where key columns are all empty
+        if (!colB && !colC && !colD && !colE && !colH && !colI) continue;
+        // Skip "TOTAL" summary rows
+        const colA = String(row[0] || '').trim().toUpperCase();
+        if (colA === 'TOTAL') continue;
+
+        const errors: string[] = [];
+        const parseNum = (val: any, colName: string): number => {
+          if (val === '' || val === null || val === undefined) return 0;
+          const n = Number(val);
+          if (isNaN(n)) {
+            errors.push(`Coluna ${colName}: valor "${val}" não é numérico`);
+            return 0;
+          }
+          return n;
+        };
+
+        // Try to extract date from column A
+        let dateStr = '';
+        const colAVal = row[0];
+        if (colAVal) {
+          if (typeof colAVal === 'number' && colAVal > 30000) {
+            // Excel serial date
+            const d = XLSX.SSF.parse_date_code(colAVal);
+            dateStr = `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}`;
+          } else if (typeof colAVal === 'string') {
+            const cleaned = colAVal.trim();
+            // Try DD/MM/YYYY
+            const parts = cleaned.split('/');
+            if (parts.length === 3 && parts[0].length <= 2) {
+              dateStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+            // Try YYYY-MM-DD
+            else if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
+              dateStr = cleaned;
+            }
+          } else if (colAVal instanceof Date) {
+            dateStr = colAVal.toISOString().split('T')[0];
+          }
+        }
+
+        preview.push({
+          date: dateStr,
+          pedidos_totais: parseNum(colB, 'B'),
+          faturamento_total: parseNum(colC, 'C'),
+          pedidos_tele: parseNum(colD, 'D'),
+          faturamento_tele: parseNum(colE, 'E'),
+          pedidos_salao: parseNum(colH, 'H'),
+          faturamento_salao: parseNum(colI, 'I'),
+          errors,
+        });
+      }
+
+      if (preview.length === 0) {
+        setImportError('Nenhuma linha de dados válida encontrada na planilha.');
+      }
+
+      setImportPreview(preview);
+      setImportDialogOpen(true);
     } catch {
-      toast({ title: 'Erro ao importar', variant: 'destructive' });
+      setImportError('Erro ao ler a planilha. Verifique se o arquivo é um Excel válido.');
+      setImportDialogOpen(true);
     }
+
     e.target.value = '';
   };
+
+  const handleConfirmImport = async () => {
+    const validRows = importPreview.filter(r => r.errors.length === 0);
+    if (validRows.length === 0) {
+      toast({ title: 'Nenhum dado válido para importar', variant: 'destructive' });
+      return;
+    }
+
+    // Use importDate for rows without a date
+    const mapped: DailySalesInput[] = validRows.map((r, idx) => ({
+      date: r.date || (validRows.length === 1 ? importDate : (() => {
+        // Multiple rows without dates: increment day from importDate
+        const d = new Date(importDate + 'T00:00:00');
+        d.setDate(d.getDate() + idx);
+        return d.toISOString().split('T')[0];
+      })()),
+      faturamento_total: r.faturamento_total,
+      pedidos_totais: r.pedidos_totais,
+      faturamento_salao: r.faturamento_salao,
+      pedidos_salao: r.pedidos_salao,
+      faturamento_tele: r.faturamento_tele,
+      pedidos_tele: r.pedidos_tele,
+    }));
+
+    try {
+      await bulkMut.mutateAsync(mapped);
+      toast({ title: `${mapped.length} dia(s) importado(s) com sucesso` });
+      setImportDialogOpen(false);
+      setImportPreview([]);
+    } catch {
+      toast({ title: 'Erro ao salvar dados importados', variant: 'destructive' });
+    }
+  };
+
+  const hasRowsWithoutDate = importPreview.some(r => !r.date);
 
   const handleExport = () => {
     const wb = XLSX.utils.book_new();
@@ -273,18 +378,44 @@ export default function Produtividade() {
       <Card className="no-print">
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Dados de Vendas</CardTitle>
+          <CardDescription className="text-xs">
+            Cadastre manualmente ou importe planilha de vendas
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-4">
           <div className="flex gap-2">
-            <label className="cursor-pointer">
-              <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
-              <Button variant="outline" size="sm" asChild>
-                <span><Upload className="w-4 h-4 mr-1" /> Importar Planilha</span>
-              </Button>
-            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={handleFileSelect}
+            />
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+              <Upload className="w-4 h-4 mr-1" /> Importar Planilha
+            </Button>
             <Button size="sm" onClick={openNew}>
               <Plus className="w-4 h-4 mr-1" /> Cadastrar Dia
             </Button>
+          </div>
+
+          {/* Column mapping reference */}
+          <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="flex items-start gap-2">
+              <FileSpreadsheet className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground">Mapeamento de colunas da planilha</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-0.5">
+                  <span><strong>B</strong> = Total de pedidos</span>
+                  <span><strong>C</strong> = Total de vendas</span>
+                  <span><strong>D</strong> = Pedidos tele-entrega</span>
+                  <span><strong>E</strong> = Vendas tele-entrega</span>
+                  <span><strong>H</strong> = Pedidos salão</span>
+                  <span><strong>I</strong> = Vendas salão</span>
+                </div>
+                <p className="text-muted-foreground/70">As demais colunas são ignoradas. Linha 1 = cabeçalho.</p>
+              </div>
+            </div>
           </div>
 
           {salesData.length > 0 && (
@@ -408,7 +539,6 @@ export default function Produtividade() {
           </TabsContent>
 
           <TabsContent value="charts" className="space-y-6">
-            {/* TMP Chart */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">TMP — Ticket Médio por Pessoa</CardTitle>
@@ -430,7 +560,6 @@ export default function Produtividade() {
               </CardContent>
             </Card>
 
-            {/* PPP Chart */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">PPP — Pedidos por Pessoa</CardTitle>
@@ -452,7 +581,6 @@ export default function Produtividade() {
               </CardContent>
             </Card>
 
-            {/* TMT Chart */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">TMT — Ticket Médio do Time</CardTitle>
@@ -483,7 +611,7 @@ export default function Produtividade() {
         </Card>
       )}
 
-      {/* Form Dialog */}
+      {/* Manual Form Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -564,6 +692,128 @@ export default function Produtividade() {
               <Button type="submit">Salvar</Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import Preview Dialog */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5" />
+              Pré-visualização da Importação
+            </DialogTitle>
+            <DialogDescription>
+              Revise os dados extraídos antes de importar.
+            </DialogDescription>
+          </DialogHeader>
+
+          {importError && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+              <p className="text-sm text-destructive">{importError}</p>
+            </div>
+          )}
+
+          {importPreview.length > 0 && (
+            <div className="space-y-4">
+              {/* Date input when file has no dates */}
+              {hasRowsWithoutDate && (
+                <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    A planilha não contém data na coluna A. Informe a data referente a esses dados:
+                  </p>
+                  <Input
+                    type="date"
+                    value={importDate}
+                    onChange={e => setImportDate(e.target.value)}
+                    className="w-48"
+                  />
+                </div>
+              )}
+
+              {/* Column mapping reminder */}
+              <div className="text-xs text-muted-foreground grid grid-cols-3 gap-x-4 gap-y-0.5 px-1">
+                <span><strong>B</strong> → Ped. Total</span>
+                <span><strong>C</strong> → Fat. Total</span>
+                <span><strong>D</strong> → Ped. Tele</span>
+                <span><strong>E</strong> → Fat. Tele</span>
+                <span><strong>H</strong> → Ped. Salão</span>
+                <span><strong>I</strong> → Fat. Salão</span>
+              </div>
+
+              <div className="border rounded-lg overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Data</TableHead>
+                      <TableHead className="text-xs text-right">Ped. Total (B)</TableHead>
+                      <TableHead className="text-xs text-right">Fat. Total (C)</TableHead>
+                      <TableHead className="text-xs text-right">Ped. Tele (D)</TableHead>
+                      <TableHead className="text-xs text-right">Fat. Tele (E)</TableHead>
+                      <TableHead className="text-xs text-right">Ped. Salão (H)</TableHead>
+                      <TableHead className="text-xs text-right">Fat. Salão (I)</TableHead>
+                      <TableHead className="text-xs w-8"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {importPreview.map((row, idx) => (
+                      <TableRow key={idx} className={row.errors.length > 0 ? 'bg-destructive/5' : ''}>
+                        <TableCell className="text-xs font-medium">
+                          {row.date ? formatDateBR(row.date) : (
+                            <span className="text-muted-foreground italic">
+                              {hasRowsWithoutDate ? importDate.split('-').reverse().join('/').slice(0, 5) : '—'}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{row.pedidos_totais}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{formatCurrency(row.faturamento_total)}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{row.pedidos_tele}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{formatCurrency(row.faturamento_tele)}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{row.pedidos_salao}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{formatCurrency(row.faturamento_salao)}</TableCell>
+                        <TableCell>
+                          {row.errors.length > 0 ? (
+                            <span title={row.errors.join('; ')}><AlertCircle className="w-3.5 h-3.5 text-destructive" /></span>
+                          ) : (
+                            <Check className="w-3.5 h-3.5 text-success" />
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {importPreview.some(r => r.errors.length > 0) && (
+                <div className="text-xs text-destructive space-y-0.5">
+                  {importPreview.flatMap((r, i) =>
+                    r.errors.map((err, j) => (
+                      <p key={`${i}-${j}`}>Linha {i + 2}: {err}</p>
+                    ))
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-between items-center pt-2">
+                <span className="text-xs text-muted-foreground">
+                  {importPreview.filter(r => r.errors.length === 0).length} de {importPreview.length} linha(s) válida(s)
+                </span>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleConfirmImport}
+                    disabled={importPreview.filter(r => r.errors.length === 0).length === 0}
+                  >
+                    <Check className="w-4 h-4 mr-1" /> Confirmar Importação
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
