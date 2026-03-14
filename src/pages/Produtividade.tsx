@@ -310,6 +310,128 @@ export default function Produtividade() {
     }
   };
 
+  // ====== HISTORICAL IMPORT ======
+  const HIST_START_DATE = new Date(2026, 1, 23); // 23/02/2026
+
+  const handleHistFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setHistError('');
+    setHistPreview([]);
+    setHistExistingDates([]);
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      if (raw.length < 2) {
+        setHistError('Planilha vazia ou sem dados.');
+        setHistDialogOpen(true);
+        return;
+      }
+
+      const preview: ImportPreviewRow[] = [];
+      let dayOffset = 0;
+
+      for (let i = 1; i < raw.length; i++) {
+        const row = raw[i];
+        if (!row || row.length === 0) continue;
+
+        const colB = row[1];
+        const colC = row[2];
+        const colD = row[3];
+        const colE = row[4];
+        const colH = row[7];
+        const colI = row[8];
+
+        if (!colB && !colC && !colD && !colE && !colH && !colI) continue;
+        const colA = String(row[0] || '').trim().toUpperCase();
+        if (colA === 'TOTAL') continue;
+
+        const errors: string[] = [];
+        const parseNum = (val: any, colName: string): number => {
+          if (val === '' || val === null || val === undefined) return 0;
+          const n = Number(val);
+          if (isNaN(n)) {
+            errors.push(`Coluna ${colName}: valor "${val}" não é numérico`);
+            return 0;
+          }
+          return n;
+        };
+
+        // Date by line position: line 2 = 23/02/2026, line 3 = 24/02/2026 ...
+        const d = new Date(HIST_START_DATE);
+        d.setDate(d.getDate() + dayOffset);
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        dayOffset++;
+
+        preview.push({
+          date: dateStr,
+          pedidos_totais: parseNum(colB, 'B'),
+          faturamento_total: parseNum(colC, 'C'),
+          pedidos_tele: parseNum(colD, 'D'),
+          faturamento_tele: parseNum(colE, 'E'),
+          pedidos_salao: parseNum(colH, 'H'),
+          faturamento_salao: parseNum(colI, 'I'),
+          errors,
+        });
+      }
+
+      if (preview.length === 0) {
+        setHistError('Nenhuma linha de dados válida encontrada na planilha.');
+      } else {
+        // Check for existing dates
+        const dates = preview.map(r => r.date);
+        const { data: existing } = await supabase
+          .from('daily_sales')
+          .select('date')
+          .in('date', dates);
+        if (existing && existing.length > 0) {
+          setHistExistingDates(existing.map((e: any) => e.date));
+        }
+      }
+
+      setHistPreview(preview);
+      setHistDialogOpen(true);
+    } catch {
+      setHistError('Erro ao ler a planilha.');
+      setHistDialogOpen(true);
+    }
+
+    e.target.value = '';
+  };
+
+  const handleConfirmHistImport = async () => {
+    const validRows = histPreview.filter(r => r.errors.length === 0);
+    if (validRows.length === 0) {
+      toast({ title: 'Nenhum dado válido para importar', variant: 'destructive' });
+      return;
+    }
+
+    const mapped: DailySalesInput[] = validRows.map(r => ({
+      date: r.date,
+      faturamento_total: r.faturamento_total,
+      pedidos_totais: r.pedidos_totais,
+      faturamento_salao: r.faturamento_salao,
+      pedidos_salao: r.pedidos_salao,
+      faturamento_tele: r.faturamento_tele,
+      pedidos_tele: r.pedidos_tele,
+    }));
+
+    try {
+      await bulkMut.mutateAsync(mapped);
+      const firstDate = formatDateBR(mapped[0].date);
+      const lastDate = formatDateBR(mapped[mapped.length - 1].date);
+      toast({ title: `${mapped.length} dias históricos importados com sucesso, de ${firstDate} até ${lastDate}.` });
+      setHistDialogOpen(false);
+      setHistPreview([]);
+    } catch {
+      toast({ title: 'Erro ao salvar dados históricos', variant: 'destructive' });
+    }
+  };
+
   const hasRowsWithoutDate = importPreview.some(r => !r.date);
 
   const handleExport = () => {
