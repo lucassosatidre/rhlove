@@ -7,6 +7,7 @@ import AppLayout from "@/components/AppLayout";
 import Escala from "@/pages/Escala";
 import Colaboradores from "@/pages/Colaboradores";
 import Produtividade from "@/pages/Produtividade";
+import FeriasProgramadas from "@/pages/FeriasProgramadas";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
