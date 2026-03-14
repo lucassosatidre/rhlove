@@ -21,6 +21,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Escala />} />
             <Route path="/colaboradores" element={<Colaboradores />} />
+            <Route path="/produtividade" element={<Produtividade />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AppLayout>
