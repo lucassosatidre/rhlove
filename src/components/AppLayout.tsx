@@ -1,6 +1,7 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, CalendarDays, Menu, X, Pizza, BarChart3 } from 'lucide-react';
+import { Users, CalendarDays, Menu, X, BarChart3 } from 'lucide-react';
+import logo from '@/assets/logo.png';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Escala', icon: CalendarDays },
@@ -17,8 +18,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {/* Sidebar desktop */}
       <aside className="hidden md:flex md:w-56 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
         <div className="p-5 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-sidebar-primary flex items-center justify-center">
-            <Pizza className="w-5 h-5 text-sidebar-primary-foreground" />
+          <div className="w-9 h-9 rounded-lg overflow-hidden">
+            <img src={logo} alt="Estrela RH" className="w-full h-full object-cover" />
           </div>
           <div className="leading-tight">
             <span className="text-sm font-bold tracking-tight block">Estrela RH</span>
@@ -53,8 +54,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Pizza className="w-4 h-4 text-primary-foreground" />
+            <div className="w-8 h-8 rounded-lg overflow-hidden">
+              <img src={logo} alt="Estrela RH" className="w-full h-full object-cover" />
             </div>
             <span className="font-bold text-sm">Estrela RH</span>
           </div>
