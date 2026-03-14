@@ -138,7 +138,8 @@ function getDisplayName(collab: Collaborator, scheduleDate: Date, scheduledVacat
 export function generateSchedule(
   collaborators: Collaborator[],
   year: number,
-  month: number
+  month: number,
+  scheduledVacations: ScheduledVacation[] = []
 ): ScheduleWeek[] {
   const firstMonday = getFirstMondayOfMonthGrid(year, month);
   const weeks: ScheduleWeek[] = [];
