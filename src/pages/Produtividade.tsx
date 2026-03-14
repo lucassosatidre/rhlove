@@ -473,17 +473,21 @@ export default function Produtividade() {
 
   const handlePrint = () => window.print();
 
-  const isSummaryRow = (sector: string) => sector === 'TIME' || sector === 'TMT';
+  const isSummaryRow = (sector: string) => ['TIME', 'TCT', 'PCT'].includes(sector);
 
-  const tmpChartConfig = {
+  const tcsChartConfig = {
     COZINHA: { label: 'Cozinha', color: SECTOR_COLORS['COZINHA'] },
     DIURNO: { label: 'Diurno', color: SECTOR_COLORS['DIURNO'] },
     'SALÃO': { label: 'Salão', color: SECTOR_COLORS['SALÃO'] },
     'TELE - ENTREGA': { label: 'Tele-Entrega', color: SECTOR_COLORS['TELE - ENTREGA'] },
   };
 
-  const tmtChartConfig = {
-    TMT: { label: 'TMT', color: 'hsl(var(--primary))' },
+  const tctChartConfig = {
+    TCT: { label: 'TCT', color: 'hsl(var(--primary))' },
+  };
+
+  const pctChartConfig = {
+    PCT: { label: 'PCT', color: 'hsl(var(--chart-2, 160 60% 45%))' },
   };
 
   return (
