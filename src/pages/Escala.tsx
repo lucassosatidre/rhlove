@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ChevronLeft, ChevronRight, Download, Printer } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Printer, Users } from 'lucide-react';
+import FreesDialog from '@/components/FreesDialog';
 import * as XLSX from 'xlsx';
 
 const MONTHS = [
@@ -23,6 +24,8 @@ export default function Escala() {
   const [fontSize, setFontSize] = useState<'sm' | 'base' | 'lg'>('sm');
   const [showSectorTitles, setShowSectorTitles] = useState(true);
   const [selectedWeek, setSelectedWeek] = useState(0);
+  const [freesDialogOpen, setFreesDialogOpen] = useState(false);
+  const [freesWeekIdx, setFreesWeekIdx] = useState(0);
   const printRef = useRef<HTMLDivElement>(null);
 
   const { data: collaborators = [] } = useCollaborators();
@@ -269,6 +272,13 @@ export default function Escala() {
                   Semana {i + 1}
                 </Button>
               ))}
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => { setFreesWeekIdx(selectedWeek); setFreesDialogOpen(true); }}
+              >
+                <Users className="w-4 h-4 mr-1" /> FREES
+              </Button>
             </div>
             {weeks[selectedWeek] && (
               <Card>
@@ -285,8 +295,16 @@ export default function Escala() {
           <TabsContent value="4weeks" className="space-y-4">
             {weeks.map((week, i) => (
               <Card key={i}>
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-2 flex flex-row items-center justify-between">
                   <CardTitle className="text-sm">Semana {i + 1}</CardTitle>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="no-print"
+                    onClick={() => { setFreesWeekIdx(i); setFreesDialogOpen(true); }}
+                  >
+                    <Users className="w-4 h-4 mr-1" /> FREES
+                  </Button>
                 </CardHeader>
                 <CardContent className="p-2">{renderWeek(week)}</CardContent>
               </Card>
@@ -297,8 +315,16 @@ export default function Escala() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {weeks.map((week, i) => (
                 <Card key={i}>
-                  <CardHeader className="pb-2">
+                  <CardHeader className="pb-2 flex flex-row items-center justify-between">
                     <CardTitle className="text-xs">Semana {i + 1}</CardTitle>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="no-print h-7 text-xs"
+                      onClick={() => { setFreesWeekIdx(i); setFreesDialogOpen(true); }}
+                    >
+                      <Users className="w-3 h-3 mr-1" /> FREES
+                    </Button>
                   </CardHeader>
                   <CardContent className="p-1">{renderWeek(week)}</CardContent>
                 </Card>
@@ -306,6 +332,16 @@ export default function Escala() {
             </div>
           </TabsContent>
         </Tabs>
+      )}
+
+      {/* FreesDialog */}
+      {weeks[freesWeekIdx] && (
+        <FreesDialog
+          open={freesDialogOpen}
+          onOpenChange={setFreesDialogOpen}
+          weekStartDate={weeks[freesWeekIdx].days[0].date}
+          weekEndDate={weeks[freesWeekIdx].days[weeks[freesWeekIdx].days.length - 1].date}
+        />
       )}
     </div>
   );

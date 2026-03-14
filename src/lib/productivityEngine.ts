@@ -1,5 +1,6 @@
 import type { Collaborator, DayOfWeek } from '@/types/collaborator';
 import type { DailySales } from '@/hooks/useDailySales';
+import type { Freelancer } from '@/hooks/useFreelancers';
 
 const JS_DAY_TO_KEY: DayOfWeek[] = [
   'DOMINGO', 'SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO',
@@ -66,19 +67,26 @@ export interface ProductivityRow {
 
 const SECTOR_ORDER = ['COZINHA', 'DIURNO', 'SALÃO', 'TELE - ENTREGA', 'TIME', 'TMT'];
 
+/** Get freelancer quantity for a given date and sector */
+function getFreelancerCount(freelancers: Freelancer[], date: string, sector: string): number {
+  const f = freelancers.find(fr => fr.date === date && fr.sector === sector);
+  return f ? f.quantity : 0;
+}
+
 export function generateProductivityData(
   salesData: DailySales[],
-  collaborators: Collaborator[]
+  collaborators: Collaborator[],
+  freelancers: Freelancer[] = []
 ): ProductivityRow[] {
   const rows: ProductivityRow[] = [];
 
   for (const sale of salesData) {
     const d = new Date(sale.date + 'T00:00:00');
 
-    const pCozinha = countPeopleBySectorOnDate(collaborators, 'COZINHA', d);
+    const pCozinha = countPeopleBySectorOnDate(collaborators, 'COZINHA', d) + getFreelancerCount(freelancers, sale.date, 'COZINHA');
     const pDiurno = countPeopleBySectorOnDate(collaborators, 'DIURNO', d);
-    const pSalao = countPeopleBySectorOnDate(collaborators, 'SALÃO', d);
-    const pTele = countPeopleBySectorOnDate(collaborators, 'TELE - ENTREGA', d);
+    const pSalao = countPeopleBySectorOnDate(collaborators, 'SALÃO', d) + getFreelancerCount(freelancers, sale.date, 'SALÃO');
+    const pTele = countPeopleBySectorOnDate(collaborators, 'TELE - ENTREGA', d) + getFreelancerCount(freelancers, sale.date, 'TELE - ENTREGA');
 
     const ft = Number(sale.faturamento_total) || 0;
     const pt = Number(sale.pedidos_totais) || 0;
