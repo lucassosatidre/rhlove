@@ -55,7 +55,6 @@ export default function Escala() {
 
       for (const sector of [...allSectors].sort()) {
         rows.push({ '': `--- ${sector} ---` });
-        // Find max names in any day for this sector
         const maxNames = Math.max(...week.days.map(d => (d.collaboratorsBySector[sector] || []).length), 0);
         for (let n = 0; n < maxNames; n++) {
           const row: Record<string, string> = {};
@@ -70,7 +69,6 @@ export default function Escala() {
       XLSX.utils.book_append_sheet(wb, ws, `Semana ${i + 1}`);
     });
 
-    // All weeks combined sheet
     const allRows: Record<string, string>[] = [];
     weeks.forEach((week, i) => {
       allRows.push({ '': `=== SEMANA ${i + 1} ===` });
@@ -95,6 +93,9 @@ export default function Escala() {
     XLSX.writeFile(wb, `Escala_${MONTHS[month]}_${year}.xlsx`);
   };
 
+  const isAlertName = (name: string) =>
+    name.includes('(EXPERIÊNCIA VENCENDO)') || name.includes('(AVISO TERMINANDO)');
+
   const renderWeek = (week: ScheduleWeek) => {
     const allSectors = new Set<string>();
     week.days.forEach(d => Object.keys(d.collaboratorsBySector).forEach(s => allSectors.add(s)));
@@ -109,7 +110,7 @@ export default function Escala() {
                 <th
                   key={d.label}
                   className={`border border-border px-2 ${compact ? 'py-1' : 'py-2'} text-center font-semibold bg-muted ${
-                    d.dayOfWeek === 'domingo' ? 'bg-accent text-accent-foreground' : ''
+                    d.dayOfWeek === 'DOMINGO' ? 'bg-accent text-accent-foreground' : ''
                   }`}
                   style={{ minWidth: '110px' }}
                 >
@@ -120,9 +121,9 @@ export default function Escala() {
           </thead>
           <tbody>
             {sortedSectors.map(sector => (
-              <>
+              <tbody key={sector}>
                 {showSectorTitles && (
-                  <tr key={`title-${sector}`}>
+                  <tr>
                     <td
                       colSpan={7}
                       className={`border border-border ${compact ? 'px-2 py-0.5' : 'px-2 py-1.5'} font-bold bg-secondary text-secondary-foreground uppercase tracking-wide ${fontSize === 'sm' ? 'text-[10px]' : 'text-xs'}`}
@@ -138,20 +139,26 @@ export default function Escala() {
                   );
                   return Array.from({ length: maxNames }, (_, idx) => (
                     <tr key={`${sector}-${idx}`}>
-                      {week.days.map(d => (
-                        <td
-                          key={d.label}
-                          className={`border border-border px-2 ${compact ? 'py-0.5' : 'py-1'} text-center ${
-                            d.dayOfWeek === 'domingo' ? 'bg-accent/30' : ''
-                          }`}
-                        >
-                          {(d.collaboratorsBySector[sector] || [])[idx] || ''}
-                        </td>
-                      ))}
+                      {week.days.map(d => {
+                        const name = (d.collaboratorsBySector[sector] || [])[idx] || '';
+                        const hasAlert = isAlertName(name);
+                        return (
+                          <td
+                            key={d.label}
+                            className={`border border-border px-2 ${compact ? 'py-0.5' : 'py-1'} text-center ${
+                              d.dayOfWeek === 'DOMINGO' ? 'bg-accent/30' : ''
+                            } ${hasAlert ? 'bg-warning/20 text-warning-foreground font-semibold' : ''}`}
+                          >
+                            {hasAlert ? (
+                              <span className="text-amber-700 dark:text-amber-400">{name}</span>
+                            ) : name}
+                          </td>
+                        );
+                      })}
                     </tr>
                   ));
                 })()}
-              </>
+              </tbody>
             ))}
           </tbody>
         </table>
@@ -161,7 +168,6 @@ export default function Escala() {
 
   return (
     <div className="space-y-4 animate-fade-in" ref={printRef}>
-      {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 no-print">
         <div>
           <h1 className="text-2xl font-bold">Escala de Trabalho</h1>
@@ -185,7 +191,6 @@ export default function Escala() {
         </div>
       </div>
 
-      {/* Layout controls */}
       <Card className="no-print">
         <CardContent className="py-3 flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
@@ -232,7 +237,6 @@ export default function Escala() {
             <TabsTrigger value="grid">Grade 2×2</TabsTrigger>
           </TabsList>
 
-          {/* Single week view */}
           <TabsContent value="week">
             <div className="flex items-center gap-2 mb-3 no-print">
               {weeks.map((_, i) => (
@@ -250,7 +254,7 @@ export default function Escala() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">
-                    Semana {selectedWeek + 1} — {weeks[selectedWeek].days[0].label.split(': ')[1]} a {weeks[selectedWeek].days[6].label.split(': ')[1]}
+                    Semana {selectedWeek + 1} — {weeks[selectedWeek].days[0].label}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-2">{renderWeek(weeks[selectedWeek])}</CardContent>
@@ -258,7 +262,6 @@ export default function Escala() {
             )}
           </TabsContent>
 
-          {/* 4 weeks separate */}
           <TabsContent value="4weeks" className="space-y-4">
             {weeks.map((week, i) => (
               <Card key={i}>
@@ -270,7 +273,6 @@ export default function Escala() {
             ))}
           </TabsContent>
 
-          {/* 2x2 grid */}
           <TabsContent value="grid">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {weeks.map((week, i) => (

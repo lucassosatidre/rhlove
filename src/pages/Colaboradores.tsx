@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { useCollaborators, useCreateCollaborator, useUpdateCollaborator, useDeleteCollaborator, useBulkInsertCollaborators } from '@/hooks/useCollaborators';
-import { DAYS_OF_WEEK, DAY_LABELS, SECTORS, type Collaborator, type DayOfWeek } from '@/types/collaborator';
+import type { CollaboratorInput } from '@/hooks/useCollaborators';
+import { DAYS_OF_WEEK, DAY_LABELS, SECTORS, STATUS_OPTIONS, STATUS_LABELS, TIPO_ESCALA, type Collaborator, type DayOfWeek, type TipoEscala, type CollaboratorStatus } from '@/types/collaborator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Upload } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -15,15 +18,25 @@ import * as XLSX from 'xlsx';
 interface FormData {
   collaborator_name: string;
   sector: string;
-  weekly_day_off: DayOfWeek;
+  tipo_escala: TipoEscala;
+  folgas_semanais: DayOfWeek[];
   sunday_n: number;
+  status: CollaboratorStatus;
+  data_retorno: string;
+  data_fim_experiencia: string;
+  data_fim_aviso: string;
 }
 
 const emptyForm: FormData = {
   collaborator_name: '',
   sector: SECTORS[0],
-  weekly_day_off: 'segunda',
+  tipo_escala: '6x1',
+  folgas_semanais: ['SEGUNDA'],
   sunday_n: 1,
+  status: 'ATIVO',
+  data_retorno: '',
+  data_fim_experiencia: '',
+  data_fim_aviso: '',
 };
 
 export default function Colaboradores() {
@@ -49,11 +62,28 @@ export default function Colaboradores() {
     setForm({
       collaborator_name: c.collaborator_name,
       sector: c.sector,
-      weekly_day_off: c.weekly_day_off,
+      tipo_escala: c.tipo_escala,
+      folgas_semanais: c.folgas_semanais,
       sunday_n: c.sunday_n,
+      status: c.status,
+      data_retorno: c.data_retorno ?? '',
+      data_fim_experiencia: c.data_fim_experiencia ?? '',
+      data_fim_aviso: c.data_fim_aviso ?? '',
     });
     setDialogOpen(true);
   };
+
+  const toInput = (f: FormData): CollaboratorInput => ({
+    collaborator_name: f.collaborator_name,
+    sector: f.sector,
+    tipo_escala: f.tipo_escala,
+    folgas_semanais: f.folgas_semanais,
+    sunday_n: f.sunday_n,
+    status: f.status,
+    data_retorno: f.data_retorno || null,
+    data_fim_experiencia: f.data_fim_experiencia || null,
+    data_fim_aviso: f.data_fim_aviso || null,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,10 +93,10 @@ export default function Colaboradores() {
     }
     try {
       if (editingId) {
-        await updateMut.mutateAsync({ id: editingId, ...form });
+        await updateMut.mutateAsync({ id: editingId, ...toInput(form) });
         toast({ title: 'Colaborador atualizado' });
       } else {
-        await createMut.mutateAsync(form);
+        await createMut.mutateAsync(toInput(form));
         toast({ title: 'Colaborador cadastrado' });
       }
       setDialogOpen(false);
@@ -85,6 +115,18 @@ export default function Colaboradores() {
     }
   };
 
+  const toggleFolga = (day: DayOfWeek) => {
+    setForm(f => {
+      const has = f.folgas_semanais.includes(day);
+      return {
+        ...f,
+        folgas_semanais: has
+          ? f.folgas_semanais.filter(d => d !== day)
+          : [...f.folgas_semanais, day],
+      };
+    });
+  };
+
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -95,17 +137,35 @@ export default function Colaboradores() {
       const rows = XLSX.utils.sheet_to_json<Record<string, any>>(ws);
 
       const dayMap: Record<string, DayOfWeek> = {
-        'segunda': 'segunda', 'terça': 'terca', 'terca': 'terca',
-        'quarta': 'quarta', 'quinta': 'quinta', 'sexta': 'sexta',
-        'sábado': 'sabado', 'sabado': 'sabado', 'domingo': 'domingo',
+        'segunda': 'SEGUNDA', 'terça': 'TERCA', 'terca': 'TERCA',
+        'quarta': 'QUARTA', 'quinta': 'QUINTA', 'sexta': 'SEXTA',
+        'sábado': 'SABADO', 'sabado': 'SABADO', 'domingo': 'DOMINGO',
       };
 
-      const mapped = rows.map(row => ({
-        collaborator_name: String(row['collaborator_name'] || row['nome'] || row['Nome'] || '').trim(),
-        sector: String(row['sector'] || row['setor'] || row['Setor'] || 'Salão').trim(),
-        weekly_day_off: dayMap[(String(row['weekly_day_off'] || row['folga'] || row['Folga'] || 'segunda')).toLowerCase().trim()] || 'segunda',
-        sunday_n: Number(row['sunday_n'] || row['domingo_n'] || 1),
-      })).filter(r => r.collaborator_name);
+      const mapped: CollaboratorInput[] = rows.map(row => {
+        const name = String(row['collaborator_name'] || row['nome'] || row['Nome'] || '').trim();
+        const sector = String(row['sector'] || row['setor'] || row['Setor'] || 'COZINHA').trim().toUpperCase();
+
+        // Parse folgas_semanais from various formats
+        let folgas: DayOfWeek[] = [];
+        const folgasRaw = row['folgas_semanais'] || row['folga'] || row['Folga'] || row['weekly_day_off'] || '';
+        if (typeof folgasRaw === 'string') {
+          folgas = folgasRaw.split(',').map(s => dayMap[s.trim().toLowerCase()] || s.trim().toUpperCase() as DayOfWeek).filter(Boolean);
+        }
+        if (folgas.length === 0) folgas = ['SEGUNDA'];
+
+        return {
+          collaborator_name: name,
+          sector,
+          tipo_escala: (row['tipo_escala'] || '6x1') as TipoEscala,
+          folgas_semanais: folgas,
+          sunday_n: Number(row['sunday_n'] || row['domingo_n'] || 1),
+          status: (row['status'] || 'ATIVO') as CollaboratorStatus,
+          data_retorno: row['data_retorno'] || null,
+          data_fim_experiencia: row['data_fim_experiencia'] || null,
+          data_fim_aviso: row['data_fim_aviso'] || null,
+        };
+      }).filter(r => r.collaborator_name);
 
       if (mapped.length === 0) {
         toast({ title: 'Nenhum dado encontrado no arquivo', variant: 'destructive' });
@@ -124,6 +184,16 @@ export default function Colaboradores() {
     (acc[c.sector] ??= []).push(c);
     return acc;
   }, {});
+
+  const statusColor = (s: CollaboratorStatus) => {
+    switch (s) {
+      case 'ATIVO': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+      case 'FERIAS': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'AFASTADO': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+      case 'EXPERIENCIA': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+      case 'AVISO_PREVIO': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -164,8 +234,10 @@ export default function Colaboradores() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Nome</TableHead>
-                    <TableHead className="hidden sm:table-cell">Folga Semanal</TableHead>
-                    <TableHead className="hidden sm:table-cell">Domingo Off</TableHead>
+                    <TableHead className="hidden sm:table-cell">Escala</TableHead>
+                    <TableHead className="hidden sm:table-cell">Folgas</TableHead>
+                    <TableHead className="hidden sm:table-cell">Dom</TableHead>
+                    <TableHead className="hidden sm:table-cell">Status</TableHead>
                     <TableHead className="w-20"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -175,11 +247,24 @@ export default function Colaboradores() {
                       <TableCell className="font-medium">
                         {c.collaborator_name}
                         <span className="sm:hidden block text-xs text-muted-foreground">
-                          Folga: {DAY_LABELS[c.weekly_day_off]} · Dom {c.sunday_n}º
+                          {c.tipo_escala} · {c.folgas_semanais.map(d => DAY_LABELS[d]?.slice(0, 3)).join(', ')} · Dom {c.sunday_n}º
+                        </span>
+                        <span className="sm:hidden block">
+                          <Badge variant="secondary" className={`text-[10px] ${statusColor(c.status)}`}>
+                            {STATUS_LABELS[c.status]}
+                          </Badge>
                         </span>
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell">{DAY_LABELS[c.weekly_day_off]}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{c.sunday_n}º domingo</TableCell>
+                      <TableCell className="hidden sm:table-cell">{c.tipo_escala}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-xs">
+                        {c.folgas_semanais.map(d => DAY_LABELS[d]?.slice(0, 3)).join(', ')}
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">{c.sunday_n}º</TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        <Badge variant="secondary" className={`text-xs ${statusColor(c.status)}`}>
+                          {STATUS_LABELS[c.status]}
+                        </Badge>
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
                           <button onClick={() => openEdit(c)} className="p-1.5 rounded hover:bg-muted transition-colors">
@@ -200,7 +285,7 @@ export default function Colaboradores() {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar Colaborador' : 'Novo Colaborador'}</DialogTitle>
           </DialogHeader>
@@ -213,24 +298,43 @@ export default function Colaboradores() {
                 placeholder="Nome completo"
               />
             </div>
-            <div className="space-y-2">
-              <Label>Setor</Label>
-              <Select value={form.sector} onValueChange={v => setForm(f => ({ ...f, sector: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {SECTORS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Setor</Label>
+                <Select value={form.sector} onValueChange={v => setForm(f => ({ ...f, sector: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {SECTORS.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Tipo Escala</Label>
+                <Select value={form.tipo_escala} onValueChange={v => setForm(f => ({ ...f, tipo_escala: v as TipoEscala }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TIPO_ESCALA.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+
             <div className="space-y-2">
-              <Label>Folga Semanal</Label>
-              <Select value={form.weekly_day_off} onValueChange={v => setForm(f => ({ ...f, weekly_day_off: v as DayOfWeek }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {DAYS_OF_WEEK.map(d => <SelectItem key={d} value={d}>{DAY_LABELS[d]}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Folgas Semanais</Label>
+              <div className="flex flex-wrap gap-3">
+                {DAYS_OF_WEEK.filter(d => d !== 'DOMINGO').map(day => (
+                  <label key={day} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                    <Checkbox
+                      checked={form.folgas_semanais.includes(day)}
+                      onCheckedChange={() => toggleFolga(day)}
+                    />
+                    {DAY_LABELS[day]?.slice(0, 3)}
+                  </label>
+                ))}
+              </div>
             </div>
+
             <div className="space-y-2">
               <Label>Domingo de folga (nº do mês)</Label>
               <Select value={String(form.sunday_n)} onValueChange={v => setForm(f => ({ ...f, sunday_n: Number(v) }))}>
@@ -240,6 +344,50 @@ export default function Colaboradores() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={form.status} onValueChange={v => setForm(f => ({ ...f, status: v as CollaboratorStatus }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {(form.status === 'FERIAS' || form.status === 'AFASTADO') && (
+              <div className="space-y-2">
+                <Label>Data de Retorno</Label>
+                <Input
+                  type="date"
+                  value={form.data_retorno}
+                  onChange={e => setForm(f => ({ ...f, data_retorno: e.target.value }))}
+                />
+              </div>
+            )}
+
+            {form.status === 'EXPERIENCIA' && (
+              <div className="space-y-2">
+                <Label>Data Fim Experiência</Label>
+                <Input
+                  type="date"
+                  value={form.data_fim_experiencia}
+                  onChange={e => setForm(f => ({ ...f, data_fim_experiencia: e.target.value }))}
+                />
+              </div>
+            )}
+
+            {form.status === 'AVISO_PREVIO' && (
+              <div className="space-y-2">
+                <Label>Data Fim Aviso Prévio</Label>
+                <Input
+                  type="date"
+                  value={form.data_fim_aviso}
+                  onChange={e => setForm(f => ({ ...f, data_fim_aviso: e.target.value }))}
+                />
+              </div>
+            )}
+
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
               <Button type="submit">{editingId ? 'Salvar' : 'Cadastrar'}</Button>

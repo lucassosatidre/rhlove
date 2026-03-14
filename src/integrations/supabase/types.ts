@@ -18,27 +18,45 @@ export type Database = {
         Row: {
           collaborator_name: string
           created_at: string
+          data_fim_aviso: string | null
+          data_fim_experiencia: string | null
+          data_retorno: string | null
+          folgas_semanais: string[]
           id: string
           sector: string
+          status: string
           sunday_n: number
+          tipo_escala: string
           updated_at: string
           weekly_day_off: string
         }
         Insert: {
           collaborator_name: string
           created_at?: string
+          data_fim_aviso?: string | null
+          data_fim_experiencia?: string | null
+          data_retorno?: string | null
+          folgas_semanais?: string[]
           id?: string
           sector: string
+          status?: string
           sunday_n?: number
+          tipo_escala?: string
           updated_at?: string
           weekly_day_off?: string
         }
         Update: {
           collaborator_name?: string
           created_at?: string
+          data_fim_aviso?: string | null
+          data_fim_experiencia?: string | null
+          data_retorno?: string | null
+          folgas_semanais?: string[]
           id?: string
           sector?: string
+          status?: string
           sunday_n?: number
+          tipo_escala?: string
           updated_at?: string
           weekly_day_off?: string
         }
