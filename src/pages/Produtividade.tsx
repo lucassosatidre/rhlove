@@ -77,8 +77,8 @@ export default function Produtividade() {
   const deleteMut = useDeleteDailySales();
 
   const productivityRows = useMemo(
-    () => generateProductivityData(salesData, collaborators, freelancersData),
-    [salesData, collaborators, freelancersData]
+    () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations),
+    [salesData, collaborators, freelancersData, scheduledVacations]
   );
 
   const groupedByDate = useMemo(() => {
