@@ -726,7 +726,7 @@ export default function Produtividade() {
                     <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line type="monotone" dataKey="TMT" stroke="hsl(220, 15%, 25%)" strokeWidth={2} dot={{ r: 4, fill: 'hsl(220, 15%, 25%)' }} name="TMT">
+                    <Line type="monotone" dataKey="TMT" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 4, fill: 'hsl(var(--primary))' }} name="TMT">
                       <LabelList
                         dataKey="TMT"
                         position="top"
