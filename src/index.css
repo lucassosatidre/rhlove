@@ -51,10 +51,10 @@
     --sidebar-border: 20 18% 16%;
     --sidebar-ring: 24 90% 52%;
 
-    --sector-cozinha: 0 70% 45%;
-    --sector-salao: 220 65% 50%;
+    --sector-cozinha: 0 0% 10%;
+    --sector-salao: 0 70% 45%;
     --sector-tele: 152 55% 38%;
-    --sector-diurno: 38 85% 50%;
+    --sector-diurno: 220 65% 50%;
 
     --font-sans: 'DM Sans', system-ui, sans-serif;
   }
