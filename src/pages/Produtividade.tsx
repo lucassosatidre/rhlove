@@ -56,6 +56,11 @@ export default function Produtividade() {
   });
   const printRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const histFileInputRef = useRef<HTMLInputElement>(null);
+  const [histDialogOpen, setHistDialogOpen] = useState(false);
+  const [histPreview, setHistPreview] = useState<ImportPreviewRow[]>([]);
+  const [histError, setHistError] = useState('');
+  const [histExistingDates, setHistExistingDates] = useState<string[]>([]);
   const { toast } = useToast();
 
   const { data: collaborators = [] } = useCollaborators();
