@@ -1,6 +1,8 @@
 import type { Collaborator, DayOfWeek } from '@/types/collaborator';
 import type { DailySales } from '@/hooks/useDailySales';
 import type { Freelancer } from '@/hooks/useFreelancers';
+import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
+import { isOnScheduledVacation } from '@/hooks/useScheduledVacations';
 
 const JS_DAY_TO_KEY: DayOfWeek[] = [
   'DOMINGO', 'SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO',
