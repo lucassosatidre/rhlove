@@ -32,4 +32,6 @@ export const SECTORS = [
   'Caixa',
   'Limpeza',
   'Gerência',
+  'Diurno',
+  'Tele - Entrega',
 ] as const;
