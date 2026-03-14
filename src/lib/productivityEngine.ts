@@ -33,13 +33,29 @@ export function countPeopleBySectorOnDate(
   for (const c of collaborators) {
     if (c.sector !== sector) continue;
 
-    // Status check
+    // Empresa period
+    const inicioEmpresa = parseDate(c.inicio_na_empresa);
+    if (inicioEmpresa && sd < inicioEmpresa) continue;
+
+    // Desligado
+    if (c.status === 'DESLIGADO') {
+      const deslig = parseDate(c.data_desligamento);
+      if (!deslig || sd > deslig) continue;
+    }
+
+    // Status check with periodo
     if (c.status === 'FERIAS' || c.status === 'AFASTADO') {
-      const retorno = parseDate(c.data_retorno);
-      if (!retorno || sd < retorno) continue;
+      const inicio = parseDate(c.inicio_periodo);
+      const fim = parseDate(c.fim_periodo);
+      if (inicio && fim) {
+        if (sd >= inicio && sd <= fim) continue;
+      } else {
+        const retorno = parseDate(c.data_retorno);
+        if (!retorno || sd < retorno) continue;
+      }
     }
     if (c.status === 'AVISO_PREVIO') {
-      const fim = parseDate(c.data_fim_aviso);
+      const fim = parseDate(c.fim_periodo) || parseDate(c.data_fim_aviso);
       if (fim && sd > fim) continue;
     }
 

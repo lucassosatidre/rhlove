@@ -22,9 +22,10 @@ interface FormData {
   folgas_semanais: DayOfWeek[];
   sunday_n: number;
   status: CollaboratorStatus;
-  data_retorno: string;
-  data_fim_experiencia: string;
-  data_fim_aviso: string;
+  inicio_na_empresa: string;
+  data_desligamento: string;
+  inicio_periodo: string;
+  fim_periodo: string;
 }
 
 const emptyForm: FormData = {
@@ -34,9 +35,10 @@ const emptyForm: FormData = {
   folgas_semanais: ['SEGUNDA'],
   sunday_n: 1,
   status: 'ATIVO',
-  data_retorno: '',
-  data_fim_experiencia: '',
-  data_fim_aviso: '',
+  inicio_na_empresa: new Date().toISOString().slice(0, 10),
+  data_desligamento: '',
+  inicio_periodo: '',
+  fim_periodo: '',
 };
 
 export default function Colaboradores() {
@@ -66,9 +68,10 @@ export default function Colaboradores() {
       folgas_semanais: c.folgas_semanais,
       sunday_n: c.sunday_n,
       status: c.status,
-      data_retorno: c.data_retorno ?? '',
-      data_fim_experiencia: c.data_fim_experiencia ?? '',
-      data_fim_aviso: c.data_fim_aviso ?? '',
+      inicio_na_empresa: c.inicio_na_empresa ?? '',
+      data_desligamento: c.data_desligamento ?? '',
+      inicio_periodo: c.inicio_periodo ?? '',
+      fim_periodo: c.fim_periodo ?? '',
     });
     setDialogOpen(true);
   };
@@ -80,9 +83,10 @@ export default function Colaboradores() {
     folgas_semanais: f.folgas_semanais,
     sunday_n: f.sunday_n,
     status: f.status,
-    data_retorno: f.data_retorno || null,
-    data_fim_experiencia: f.data_fim_experiencia || null,
-    data_fim_aviso: f.data_fim_aviso || null,
+    inicio_na_empresa: f.inicio_na_empresa || null,
+    data_desligamento: f.data_desligamento || null,
+    inicio_periodo: f.inicio_periodo || null,
+    fim_periodo: f.fim_periodo || null,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -146,9 +150,8 @@ export default function Colaboradores() {
         const name = String(row['collaborator_name'] || row['nome'] || row['Nome'] || '').trim();
         const sector = String(row['sector'] || row['setor'] || row['Setor'] || 'COZINHA').trim().toUpperCase();
 
-        // Parse folgas_semanais from various formats
         let folgas: DayOfWeek[] = [];
-        const folgasRaw = row['folgas_semanais'] || row['folga'] || row['Folga'] || row['weekly_day_off'] || '';
+        const folgasRaw = row['folgas_semanais'] || row['folga_semanal'] || row['folga'] || row['Folga'] || row['weekly_day_off'] || '';
         if (typeof folgasRaw === 'string') {
           folgas = folgasRaw.split(',').map(s => dayMap[s.trim().toLowerCase()] || s.trim().toUpperCase() as DayOfWeek).filter(Boolean);
         }
@@ -161,9 +164,10 @@ export default function Colaboradores() {
           folgas_semanais: folgas,
           sunday_n: Number(row['sunday_n'] || row['domingo_n'] || 1),
           status: (row['status'] || 'ATIVO') as CollaboratorStatus,
-          data_retorno: row['data_retorno'] || null,
-          data_fim_experiencia: row['data_fim_experiencia'] || null,
-          data_fim_aviso: row['data_fim_aviso'] || null,
+          inicio_na_empresa: row['inicio_na_empresa'] || null,
+          data_desligamento: row['data_desligamento'] || null,
+          inicio_periodo: row['inicio_periodo'] || null,
+          fim_periodo: row['fim_periodo'] || null,
         };
       }).filter(r => r.collaborator_name);
 
@@ -189,23 +193,22 @@ export default function Colaboradores() {
       nome: c.collaborator_name,
       setor: c.sector,
       tipo_escala: c.tipo_escala,
-      folgas_semanais: c.folgas_semanais.map(d => DAY_EXPORT[d] || d).join(', '),
+      folga_semanal: c.folgas_semanais.map(d => DAY_EXPORT[d] || d).join(', '),
       domingo_n: c.sunday_n,
       status: c.status,
-      data_retorno: c.data_retorno ?? '',
-      data_fim_experiencia: c.data_fim_experiencia ?? '',
-      data_fim_aviso: c.data_fim_aviso ?? '',
+      inicio_na_empresa: c.inicio_na_empresa ?? '',
+      data_desligamento: c.data_desligamento ?? '',
+      inicio_periodo: c.inicio_periodo ?? '',
+      fim_periodo: c.fim_periodo ?? '',
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
-    // Bold header
     const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
     for (let c = range.s.c; c <= range.e.c; c++) {
       const addr = XLSX.utils.encode_cell({ r: 0, c });
       if (ws[addr]) ws[addr].s = { font: { bold: true } };
     }
-    // Auto column widths
     const cols = Object.keys(rows[0] || {});
-    ws['!cols'] = cols.map((key, i) => {
+    ws['!cols'] = cols.map((key) => {
       const maxLen = Math.max(key.length, ...rows.map(r => String((r as any)[key]).length));
       return { wch: maxLen + 2 };
     });
@@ -227,8 +230,12 @@ export default function Colaboradores() {
       case 'AFASTADO': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
       case 'EXPERIENCIA': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
       case 'AVISO_PREVIO': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+      case 'DESLIGADO': return 'bg-gray-100 text-gray-500 dark:bg-gray-900/30 dark:text-gray-400';
     }
   };
+
+  const needsPeriod = (s: CollaboratorStatus) =>
+    s === 'FERIAS' || s === 'AFASTADO' || s === 'EXPERIENCIA' || s === 'AVISO_PREVIO';
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -393,36 +400,44 @@ export default function Colaboradores() {
               </Select>
             </div>
 
-            {(form.status === 'FERIAS' || form.status === 'AFASTADO') && (
+            <div className="space-y-2">
+              <Label>Início na Empresa</Label>
+              <Input
+                type="date"
+                value={form.inicio_na_empresa}
+                onChange={e => setForm(f => ({ ...f, inicio_na_empresa: e.target.value }))}
+              />
+            </div>
+
+            {form.status === 'DESLIGADO' && (
               <div className="space-y-2">
-                <Label>Data de Retorno</Label>
+                <Label>Data de Desligamento</Label>
                 <Input
                   type="date"
-                  value={form.data_retorno}
-                  onChange={e => setForm(f => ({ ...f, data_retorno: e.target.value }))}
+                  value={form.data_desligamento}
+                  onChange={e => setForm(f => ({ ...f, data_desligamento: e.target.value }))}
                 />
               </div>
             )}
 
-            {form.status === 'EXPERIENCIA' && (
-              <div className="space-y-2">
-                <Label>Data Fim Experiência</Label>
-                <Input
-                  type="date"
-                  value={form.data_fim_experiencia}
-                  onChange={e => setForm(f => ({ ...f, data_fim_experiencia: e.target.value }))}
-                />
-              </div>
-            )}
-
-            {form.status === 'AVISO_PREVIO' && (
-              <div className="space-y-2">
-                <Label>Data Fim Aviso Prévio</Label>
-                <Input
-                  type="date"
-                  value={form.data_fim_aviso}
-                  onChange={e => setForm(f => ({ ...f, data_fim_aviso: e.target.value }))}
-                />
+            {needsPeriod(form.status) && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Início do Período</Label>
+                  <Input
+                    type="date"
+                    value={form.inicio_periodo}
+                    onChange={e => setForm(f => ({ ...f, inicio_periodo: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Fim do Período</Label>
+                  <Input
+                    type="date"
+                    value={form.fim_periodo}
+                    onChange={e => setForm(f => ({ ...f, fim_periodo: e.target.value }))}
+                  />
+                </div>
               </div>
             )}
 

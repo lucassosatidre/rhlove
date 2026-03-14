@@ -19,7 +19,7 @@ export const SECTORS = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'] as cons
 export const TIPO_ESCALA = ['6x1', '5x2', '4x3'] as const;
 export type TipoEscala = typeof TIPO_ESCALA[number];
 
-export const STATUS_OPTIONS = ['ATIVO', 'FERIAS', 'AFASTADO', 'EXPERIENCIA', 'AVISO_PREVIO'] as const;
+export const STATUS_OPTIONS = ['ATIVO', 'FERIAS', 'AFASTADO', 'EXPERIENCIA', 'AVISO_PREVIO', 'DESLIGADO'] as const;
 export type CollaboratorStatus = typeof STATUS_OPTIONS[number];
 
 export const STATUS_LABELS: Record<CollaboratorStatus, string> = {
@@ -28,6 +28,7 @@ export const STATUS_LABELS: Record<CollaboratorStatus, string> = {
   AFASTADO: 'Afastado',
   EXPERIENCIA: 'Experiência',
   AVISO_PREVIO: 'Aviso Prévio',
+  DESLIGADO: 'Desligado',
 };
 
 export interface Collaborator {
@@ -38,10 +39,15 @@ export interface Collaborator {
   folgas_semanais: DayOfWeek[];
   sunday_n: number;
   status: CollaboratorStatus;
+  inicio_na_empresa: string | null;
+  data_desligamento: string | null;
+  inicio_periodo: string | null;
+  fim_periodo: string | null;
+  // legacy fields kept for DB compat
   data_retorno: string | null;
   data_fim_experiencia: string | null;
   data_fim_aviso: string | null;
-  weekly_day_off: string; // legacy, kept for DB compat
+  weekly_day_off: string;
   created_at: string;
   updated_at: string;
 }

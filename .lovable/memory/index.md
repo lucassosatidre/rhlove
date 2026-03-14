@@ -13,7 +13,7 @@ Estrela RH - internal HR scheduling app for Pizzaria Estrela da Ilha
 - Logo also used as favicon (public/favicon.png)
 
 ## Database
-- `collaborators` table: id, sector, collaborator_name, weekly_day_off, sunday_n, folgas_semanais, tipo_escala, status, data_retorno, data_fim_experiencia, data_fim_aviso, created_at, updated_at
+- `collaborators` table: id, sector, collaborator_name, weekly_day_off, sunday_n, folgas_semanais, tipo_escala, status, inicio_na_empresa, data_desligamento, inicio_periodo, fim_periodo, data_retorno (legacy), data_fim_experiencia (legacy), data_fim_aviso (legacy), created_at, updated_at
 - `daily_sales` table: id, date, faturamento_total/salao/tele, pedidos_totais/salao/tele
 - `freelancers` table: id, date, sector, quantity (unique on date+sector)
 - RLS: open policies (internal app, no auth)
@@ -25,7 +25,7 @@ Estrela RH - internal HR scheduling app for Pizzaria Estrela da Ilha
 - src/hooks/useFreelancers.ts — freelancers CRUD
 - src/hooks/useDailySales.ts — sales CRUD
 - src/pages/Escala.tsx — schedule views (week, 4-week, 2x2 grid)
-- src/pages/Colaboradores.tsx — collaborator CRUD + Excel import
+- src/pages/Colaboradores.tsx — collaborator CRUD + Excel import/export
 - src/pages/Produtividade.tsx — productivity analysis + charts
 - src/components/FreesDialog.tsx — freelancer management dialog
 
@@ -34,6 +34,12 @@ Estrela RH - internal HR scheduling app for Pizzaria Estrela da Ilha
 - 4 weeks generated from first Monday of month grid
 - folgas_semanais excludes collaborator on those days
 - sunday_n (1-5) determines which Sunday of month they're off
+- inicio_na_empresa: collaborator only appears if date >= inicio_na_empresa
+- data_desligamento: DESLIGADO collaborator only appears if date <= data_desligamento
+- inicio_periodo/fim_periodo: used for FERIAS, AFASTADO, EXPERIENCIA, AVISO_PREVIO date ranges
+
+## Collaborator statuses
+- ATIVO, FERIAS, AFASTADO, EXPERIENCIA, AVISO_PREVIO, DESLIGADO
 
 ## Sector order (GLOBAL)
 1. COZINHA  2. SALÃO  3. TELE - ENTREGA  4. DIURNO

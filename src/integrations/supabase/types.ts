@@ -18,11 +18,15 @@ export type Database = {
         Row: {
           collaborator_name: string
           created_at: string
+          data_desligamento: string | null
           data_fim_aviso: string | null
           data_fim_experiencia: string | null
           data_retorno: string | null
+          fim_periodo: string | null
           folgas_semanais: string[]
           id: string
+          inicio_na_empresa: string | null
+          inicio_periodo: string | null
           sector: string
           status: string
           sunday_n: number
@@ -33,11 +37,15 @@ export type Database = {
         Insert: {
           collaborator_name: string
           created_at?: string
+          data_desligamento?: string | null
           data_fim_aviso?: string | null
           data_fim_experiencia?: string | null
           data_retorno?: string | null
+          fim_periodo?: string | null
           folgas_semanais?: string[]
           id?: string
+          inicio_na_empresa?: string | null
+          inicio_periodo?: string | null
           sector: string
           status?: string
           sunday_n?: number
@@ -48,11 +56,15 @@ export type Database = {
         Update: {
           collaborator_name?: string
           created_at?: string
+          data_desligamento?: string | null
           data_fim_aviso?: string | null
           data_fim_experiencia?: string | null
           data_retorno?: string | null
+          fim_periodo?: string | null
           folgas_semanais?: string[]
           id?: string
+          inicio_na_empresa?: string | null
+          inicio_periodo?: string | null
           sector?: string
           status?: string
           sunday_n?: number

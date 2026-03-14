@@ -60,16 +60,38 @@ function getDisplayName(collab: Collaborator, scheduleDate: Date): string | null
   const sd = dateOnly(scheduleDate);
   const dayKey = JS_DAY_TO_KEY[sd.getDay()];
 
-  // STEP 1 — STATUS
+  // STEP 0 — EMPRESA PERIOD
+  const inicioEmpresa = parseDate(collab.inicio_na_empresa);
+  if (inicioEmpresa && sd < inicioEmpresa) return null;
+
+  // DESLIGADO: only show up to data_desligamento
+  if (collab.status === 'DESLIGADO') {
+    const deslig = parseDate(collab.data_desligamento);
+    if (deslig && sd > deslig) return null;
+    if (!deslig) return null; // no end date = don't show
+  }
+
+  // STEP 1 — STATUS with periodo
   if (collab.status === 'FERIAS' || collab.status === 'AFASTADO') {
-    const retorno = parseDate(collab.data_retorno);
-    if (retorno && sd < retorno) return null;
-    // If no data_retorno set, exclude entirely
-    if (!retorno) return null;
+    const inicio = parseDate(collab.inicio_periodo);
+    const fim = parseDate(collab.fim_periodo);
+    // Use new period fields if available, fallback to legacy
+    if (inicio && fim) {
+      if (sd >= inicio && sd <= fim) return null;
+    } else {
+      // Legacy: use data_retorno
+      const retorno = parseDate(collab.data_retorno);
+      if (retorno && sd < retorno) return null;
+      if (!retorno && (collab.status === 'FERIAS' || collab.status === 'AFASTADO')) {
+        // Check fim_periodo only
+        if (fim && sd <= fim) return null;
+        if (!fim) return null;
+      }
+    }
   }
 
   if (collab.status === 'AVISO_PREVIO') {
-    const fimAviso = parseDate(collab.data_fim_aviso);
+    const fimAviso = parseDate(collab.fim_periodo) || parseDate(collab.data_fim_aviso);
     if (fimAviso && sd > fimAviso) return null;
   }
 
@@ -86,7 +108,7 @@ function getDisplayName(collab: Collaborator, scheduleDate: Date): string | null
   let name = collab.collaborator_name;
 
   if (collab.status === 'EXPERIENCIA') {
-    const fim = parseDate(collab.data_fim_experiencia);
+    const fim = parseDate(collab.fim_periodo) || parseDate(collab.data_fim_experiencia);
     if (fim) {
       const remaining = daysBetween(sd, fim);
       if (remaining >= 0 && remaining <= 7) {
@@ -96,7 +118,7 @@ function getDisplayName(collab: Collaborator, scheduleDate: Date): string | null
   }
 
   if (collab.status === 'AVISO_PREVIO') {
-    const fim = parseDate(collab.data_fim_aviso);
+    const fim = parseDate(collab.fim_periodo) || parseDate(collab.data_fim_aviso);
     if (fim) {
       const remaining = daysBetween(sd, fim);
       if (remaining >= 0 && remaining <= 7) {
