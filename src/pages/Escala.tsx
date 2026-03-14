@@ -96,72 +96,92 @@ export default function Escala() {
   const isAlertName = (name: string) =>
     name.includes('(EXPERIÊNCIA VENCENDO)') || name.includes('(AVISO TERMINANDO)');
 
+  const SECTOR_ORDER = ['COZINHA', 'DIURNO', 'SALÃO', 'TELE - ENTREGA'];
+
+  const DAY_HEADERS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+
+  const formatDateBR = (d: Date) =>
+    `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+
   const renderWeek = (week: ScheduleWeek) => {
     const allSectors = new Set<string>();
     week.days.forEach(d => Object.keys(d.collaboratorsBySector).forEach(s => allSectors.add(s)));
-    const sortedSectors = [...allSectors].sort();
+    const sortedSectors = SECTOR_ORDER.filter(s => allSectors.has(s));
+    // Add any sectors not in the predefined order
+    [...allSectors].sort().forEach(s => {
+      if (!sortedSectors.includes(s)) sortedSectors.push(s);
+    });
+
+    const firstDate = week.days[0]?.date;
+    const lastDate = week.days[week.days.length - 1]?.date;
 
     return (
-      <div className="overflow-x-auto">
-        <table className={`w-full border-collapse ${textSize}`}>
-          <thead>
-            <tr>
-              {week.days.map(d => (
-                <th
-                  key={d.label}
-                  className={`border border-border px-2 ${compact ? 'py-1' : 'py-2'} text-center font-semibold bg-muted ${
-                    d.dayOfWeek === 'DOMINGO' ? 'bg-accent text-accent-foreground' : ''
-                  }`}
-                  style={{ minWidth: '110px' }}
-                >
-                  {d.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sortedSectors.map(sector => (
-              <tbody key={sector}>
-                {showSectorTitles && (
+      <div className="space-y-4">
+        {sortedSectors.map(sector => {
+          const maxNames = Math.max(
+            ...week.days.map(d => (d.collaboratorsBySector[sector] || []).length),
+            0
+          );
+          if (maxNames === 0) return null;
+
+          const sectorPeriod = firstDate && lastDate
+            ? `${sector} ${formatDateBR(firstDate)} à ${formatDateBR(lastDate)}`
+            : sector;
+
+          return (
+            <div key={sector} className="overflow-x-auto">
+              <table className={`w-full border-collapse ${textSize}`}>
+                <thead>
                   <tr>
-                    <td
+                    <th
                       colSpan={7}
-                      className={`border border-border ${compact ? 'px-2 py-0.5' : 'px-2 py-1.5'} font-bold bg-secondary text-secondary-foreground uppercase tracking-wide ${fontSize === 'sm' ? 'text-[10px]' : 'text-xs'}`}
+                      className={`border border-border ${compact ? 'px-2 py-1' : 'px-3 py-2'} text-left font-bold bg-secondary text-secondary-foreground uppercase tracking-wide`}
                     >
-                      {sector}
-                    </td>
+                      {sectorPeriod}
+                    </th>
                   </tr>
-                )}
-                {(() => {
-                  const maxNames = Math.max(
-                    ...week.days.map(d => (d.collaboratorsBySector[sector] || []).length),
-                    0
-                  );
-                  return Array.from({ length: maxNames }, (_, idx) => (
-                    <tr key={`${sector}-${idx}`}>
-                      {week.days.map(d => {
-                        const name = (d.collaboratorsBySector[sector] || [])[idx] || '';
-                        const hasAlert = isAlertName(name);
+                  <tr>
+                    {DAY_HEADERS.map((day, i) => (
+                      <th
+                        key={day}
+                        className={`border border-border px-2 ${compact ? 'py-1' : 'py-2'} text-center font-semibold bg-muted ${
+                          i === 6 ? 'bg-accent text-accent-foreground' : ''
+                        }`}
+                        style={{ minWidth: '110px' }}
+                      >
+                        {day}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from({ length: maxNames }, (_, idx) => (
+                    <tr key={idx}>
+                      {week.days.map((d, di) => {
+                        const names = d.collaboratorsBySector[sector] || [];
+                        const name = names[idx] || '';
+                        const hasAlert = name ? isAlertName(name) : false;
+                        const numbered = name ? `${idx + 1} - ${name}` : '';
                         return (
                           <td
                             key={d.label}
-                            className={`border border-border px-2 ${compact ? 'py-0.5' : 'py-1'} text-center ${
-                              d.dayOfWeek === 'DOMINGO' ? 'bg-accent/30' : ''
-                            } ${hasAlert ? 'bg-warning/20 text-warning-foreground font-semibold' : ''}`}
+                            className={`border border-border px-2 ${compact ? 'py-0.5' : 'py-1'} text-left ${
+                              di === 6 ? 'bg-accent/30' : ''
+                            } ${hasAlert ? 'bg-warning/20 font-semibold' : ''}`}
                           >
                             {hasAlert ? (
-                              <span className="text-amber-700 dark:text-amber-400">{name}</span>
-                            ) : name}
+                              <span className="text-amber-700 dark:text-amber-400">{numbered}</span>
+                            ) : numbered}
                           </td>
                         );
                       })}
                     </tr>
-                  ));
-                })()}
-              </tbody>
-            ))}
-          </tbody>
-        </table>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })}
       </div>
     );
   };
