@@ -65,7 +65,7 @@ export interface ProductivityRow {
   ppp: number; // pedidos por pessoa
 }
 
-const SECTOR_ORDER = ['COZINHA', 'DIURNO', 'SALÃO', 'TELE - ENTREGA', 'TIME', 'TMT'];
+const SECTOR_ORDER = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO', 'TIME', 'TMT'];
 
 /** Get freelancer quantity for a given date and sector */
 function getFreelancerCount(freelancers: Freelancer[], date: string, sector: string): number {

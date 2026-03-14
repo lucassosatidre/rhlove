@@ -99,7 +99,7 @@ export default function Escala() {
   const isAlertName = (name: string) =>
     name.includes('(EXPERIÊNCIA VENCENDO)') || name.includes('(AVISO TERMINANDO)');
 
-  const SECTOR_ORDER = ['COZINHA', 'DIURNO', 'SALÃO', 'TELE - ENTREGA'];
+  const SECTOR_ORDER = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'];
 
   const DAY_HEADERS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
