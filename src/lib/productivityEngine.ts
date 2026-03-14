@@ -98,7 +98,8 @@ function getFreelancerCount(freelancers: Freelancer[], date: string, sector: str
 export function generateProductivityData(
   salesData: DailySales[],
   collaborators: Collaborator[],
-  freelancers: Freelancer[] = []
+  freelancers: Freelancer[] = [],
+  scheduledVacations: ScheduledVacation[] = []
 ): ProductivityRow[] {
   const rows: ProductivityRow[] = [];
 
