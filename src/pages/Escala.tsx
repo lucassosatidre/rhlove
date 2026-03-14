@@ -294,7 +294,7 @@ export default function Escala() {
                           const dateKey = formatDateKey(d.date);
                           const sale = salesMap[dateKey];
                           if (!sale) {
-                            return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>PPP: -</td>;
+                            return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>PCS: -</td>;
                           }
                           const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date);
                           const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
