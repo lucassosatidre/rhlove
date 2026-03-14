@@ -1,4 +1,6 @@
 import type { Collaborator, DayOfWeek } from '@/types/collaborator';
+import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
+import { isOnScheduledVacation } from '@/hooks/useScheduledVacations';
 
 export interface ScheduleWeek {
   weekNumber: number;
