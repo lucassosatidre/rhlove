@@ -24,6 +24,8 @@ export default function Escala() {
   const [fontSize, setFontSize] = useState<'sm' | 'base' | 'lg'>('sm');
   const [showSectorTitles, setShowSectorTitles] = useState(true);
   const [selectedWeek, setSelectedWeek] = useState(0);
+  const [freesDialogOpen, setFreesDialogOpen] = useState(false);
+  const [freesWeekIdx, setFreesWeekIdx] = useState(0);
   const printRef = useRef<HTMLDivElement>(null);
 
   const { data: collaborators = [] } = useCollaborators();
