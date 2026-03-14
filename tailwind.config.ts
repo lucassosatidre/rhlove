@@ -12,7 +12,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["'Inter'", "system-ui", "sans-serif"],
+        sans: ["'DM Sans'", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -65,6 +65,12 @@ export default {
           "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
+        },
+        sector: {
+          cozinha: "hsl(var(--sector-cozinha))",
+          salao: "hsl(var(--sector-salao))",
+          tele: "hsl(var(--sector-tele))",
+          diurno: "hsl(var(--sector-diurno))",
         },
       },
       borderRadius: {
