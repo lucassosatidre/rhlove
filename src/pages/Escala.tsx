@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ChevronLeft, ChevronRight, Download, Printer } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Printer, Users } from 'lucide-react';
+import FreesDialog from '@/components/FreesDialog';
 import * as XLSX from 'xlsx';
 
 const MONTHS = [
