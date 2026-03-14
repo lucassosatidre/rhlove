@@ -61,11 +61,11 @@ export interface ProductivityRow {
   vendas: number;
   pedidos: number;
   numero_pessoas: number;
-  tmp: number; // ticket médio por pessoa
-  ppp: number; // pedidos por pessoa
+  tcs: number; // Ticket por Colaborador - Setor (was tmp)
+  pcs: number; // Pedidos por Colaborador - Setor (was ppp)
 }
 
-const SECTOR_ORDER = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO', 'TIME', 'TMT'];
+const SECTOR_ORDER = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO', 'TIME', 'TCT', 'PCT'];
 
 /** Get freelancer quantity for a given date and sector */
 function getFreelancerCount(freelancers: Freelancer[], date: string, sector: string): number {
@@ -102,8 +102,8 @@ export function generateProductivityData(
       vendas: ft,
       pedidos: pt,
       numero_pessoas: pCozinha,
-      tmp: pCozinha > 0 ? ft / pCozinha : 0,
-      ppp: pCozinha > 0 ? pt / pCozinha : 0,
+      tcs: pCozinha > 0 ? ft / pCozinha : 0,
+      pcs: pCozinha > 0 ? pt / pCozinha : 0,
     });
 
     // DIURNO: uses total
@@ -113,8 +113,8 @@ export function generateProductivityData(
       vendas: ft,
       pedidos: pt,
       numero_pessoas: pDiurno,
-      tmp: pDiurno > 0 ? ft / pDiurno : 0,
-      ppp: pDiurno > 0 ? pt / pDiurno : 0,
+      tcs: pDiurno > 0 ? ft / pDiurno : 0,
+      pcs: pDiurno > 0 ? pt / pDiurno : 0,
     });
 
     // SALÃO: uses salão data
@@ -124,8 +124,8 @@ export function generateProductivityData(
       vendas: fs,
       pedidos: ps,
       numero_pessoas: pSalao,
-      tmp: pSalao > 0 ? fs / pSalao : 0,
-      ppp: pSalao > 0 ? ps / pSalao : 0,
+      tcs: pSalao > 0 ? fs / pSalao : 0,
+      pcs: pSalao > 0 ? ps / pSalao : 0,
     });
 
     // TELE - ENTREGA: uses tele data
@@ -135,8 +135,8 @@ export function generateProductivityData(
       vendas: fte,
       pedidos: pte,
       numero_pessoas: pTele,
-      tmp: pTele > 0 ? fte / pTele : 0,
-      ppp: pTele > 0 ? pte / pTele : 0,
+      tcs: pTele > 0 ? fte / pTele : 0,
+      pcs: pTele > 0 ? pte / pTele : 0,
     });
 
     // TIME
@@ -147,20 +147,32 @@ export function generateProductivityData(
       vendas: 0,
       pedidos: 0,
       numero_pessoas: totalPeople,
-      tmp: 0,
-      ppp: 0,
+      tcs: 0,
+      pcs: 0,
     });
 
-    // TMT
-    const tmt = totalPeople > 0 ? ft / totalPeople : 0;
+    // TCT - Ticket por Colaborador - Time
+    const tct = totalPeople > 0 ? ft / totalPeople : 0;
     rows.push({
       date: sale.date,
-      sector: 'TMT',
+      sector: 'TCT',
       vendas: ft,
       pedidos: 0,
       numero_pessoas: totalPeople,
-      tmp: tmt,
-      ppp: 0,
+      tcs: tct,
+      pcs: 0,
+    });
+
+    // PCT - Pedidos por Colaborador - Time
+    const pct = totalPeople > 0 ? pt / totalPeople : 0;
+    rows.push({
+      date: sale.date,
+      sector: 'PCT',
+      vendas: 0,
+      pedidos: pt,
+      numero_pessoas: totalPeople,
+      tcs: 0,
+      pcs: pct,
     });
   }
 
