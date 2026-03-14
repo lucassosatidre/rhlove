@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/colaboradores', label: 'Colaboradores', icon: Users },
   { to: '/produtividade', label: 'Produtividade', icon: BarChart3 },
   { to: '/ferias', label: 'Férias', icon: Palmtree },
+  { to: '/compensacoes', label: 'Compensações', icon: CalendarCheck },
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
