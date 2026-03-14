@@ -284,7 +284,7 @@ export default function Escala() {
                           const tmp = total > 0 ? vendas / total : 0;
                           return (
                             <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
-                              TMP: {tmp > 0 ? formatNum(tmp) : '-'}
+                              TCS: {tmp > 0 ? formatNum(tmp) : '-'}
                             </td>
                           );
                         })}
