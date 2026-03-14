@@ -14,7 +14,7 @@ export const DAY_LABELS: Record<DayOfWeek, string> = {
   DOMINGO: 'Domingo',
 };
 
-export const SECTORS = ['COZINHA', 'SALÃO', 'DIURNO', 'TELE - ENTREGA'] as const;
+export const SECTORS = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'] as const;
 
 export const TIPO_ESCALA = ['6x1', '5x2', '4x3'] as const;
 export type TipoEscala = typeof TIPO_ESCALA[number];

@@ -93,7 +93,7 @@ export default function Produtividade() {
 
   const chartTMP = useMemo(() => {
     const sectors = tmpSectorFilter === 'ALL'
-      ? ['COZINHA', 'DIURNO', 'SALÃO', 'TELE - ENTREGA']
+      ? ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO']
       : [tmpSectorFilter];
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
     return dates.map(date => {
@@ -112,7 +112,7 @@ export default function Produtividade() {
     return dates.map(date => {
       const row: Record<string, any> = { date: formatDateBR(date) };
       for (const r of productivityRows.filter(r => r.date === date)) {
-        if (['COZINHA', 'DIURNO', 'SALÃO', 'TELE - ENTREGA'].includes(r.sector)) {
+        if (['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'].includes(r.sector)) {
           row[r.sector] = Math.round(r.ppp * 100) / 100;
         }
       }
@@ -754,9 +754,9 @@ export default function Produtividade() {
                   >
                     <ToggleGroupItem value="ALL" className="text-xs px-2 h-7">Todos</ToggleGroupItem>
                     <ToggleGroupItem value="COZINHA" className="text-xs px-2 h-7">Cozinha</ToggleGroupItem>
-                    <ToggleGroupItem value="DIURNO" className="text-xs px-2 h-7">Diurno</ToggleGroupItem>
                     <ToggleGroupItem value="SALÃO" className="text-xs px-2 h-7">Salão</ToggleGroupItem>
                     <ToggleGroupItem value="TELE - ENTREGA" className="text-xs px-2 h-7">Tele</ToggleGroupItem>
+                    <ToggleGroupItem value="DIURNO" className="text-xs px-2 h-7">Diurno</ToggleGroupItem>
                   </ToggleGroup>
                 </div>
               </CardHeader>

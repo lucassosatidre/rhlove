@@ -56,7 +56,7 @@ export default function Escala() {
       const allSectors = new Set<string>();
       week.days.forEach(d => Object.keys(d.collaboratorsBySector).forEach(s => allSectors.add(s)));
 
-      for (const sector of [...allSectors].sort()) {
+      for (const sector of ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'].filter(s => allSectors.has(s)).concat([...allSectors].filter(s => !['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'].includes(s)).sort())) {
         rows.push({ '': `--- ${sector} ---` });
         const maxNames = Math.max(...week.days.map(d => (d.collaboratorsBySector[sector] || []).length), 0);
         for (let n = 0; n < maxNames; n++) {
@@ -77,7 +77,7 @@ export default function Escala() {
       allRows.push({ '': `=== SEMANA ${i + 1} ===` });
       const allSectors = new Set<string>();
       week.days.forEach(d => Object.keys(d.collaboratorsBySector).forEach(s => allSectors.add(s)));
-      for (const sector of [...allSectors].sort()) {
+      for (const sector of ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'].filter(s => allSectors.has(s)).concat([...allSectors].filter(s => !['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'].includes(s)).sort())) {
         allRows.push({ '': `--- ${sector} ---` });
         const maxNames = Math.max(...week.days.map(d => (d.collaboratorsBySector[sector] || []).length), 0);
         for (let n = 0; n < maxNames; n++) {
@@ -99,7 +99,7 @@ export default function Escala() {
   const isAlertName = (name: string) =>
     name.includes('(EXPERIÊNCIA VENCENDO)') || name.includes('(AVISO TERMINANDO)');
 
-  const SECTOR_ORDER = ['COZINHA', 'DIURNO', 'SALÃO', 'TELE - ENTREGA'];
+  const SECTOR_ORDER = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'];
 
   const DAY_HEADERS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
