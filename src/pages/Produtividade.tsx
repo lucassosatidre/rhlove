@@ -533,7 +533,6 @@ export default function Produtividade() {
               <History className="w-4 h-4 mr-1" /> Carga Histórica
             </Button>
             <Button size="sm" onClick={openNew}>
-            <Button size="sm" onClick={openNew}>
               <Plus className="w-4 h-4 mr-1" /> Cadastrar Dia
             </Button>
           </div>
