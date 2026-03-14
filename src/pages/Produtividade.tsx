@@ -19,10 +19,10 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import * as XLSX from 'xlsx';
 
 const SECTOR_COLORS: Record<string, string> = {
-  'COZINHA': 'hsl(220, 15%, 25%)',
-  'DIURNO': 'hsl(220, 10%, 45%)',
-  'SALÃO': 'hsl(220, 8%, 65%)',
-  'TELE - ENTREGA': 'hsl(220, 5%, 80%)',
+  'COZINHA': 'hsl(var(--sector-cozinha))',
+  'SALÃO': 'hsl(var(--sector-salao))',
+  'TELE - ENTREGA': 'hsl(var(--sector-tele))',
+  'DIURNO': 'hsl(var(--sector-diurno))',
 };
 
 interface ImportPreviewRow {
