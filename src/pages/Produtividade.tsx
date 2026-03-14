@@ -774,9 +774,9 @@ export default function Produtividade() {
                         <TableCell className="text-xs text-right tabular-nums">{formatCurrency(row.faturamento_salao)}</TableCell>
                         <TableCell>
                           {row.errors.length > 0 ? (
-                            <AlertCircle className="w-3.5 h-3.5 text-destructive" title={row.errors.join('; ')} />
+                            <span title={row.errors.join('; ')}><AlertCircle className="w-3.5 h-3.5 text-destructive" /></span>
                           ) : (
-                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                            <Check className="w-3.5 h-3.5 text-success" />
                           )}
                         </TableCell>
                       </TableRow>
