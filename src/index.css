@@ -92,10 +92,10 @@
     --sidebar-border: 20 22% 10%;
     --sidebar-ring: 24 90% 52%;
 
-    --sector-cozinha: 0 65% 55%;
-    --sector-salao: 220 60% 60%;
+    --sector-cozinha: 0 0% 20%;
+    --sector-salao: 0 65% 55%;
     --sector-tele: 152 50% 50%;
-    --sector-diurno: 38 80% 58%;
+    --sector-diurno: 220 60% 60%;
   }
 }
 
