@@ -511,7 +511,7 @@ export default function Produtividade() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <input
               ref={fileInputRef}
               type="file"
@@ -519,8 +519,21 @@ export default function Produtividade() {
               className="hidden"
               onChange={handleFileSelect}
             />
+            <input
+              ref={histFileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={handleHistFileSelect}
+            />
             <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
               <Upload className="w-4 h-4 mr-1" /> Importar Planilha
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => histFileInputRef.current?.click()}>
+              <History className="w-4 h-4 mr-1" /> Carga Histórica
+            </Button>
+            <Button size="sm" onClick={openNew}>
+              <Plus className="w-4 h-4 mr-1" /> Cadastrar Dia
             </Button>
             <Button size="sm" onClick={openNew}>
               <Plus className="w-4 h-4 mr-1" /> Cadastrar Dia
