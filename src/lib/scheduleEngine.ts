@@ -73,6 +73,9 @@ function getDisplayName(collab: Collaborator, scheduleDate: Date, scheduledVacat
     if (!deslig) return null; // no end date = don't show
   }
 
+  // STEP 0.5 — SCHEDULED VACATIONS
+  if (isOnScheduledVacation(scheduledVacations, collab.id, sd)) return null;
+
   // STEP 1 — STATUS with periodo
   if (collab.status === 'FERIAS' || collab.status === 'AFASTADO') {
     const inicio = parseDate(collab.inicio_periodo);
