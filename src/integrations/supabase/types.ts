@@ -261,12 +261,39 @@ export type Database = {
           },
         ]
       }
+      usuarios: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          perfil: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          nome: string
+          perfil?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+          perfil?: string
+          status?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
