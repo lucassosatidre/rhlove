@@ -62,6 +62,45 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_sales: {
+        Row: {
+          created_at: string
+          date: string
+          faturamento_salao: number
+          faturamento_tele: number
+          faturamento_total: number
+          id: string
+          pedidos_salao: number
+          pedidos_tele: number
+          pedidos_totais: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          faturamento_salao?: number
+          faturamento_tele?: number
+          faturamento_total?: number
+          id?: string
+          pedidos_salao?: number
+          pedidos_tele?: number
+          pedidos_totais?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          faturamento_salao?: number
+          faturamento_tele?: number
+          faturamento_total?: number
+          id?: string
+          pedidos_salao?: number
+          pedidos_tele?: number
+          pedidos_totais?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

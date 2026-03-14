@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import AppLayout from "@/components/AppLayout";
 import Escala from "@/pages/Escala";
 import Colaboradores from "@/pages/Colaboradores";
+import Produtividade from "@/pages/Produtividade";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Escala />} />
             <Route path="/colaboradores" element={<Colaboradores />} />
+            <Route path="/produtividade" element={<Produtividade />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AppLayout>
