@@ -69,13 +69,14 @@ export default function Produtividade() {
 
   const { data: collaborators = [] } = useCollaborators();
   const { data: salesData = [], isLoading } = useDailySales(startDate, endDate);
+  const { data: freelancersData = [] } = useFreelancers(startDate, endDate);
   const upsertMut = useUpsertDailySales();
   const bulkMut = useBulkInsertDailySales();
   const deleteMut = useDeleteDailySales();
 
   const productivityRows = useMemo(
-    () => generateProductivityData(salesData, collaborators),
-    [salesData, collaborators]
+    () => generateProductivityData(salesData, collaborators, freelancersData),
+    [salesData, collaborators, freelancersData]
   );
 
   const groupedByDate = useMemo(() => {
