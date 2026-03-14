@@ -238,6 +238,9 @@ export default function Colaboradores() {
           <p className="text-sm text-muted-foreground">{collaborators.length} cadastrados</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={collaborators.length === 0}>
+            <Download className="w-4 h-4 mr-1" /> Exportar
+          </Button>
           <label className="cursor-pointer">
             <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
             <Button variant="outline" size="sm" asChild>
