@@ -690,27 +690,7 @@ export default function Produtividade() {
           </TabsContent>
 
           <TabsContent value="charts" className="space-y-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">TMP — Ticket Médio por Pessoa</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer config={tmpChartConfig} className="h-[300px] w-full">
-                  <BarChart data={chartTMP}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Legend />
-                    <Bar dataKey="COZINHA" fill={SECTOR_COLORS['COZINHA']} name="Cozinha" radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="DIURNO" fill={SECTOR_COLORS['DIURNO']} name="Diurno" radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="SALÃO" fill={SECTOR_COLORS['SALÃO']} name="Salão" radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="TELE - ENTREGA" fill={SECTOR_COLORS['TELE - ENTREGA']} name="Tele-Entrega" radius={[2, 2, 0, 0]} />
-                  </BarChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-
+            {/* 1. PPP */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">PPP — Pedidos por Pessoa</CardTitle>
@@ -732,20 +712,86 @@ export default function Produtividade() {
               </CardContent>
             </Card>
 
+            {/* 2. TMT with permanent labels */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">TMT — Ticket Médio do Time</CardTitle>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={tmtChartConfig} className="h-[300px] w-full">
-                  <LineChart data={chartTMT}>
+                <ChartContainer config={tmtChartConfig} className="h-[320px] w-full">
+                  <LineChart data={chartTMT} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
                     <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line type="monotone" dataKey="TMT" stroke="hsl(220, 15%, 25%)" strokeWidth={2} dot={{ r: 4 }} name="TMT" />
+                    <Line type="monotone" dataKey="TMT" stroke="hsl(220, 15%, 25%)" strokeWidth={2} dot={{ r: 4, fill: 'hsl(220, 15%, 25%)' }} name="TMT">
+                      <LabelList
+                        dataKey="TMT"
+                        position="top"
+                        offset={10}
+                        formatter={(v: number) => `R$ ${Math.round(v).toLocaleString('pt-BR')}`}
+                        style={{ fontSize: 10, fontWeight: 600, fill: 'hsl(220, 15%, 25%)' }}
+                      />
+                    </Line>
                   </LineChart>
                 </ChartContainer>
+              </CardContent>
+            </Card>
+
+            {/* 3. TMP with sector filter */}
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <CardTitle className="text-sm">TMP — Ticket Médio por Pessoa</CardTitle>
+                  <ToggleGroup
+                    type="single"
+                    value={tmpSectorFilter}
+                    onValueChange={v => v && setTmpSectorFilter(v)}
+                    size="sm"
+                    className="flex-wrap"
+                  >
+                    <ToggleGroupItem value="ALL" className="text-xs px-2 h-7">Todos</ToggleGroupItem>
+                    <ToggleGroupItem value="COZINHA" className="text-xs px-2 h-7">Cozinha</ToggleGroupItem>
+                    <ToggleGroupItem value="DIURNO" className="text-xs px-2 h-7">Diurno</ToggleGroupItem>
+                    <ToggleGroupItem value="SALÃO" className="text-xs px-2 h-7">Salão</ToggleGroupItem>
+                    <ToggleGroupItem value="TELE - ENTREGA" className="text-xs px-2 h-7">Tele</ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {tmpSectorFilter === 'ALL' ? (
+                  <ChartContainer config={tmpChartConfig} className="h-[300px] w-full">
+                    <BarChart data={chartTMP}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Legend />
+                      <Bar dataKey="COZINHA" fill={SECTOR_COLORS['COZINHA']} name="Cozinha" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="DIURNO" fill={SECTOR_COLORS['DIURNO']} name="Diurno" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="SALÃO" fill={SECTOR_COLORS['SALÃO']} name="Salão" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="TELE - ENTREGA" fill={SECTOR_COLORS['TELE - ENTREGA']} name="Tele-Entrega" radius={[2, 2, 0, 0]} />
+                    </BarChart>
+                  </ChartContainer>
+                ) : (
+                  <ChartContainer config={{ [tmpSectorFilter]: { label: tmpSectorFilter, color: SECTOR_COLORS[tmpSectorFilter] || 'hsl(220, 15%, 25%)' } }} className="h-[320px] w-full">
+                    <LineChart data={chartTMP} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Line type="monotone" dataKey={tmpSectorFilter} stroke={SECTOR_COLORS[tmpSectorFilter] || 'hsl(220, 15%, 25%)'} strokeWidth={2} dot={{ r: 4, fill: SECTOR_COLORS[tmpSectorFilter] || 'hsl(220, 15%, 25%)' }} name={tmpSectorFilter}>
+                        <LabelList
+                          dataKey={tmpSectorFilter}
+                          position="top"
+                          offset={10}
+                          formatter={(v: number) => `R$ ${Math.round(v).toLocaleString('pt-BR')}`}
+                          style={{ fontSize: 10, fontWeight: 600, fill: SECTOR_COLORS[tmpSectorFilter] || 'hsl(220, 15%, 25%)' }}
+                        />
+                      </Line>
+                    </LineChart>
+                  </ChartContainer>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
