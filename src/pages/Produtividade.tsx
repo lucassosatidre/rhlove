@@ -112,7 +112,7 @@ export default function Produtividade() {
     return dates.map(date => {
       const row: Record<string, any> = { date: formatDateBR(date) };
       for (const r of productivityRows.filter(r => r.date === date)) {
-        if (['COZINHA', 'DIURNO', 'SALÃO', 'TELE - ENTREGA'].includes(r.sector)) {
+        if (['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'].includes(r.sector)) {
           row[r.sector] = Math.round(r.ppp * 100) / 100;
         }
       }
