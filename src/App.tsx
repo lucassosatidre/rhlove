@@ -1,17 +1,81 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/AppLayout";
+import Login from "@/pages/Login";
 import Escala from "@/pages/Escala";
 import Colaboradores from "@/pages/Colaboradores";
 import Produtividade from "@/pages/Produtividade";
 import FeriasProgramadas from "@/pages/FeriasProgramadas";
 import Compensacoes from "@/pages/Compensacoes";
+import GerenciarUsuarios from "@/pages/GerenciarUsuarios";
 import NotFound from "./pages/NotFound";
+import { Loader2 } from "lucide-react";
+import type { ReactNode } from "react";
+import type { Perfil } from "@/contexts/AuthContext";
 
 const queryClient = new QueryClient();
+
+function ProtectedRoute({ children, allowedRoles }: { children: ReactNode; allowedRoles?: Perfil[] }) {
+  const { session, usuario, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!session || !usuario) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(usuario.perfil)) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function AppRoutes() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
+  return (
+    <AppLayout>
+      <Routes>
+        <Route path="/login" element={<Navigate to="/" replace />} />
+        <Route path="/" element={<ProtectedRoute><Escala /></ProtectedRoute>} />
+        <Route path="/colaboradores" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Colaboradores /></ProtectedRoute>} />
+        <Route path="/produtividade" element={<ProtectedRoute allowedRoles={['admin', 'gestor', 'lider']}><Produtividade /></ProtectedRoute>} />
+        <Route path="/ferias" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><FeriasProgramadas /></ProtectedRoute>} />
+        <Route path="/compensacoes" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Compensacoes /></ProtectedRoute>} />
+        <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['admin']}><GerenciarUsuarios /></ProtectedRoute>} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </AppLayout>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -19,16 +83,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AppLayout>
-          <Routes>
-            <Route path="/" element={<Escala />} />
-            <Route path="/colaboradores" element={<Colaboradores />} />
-            <Route path="/produtividade" element={<Produtividade />} />
-            <Route path="/ferias" element={<FeriasProgramadas />} />
-            <Route path="/compensacoes" element={<Compensacoes />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AppLayout>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

@@ -1,19 +1,26 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck } from 'lucide-react';
+import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import logo from '@/assets/logo.png';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Escala', icon: CalendarDays },
-  { to: '/colaboradores', label: 'Colaboradores', icon: Users },
-  { to: '/produtividade', label: 'Produtividade', icon: BarChart3 },
-  { to: '/ferias', label: 'Férias', icon: Palmtree },
-  { to: '/compensacoes', label: 'Compensações', icon: CalendarCheck },
+  { to: '/', label: 'Escala', icon: CalendarDays, roles: ['admin', 'gestor', 'lider', 'visualizador'] },
+  { to: '/colaboradores', label: 'Colaboradores', icon: Users, roles: ['admin', 'gestor'] },
+  { to: '/produtividade', label: 'Produtividade', icon: BarChart3, roles: ['admin', 'gestor', 'lider'] },
+  { to: '/ferias', label: 'Férias', icon: Palmtree, roles: ['admin', 'gestor'] },
+  { to: '/compensacoes', label: 'Compensações', icon: CalendarCheck, roles: ['admin', 'gestor'] },
+  { to: '/usuarios', label: 'Usuários', icon: Shield, roles: ['admin'] },
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { usuario, signOut } = useAuth();
+
+  const visibleItems = NAV_ITEMS.filter(item => 
+    usuario && item.roles.includes(usuario.perfil)
+  );
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -34,7 +41,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="flex-1 px-3 space-y-0.5">
-          {NAV_ITEMS.map(item => {
+          {visibleItems.map(item => {
             const active = location.pathname === item.to;
             return (
               <Link
@@ -53,8 +60,24 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border">
-          <span className="text-[11px] text-sidebar-foreground/30 font-medium">v1.0 · Sistema interno</span>
+        {/* User info */}
+        <div className="p-4 border-t border-sidebar-border space-y-3">
+          {usuario && (
+            <div className="flex items-center justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-sidebar-foreground truncate">{usuario.nome}</p>
+                <p className="text-[10px] text-sidebar-foreground/40 capitalize">{usuario.perfil}</p>
+              </div>
+              <button
+                onClick={signOut}
+                className="p-1.5 rounded-lg hover:bg-sidebar-accent transition-colors text-sidebar-foreground/50 hover:text-sidebar-foreground"
+                title="Sair"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          <span className="text-[11px] text-sidebar-foreground/30 font-medium block">v1.0 · Sistema interno</span>
         </div>
       </aside>
 
@@ -65,17 +88,25 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <div className="w-8 h-8 rounded-lg overflow-hidden shadow ring-1 ring-primary/20">
               <img src={logo} alt="Estrela RH" className="w-full h-full object-cover" />
             </div>
-            <span className="font-bold text-sm">Estrela RH</span>
+            <div>
+              <span className="font-bold text-sm block">Estrela RH</span>
+              {usuario && <span className="text-[10px] text-muted-foreground">{usuario.nome}</span>}
+            </div>
           </div>
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          <div className="flex items-center gap-1">
+            <button onClick={signOut} className="p-1.5 rounded-lg hover:bg-muted transition-colors" title="Sair">
+              <LogOut className="w-4 h-4" />
+            </button>
+            <button onClick={() => setMobileOpen(!mobileOpen)} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </header>
 
         {mobileOpen && (
           <div className="md:hidden absolute inset-0 z-50 bg-background/98 backdrop-blur-sm pt-16">
             <nav className="px-4 space-y-1">
-              {NAV_ITEMS.map(item => {
+              {visibleItems.map(item => {
                 const active = location.pathname === item.to;
                 return (
                   <Link
