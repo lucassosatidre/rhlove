@@ -71,6 +71,7 @@ export default function Produtividade() {
   const { data: collaborators = [] } = useCollaborators();
   const { data: salesData = [], isLoading } = useDailySales(startDate, endDate);
   const { data: freelancersData = [] } = useFreelancers(startDate, endDate);
+  const { data: scheduledVacations = [] } = useScheduledVacations();
   const upsertMut = useUpsertDailySales();
   const bulkMut = useBulkInsertDailySales();
   const deleteMut = useDeleteDailySales();
