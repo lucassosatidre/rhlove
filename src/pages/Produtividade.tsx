@@ -93,7 +93,7 @@ export default function Produtividade() {
 
   const chartTMP = useMemo(() => {
     const sectors = tmpSectorFilter === 'ALL'
-      ? ['COZINHA', 'DIURNO', 'SALÃO', 'TELE - ENTREGA']
+      ? ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO']
       : [tmpSectorFilter];
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
     return dates.map(date => {
