@@ -957,6 +957,110 @@ export default function Produtividade() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Historical Import Dialog */}
+      <Dialog open={histDialogOpen} onOpenChange={setHistDialogOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="w-5 h-5" />
+              Carga Histórica Inicial
+            </DialogTitle>
+            <DialogDescription>
+              Importação de dados retroativos desde 23/02/2026. Cada linha da planilha corresponde a um dia sequencial.
+            </DialogDescription>
+          </DialogHeader>
+
+          {histError && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+              <p className="text-sm text-destructive">{histError}</p>
+            </div>
+          )}
+
+          {histPreview.length > 0 && (
+            <div className="space-y-4">
+              {histExistingDates.length > 0 && (
+                <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 shrink-0" />
+                  <div className="text-sm text-yellow-700">
+                    <p className="font-medium">Atenção: {histExistingDates.length} dia(s) já possuem dados cadastrados.</p>
+                    <p className="text-xs mt-1">Os dados existentes serão sobrescritos ao confirmar a importação.</p>
+                  </div>
+                </div>
+              )}
+
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                <p><strong>{histPreview.length}</strong> dias detectados: <strong>{formatDateBR(histPreview[0].date)}</strong> até <strong>{formatDateBR(histPreview[histPreview.length - 1].date)}</strong></p>
+                <p className="mt-1">Linha 2 = 23/02/2026, incrementando 1 dia por linha.</p>
+              </div>
+
+              <div className="border rounded-lg overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Data</TableHead>
+                      <TableHead className="text-xs text-right">Ped. Total (B)</TableHead>
+                      <TableHead className="text-xs text-right">Fat. Total (C)</TableHead>
+                      <TableHead className="text-xs text-right">Ped. Tele (D)</TableHead>
+                      <TableHead className="text-xs text-right">Fat. Tele (E)</TableHead>
+                      <TableHead className="text-xs text-right">Ped. Salão (H)</TableHead>
+                      <TableHead className="text-xs text-right">Fat. Salão (I)</TableHead>
+                      <TableHead className="text-xs w-8"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {histPreview.map((row, idx) => (
+                      <TableRow
+                        key={idx}
+                        className={`${row.errors.length > 0 ? 'bg-destructive/5' : ''} ${histExistingDates.includes(row.date) ? 'bg-yellow-500/5' : ''}`}
+                      >
+                        <TableCell className="text-xs font-medium">
+                          {formatDateBR(row.date)}
+                          {histExistingDates.includes(row.date) && (
+                            <span className="ml-1 text-yellow-600" title="Dados existentes serão sobrescritos">⚠</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{row.pedidos_totais}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{formatCurrency(row.faturamento_total)}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{row.pedidos_tele}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{formatCurrency(row.faturamento_tele)}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{row.pedidos_salao}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{formatCurrency(row.faturamento_salao)}</TableCell>
+                        <TableCell>
+                          {row.errors.length > 0 ? (
+                            <span title={row.errors.join('; ')}><AlertCircle className="w-3.5 h-3.5 text-destructive" /></span>
+                          ) : (
+                            <Check className="w-3.5 h-3.5 text-green-600" />
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="flex justify-between items-center pt-2">
+                <span className="text-xs text-muted-foreground">
+                  {histPreview.filter(r => r.errors.length === 0).length} de {histPreview.length} linha(s) válida(s)
+                </span>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setHistDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleConfirmHistImport}
+                    disabled={histPreview.filter(r => r.errors.length === 0).length === 0}
+                  >
+                    <Check className="w-4 h-4 mr-1" /> Confirmar Carga Histórica
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
