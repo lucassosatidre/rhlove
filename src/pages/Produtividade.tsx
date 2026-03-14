@@ -472,7 +472,7 @@ export default function Produtividade() {
   };
 
   const tmtChartConfig = {
-    TMT: { label: 'TMT', color: 'hsl(220, 15%, 25%)' },
+    TMT: { label: 'TMT', color: 'hsl(var(--primary))' },
   };
 
   return (
