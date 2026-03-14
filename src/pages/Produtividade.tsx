@@ -2,6 +2,7 @@ import { useState, useMemo, useRef } from 'react';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useDailySales, useUpsertDailySales, useBulkInsertDailySales, useDeleteDailySales, type DailySalesInput } from '@/hooks/useDailySales';
 import { useFreelancers } from '@/hooks/useFreelancers';
+import { useScheduledVacations } from '@/hooks/useScheduledVacations';
 import { supabase } from '@/integrations/supabase/client';
 import { generateProductivityData, formatCurrency, formatDecimal, formatDateBR, getSectorOrder } from '@/lib/productivityEngine';
 import { Button } from '@/components/ui/button';
