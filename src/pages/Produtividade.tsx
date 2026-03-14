@@ -495,7 +495,7 @@ export default function Produtividade() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 no-print">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Produtividade por Pessoa</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Produtividade por Colaborador</h1>
           <p className="text-sm text-muted-foreground">Análise operacional por setor e time</p>
         </div>
         <div className="flex items-center gap-2">
