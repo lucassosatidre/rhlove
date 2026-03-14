@@ -90,17 +90,20 @@ export default function Produtividade() {
   }, [productivityRows]);
 
   const chartTMP = useMemo(() => {
+    const sectors = tmpSectorFilter === 'ALL'
+      ? ['COZINHA', 'DIURNO', 'SALÃO', 'TELE - ENTREGA']
+      : [tmpSectorFilter];
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
     return dates.map(date => {
       const row: Record<string, any> = { date: formatDateBR(date) };
       for (const r of productivityRows.filter(r => r.date === date)) {
-        if (['COZINHA', 'DIURNO', 'SALÃO', 'TELE - ENTREGA'].includes(r.sector)) {
+        if (sectors.includes(r.sector)) {
           row[r.sector] = Math.round(r.tmp * 100) / 100;
         }
       }
       return row;
     });
-  }, [productivityRows]);
+  }, [productivityRows, tmpSectorFilter]);
 
   const chartPPP = useMemo(() => {
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
