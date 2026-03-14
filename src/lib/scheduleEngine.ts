@@ -184,3 +184,15 @@ export function getMonthLabel(year: number, month: number): string {
   const d = new Date(year, month, 1);
   return d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 }
+
+/**
+ * Check if a collaborator is scheduled to work on a given date.
+ * Returns true if they would appear on the schedule (i.e., not on day off, not on leave, etc.)
+ */
+export function isCollaboratorScheduledOnDate(
+  collab: Collaborator,
+  date: Date,
+  scheduledVacations: ScheduledVacation[] = []
+): boolean {
+  return getDisplayName(collab, date, scheduledVacations) !== null;
+}
