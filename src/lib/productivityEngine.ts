@@ -46,6 +46,9 @@ export function countPeopleBySectorOnDate(
       if (!deslig || sd > deslig) continue;
     }
 
+    // Scheduled vacations
+    if (isOnScheduledVacation(scheduledVacations, c.id, sd)) continue;
+
     // Status check with periodo
     if (c.status === 'FERIAS' || c.status === 'AFASTADO') {
       const inicio = parseDate(c.inicio_periodo);
