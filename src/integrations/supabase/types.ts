@@ -14,7 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      collaborators: {
+        Row: {
+          collaborator_name: string
+          created_at: string
+          id: string
+          sector: string
+          sunday_n: number
+          updated_at: string
+          weekly_day_off: string
+        }
+        Insert: {
+          collaborator_name: string
+          created_at?: string
+          id?: string
+          sector: string
+          sunday_n?: number
+          updated_at?: string
+          weekly_day_off?: string
+        }
+        Update: {
+          collaborator_name?: string
+          created_at?: string
+          id?: string
+          sector?: string
+          sunday_n?: number
+          updated_at?: string
+          weekly_day_off?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
