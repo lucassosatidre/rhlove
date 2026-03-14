@@ -58,7 +58,7 @@ function parseDate(s: string | null): Date | null {
  * Check if collaborator should appear on a given schedule date.
  * Returns null if excluded, or the display name (possibly with alert suffix).
  */
-function getDisplayName(collab: Collaborator, scheduleDate: Date): string | null {
+function getDisplayName(collab: Collaborator, scheduleDate: Date, scheduledVacations: ScheduledVacation[] = []): string | null {
   const sd = dateOnly(scheduleDate);
   const dayKey = JS_DAY_TO_KEY[sd.getDay()];
 
