@@ -26,7 +26,8 @@ function getSundayNumber(date: Date): number {
 export function countPeopleBySectorOnDate(
   collaborators: Collaborator[],
   sector: string,
-  date: Date
+  date: Date,
+  scheduledVacations: ScheduledVacation[] = []
 ): number {
   const sd = dateOnly(date);
   const dayKey = JS_DAY_TO_KEY[sd.getDay()];
