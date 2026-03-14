@@ -275,7 +275,7 @@ export default function Escala() {
                           const dateKey = formatDateKey(d.date);
                           const sale = salesMap[dateKey];
                           if (!sale) {
-                            return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>TMP: -</td>;
+                            return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>TCS: -</td>;
                           }
                           const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date);
                           const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
@@ -284,7 +284,7 @@ export default function Escala() {
                           const tmp = total > 0 ? vendas / total : 0;
                           return (
                             <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
-                              TMP: {tmp > 0 ? formatNum(tmp) : '-'}
+                              TCS: {tmp > 0 ? formatNum(tmp) : '-'}
                             </td>
                           );
                         })}
@@ -294,7 +294,7 @@ export default function Escala() {
                           const dateKey = formatDateKey(d.date);
                           const sale = salesMap[dateKey];
                           if (!sale) {
-                            return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>PPP: -</td>;
+                            return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>PCS: -</td>;
                           }
                           const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date);
                           const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
@@ -303,7 +303,7 @@ export default function Escala() {
                           const ppp = total > 0 ? pedidos / total : 0;
                           return (
                             <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
-                              PPP: {ppp > 0 ? formatNum(ppp) : '-'}
+                              PCS: {ppp > 0 ? formatNum(ppp) : '-'}
                             </td>
                           );
                         })}

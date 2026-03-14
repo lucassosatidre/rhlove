@@ -9,7 +9,7 @@ Estrela RH - internal HR scheduling app for Pizzaria Estrela da Ilha
 - Theme: warm orange primary (hsl 24 90% 50%), dark sidebar
 - Font: DM Sans (replaced Inter)
 - Brand: "Estrela RH" with custom star logo (src/assets/logo.png)
-- Sector colors: Cozinha=red, Salão=blue, Tele=green, Diurno=amber (CSS tokens --sector-*)
+- Sector colors: Cozinha=black, Salão=red, Tele=green, Diurno=blue (CSS tokens --sector-*)
 - Logo also used as favicon (public/favicon.png)
 
 ## Database
@@ -37,3 +37,11 @@ Estrela RH - internal HR scheduling app for Pizzaria Estrela da Ilha
 
 ## Sector order (GLOBAL)
 1. COZINHA  2. SALÃO  3. TELE - ENTREGA  4. DIURNO
+
+## Productivity indicators (renamed 2026-03-14)
+- PCS = Pedidos por Colaborador - Setor (was PPP)
+- TCS = Ticket por Colaborador - Setor (was TMP)
+- PCT = Pedidos por Colaborador - Time (NEW)
+- TCT = Ticket por Colaborador - Time (was TMT)
+- ProductivityRow fields: pcs (was ppp), tcs (was tmp)
+- Table order per date: COZINHA, SALÃO, TELE, DIURNO, TIME, TCT, PCT
