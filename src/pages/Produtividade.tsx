@@ -461,9 +461,9 @@ export default function Produtividade() {
         Setor: r.sector,
         Vendas: r.vendas || '',
         Pedidos: r.pedidos || '',
-        'Nº Pessoas': r.numero_pessoas,
-        TMP: r.tmp ? Math.round(r.tmp * 100) / 100 : '',
-        PPP: r.ppp ? Math.round(r.ppp * 100) / 100 : '',
+        'Nº Colaboradores': r.numero_pessoas,
+        TCS: r.tcs ? Math.round(r.tcs * 100) / 100 : '',
+        PCS: r.pcs ? Math.round(r.pcs * 100) / 100 : '',
       }))
     );
     const ws = XLSX.utils.json_to_sheet(exportRows);
