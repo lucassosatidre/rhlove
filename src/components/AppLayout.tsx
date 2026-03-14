@@ -18,8 +18,8 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       {/* Sidebar desktop */}
       <aside className="hidden md:flex md:w-56 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
         <div className="p-5 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-sidebar-primary flex items-center justify-center">
-            <Pizza className="w-5 h-5 text-sidebar-primary-foreground" />
+          <div className="w-9 h-9 rounded-lg overflow-hidden">
+            <img src={logo} alt="Estrela RH" className="w-full h-full object-cover" />
           </div>
           <div className="leading-tight">
             <span className="text-sm font-bold tracking-tight block">Estrela RH</span>
