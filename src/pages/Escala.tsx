@@ -101,6 +101,13 @@ export default function Escala() {
 
   const SECTOR_ORDER = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'];
 
+  const SECTOR_HEADER_CLASSES: Record<string, string> = {
+    'COZINHA': 'bg-sector-cozinha text-white',
+    'SALÃO': 'bg-sector-salao text-white',
+    'TELE - ENTREGA': 'bg-sector-tele text-white',
+    'DIURNO': 'bg-sector-diurno text-white',
+  };
+
   const DAY_HEADERS = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
   const formatDateBR = (d: Date) =>
