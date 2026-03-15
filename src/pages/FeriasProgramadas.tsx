@@ -354,6 +354,9 @@ export default function FeriasProgramadas() {
                       <TableCell className="hidden sm:table-cell">{v.sector}</TableCell>
                       <TableCell>{formatDateBR(v.data_inicio_ferias)}</TableCell>
                       <TableCell>{formatDateBR(v.data_fim_ferias)}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-xs">
+                        {v.data_pagamento_ferias ? formatDateBR(v.data_pagamento_ferias) : formatDateBR(calcPayDate(v.data_inicio_ferias))}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className={`text-xs ${STATUS_COLORS[cs] || ''}`}>
                           {STATUS_LABELS[cs]}
