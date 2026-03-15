@@ -24,7 +24,7 @@ export default function SectorProductivity({ data }: { data: SectorMetric[] }) {
 
   const chartConfig = {
     value: {
-      label: mode === 'pcs' ? 'Pedidos/Colaborador' : 'Ticket/Colaborador (R$)',
+      label: mode === 'pcs' ? 'Pedidos por colaborador do setor' : 'Ticket por colaborador do setor (R$)',
       color: 'hsl(var(--primary))',
     },
   };
