@@ -674,8 +674,8 @@ export default function Produtividade() {
                         <TableHead className="text-right font-bold">Vendas</TableHead>
                         <TableHead className="text-right font-bold">Pedidos</TableHead>
                         <TableHead className="text-right font-bold">Nº Colaboradores</TableHead>
-                        <TableHead className="text-right font-bold">TCS</TableHead>
-                        <TableHead className="text-right font-bold">PCS</TableHead>
+                        <TableHead className="text-right font-bold"><IndicatorTooltip sigla="TCS">TCS</IndicatorTooltip></TableHead>
+                        <TableHead className="text-right font-bold"><IndicatorTooltip sigla="PCS">PCS</IndicatorTooltip></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
