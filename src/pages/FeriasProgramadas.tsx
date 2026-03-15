@@ -141,6 +141,7 @@ export default function FeriasProgramadas() {
       collaborator_id: v.collaborator_id,
       data_inicio_ferias: v.data_inicio_ferias,
       data_fim_ferias: v.data_fim_ferias,
+      data_pagamento_ferias: v.data_pagamento_ferias || calcPayDate(v.data_inicio_ferias),
       observacao: v.observacao || '',
     });
     setDialogOpen(true);
