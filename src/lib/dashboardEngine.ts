@@ -29,14 +29,18 @@ export function getDateRange(period: string, customStart?: string, customEnd?: s
       return { start: fmt(y), end: fmt(y) };
     }
     case '7dias': {
-      const s = new Date(today);
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const s = new Date(yesterday);
       s.setDate(s.getDate() - 6);
-      return { start: fmt(s), end: fmt(today) };
+      return { start: fmt(s), end: fmt(yesterday) };
     }
     case '30dias': {
-      const s = new Date(today);
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      const s = new Date(yesterday);
       s.setDate(s.getDate() - 29);
-      return { start: fmt(s), end: fmt(today) };
+      return { start: fmt(s), end: fmt(yesterday) };
     }
     case 'personalizado':
       return { start: customStart || fmt(today), end: customEnd || fmt(today) };
