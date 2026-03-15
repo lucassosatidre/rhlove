@@ -43,6 +43,8 @@ const EVENT_TYPE_META: Record<string, { emoji: string; label: string; category: 
   exame: { emoji: '🟣', label: 'Exame demissional', category: 'admin' },
   contabilidade: { emoji: '🟣', label: 'Envio contabilidade', category: 'admin' },
   compensacao: { emoji: '🟢', label: 'Compensação feriado', category: 'compensacao' },
+  rescisao_pagamento: { emoji: '💵', label: 'Pgto. verbas rescisórias', category: 'aviso' },
+  rescisao_assinatura: { emoji: '✍️', label: 'Assinatura rescisão', category: 'aviso' },
 };
 
 function getEventColor(type: string): string {
