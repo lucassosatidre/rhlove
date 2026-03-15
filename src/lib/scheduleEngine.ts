@@ -27,8 +27,16 @@ const SHORT_LABELS: Record<DayOfWeek, string> = {
 function getFirstMondayOfMonthGrid(year: number, month: number): Date {
   const firstDay = new Date(year, month, 1);
   const dow = firstDay.getDay();
+  // Monday=1..Sunday=0; if Sunday, go back 6 days; otherwise go back (dow-1) days
   const diff = dow === 0 ? -6 : 1 - dow;
   return new Date(year, month, 1 + diff);
+}
+
+function getWeekCount(year: number, month: number): number {
+  const firstMonday = getFirstMondayOfMonthGrid(year, month);
+  const lastDay = new Date(year, month + 1, 0); // last day of month
+  const diffDays = Math.ceil((lastDay.getTime() - firstMonday.getTime()) / 86400000) + 1;
+  return Math.ceil(diffDays / 7);
 }
 
 function getSundayNumber(date: Date): number {
