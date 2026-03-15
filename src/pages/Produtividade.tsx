@@ -501,11 +501,11 @@ export default function Produtividade() {
   };
 
   const tctChartConfig = {
-    TCT: { label: 'TCT', color: 'hsl(var(--primary))' },
+    TCT: { label: 'Ticket por colaborador do time', color: 'hsl(var(--primary))' },
   };
 
   const pctChartConfig = {
-    PCT: { label: 'PCT', color: 'hsl(var(--chart-2, 160 60% 45%))' },
+    PCT: { label: 'Pedidos por colaborador do time', color: 'hsl(var(--chart-2, 160 60% 45%))' },
   };
 
   return (
