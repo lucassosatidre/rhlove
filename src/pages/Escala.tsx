@@ -316,6 +316,30 @@ export default function Escala() {
                           );
                         })}
                       </tr>
+                      <tr>
+                        {week.days.map((d, di) => {
+                          const dateKey = formatDateKey(d.date);
+                          const sale = salesMap[dateKey];
+                          const { vendas } = getSectorSales(sale, sector);
+                          return (
+                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
+                              Total de vendas: {sale ? `R$ ${formatNum(vendas)}` : '-'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                      <tr>
+                        {week.days.map((d, di) => {
+                          const dateKey = formatDateKey(d.date);
+                          const sale = salesMap[dateKey];
+                          const { pedidos } = getSectorSales(sale, sector);
+                          return (
+                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
+                              Total de pedidos: {sale ? String(pedidos) : '-'}
+                            </td>
+                          );
+                        })}
+                      </tr>
                     </>
                   )}
                 </tbody>
