@@ -73,10 +73,12 @@ export default function Escala() {
   }, [salesData]);
 
   const prevMonth = () => {
+    setSelectedWeek(0);
     if (month === 0) { setMonth(11); setYear(y => y - 1); }
     else setMonth(m => m - 1);
   };
   const nextMonth = () => {
+    setSelectedWeek(0);
     if (month === 11) { setMonth(0); setYear(y => y + 1); }
     else setMonth(m => m + 1);
   };
@@ -392,8 +394,8 @@ export default function Escala() {
         <Tabs defaultValue="week" className="w-full">
           <TabsList className="no-print">
             <TabsTrigger value="week">Semana</TabsTrigger>
-            <TabsTrigger value="4weeks">4 Semanas</TabsTrigger>
-            <TabsTrigger value="grid">Grade 2×2</TabsTrigger>
+            <TabsTrigger value="4weeks">Visão Mensal</TabsTrigger>
+            <TabsTrigger value="grid">Grade</TabsTrigger>
           </TabsList>
 
           <TabsContent value="week">
@@ -448,7 +450,7 @@ export default function Escala() {
           </TabsContent>
 
           <TabsContent value="grid">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className={`grid grid-cols-1 lg:grid-cols-2 ${weeks.length > 4 ? 'xl:grid-cols-3' : ''} gap-4`}>
               {weeks.map((week, i) => (
                 <Card key={i}>
                   <CardHeader className="pb-2 flex flex-row items-center justify-between">
