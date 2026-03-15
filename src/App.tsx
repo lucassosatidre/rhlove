@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/AppLayout";
 import Login from "@/pages/Login";
+import Dashboard from "@/pages/Dashboard";
 import Escala from "@/pages/Escala";
 import Colaboradores from "@/pages/Colaboradores";
 import Produtividade from "@/pages/Produtividade";
@@ -65,7 +66,8 @@ function AppRoutes() {
     <AppLayout>
       <Routes>
         <Route path="/login" element={<Navigate to="/" replace />} />
-        <Route path="/" element={<ProtectedRoute><Escala /></ProtectedRoute>} />
+        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/escala" element={<ProtectedRoute><Escala /></ProtectedRoute>} />
         <Route path="/colaboradores" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Colaboradores /></ProtectedRoute>} />
         <Route path="/produtividade" element={<ProtectedRoute allowedRoles={['admin', 'gestor', 'lider']}><Produtividade /></ProtectedRoute>} />
         <Route path="/ferias" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><FeriasProgramadas /></ProtectedRoute>} />
