@@ -28,7 +28,8 @@ export default function Escala() {
   const [month, setMonth] = useState(now.getMonth());
   const [compact, setCompact] = useState(false);
   const [fontSize, setFontSize] = useState<'sm' | 'base' | 'lg'>('sm');
-  const [showSectorTitles, setShowSectorTitles] = useState(true);
+  const [singleSectorMode, setSingleSectorMode] = useState(false);
+  const [selectedSector, setSelectedSector] = useState('COZINHA');
   const [showPerformance, setShowPerformance] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState(0);
   const [freesDialogOpen, setFreesDialogOpen] = useState(false);
@@ -181,13 +182,16 @@ export default function Escala() {
     [...allSectors].sort().forEach(s => {
       if (!sortedSectors.includes(s)) sortedSectors.push(s);
     });
+    const visibleSectors = singleSectorMode
+      ? sortedSectors.filter(s => s === selectedSector)
+      : sortedSectors;
 
     const firstDate = week.days[0]?.date;
     const lastDate = week.days[week.days.length - 1]?.date;
 
     return (
       <div className="space-y-4">
-        {sortedSectors.map(sector => {
+        {visibleSectors.map(sector => {
           const maxNames = Math.max(
             ...week.days.map(d => (d.collaboratorsBySector[sector] || []).length),
             0
@@ -355,9 +359,17 @@ export default function Escala() {
             <Switch checked={compact} onCheckedChange={setCompact} />
           </div>
           <div className="flex items-center gap-2">
-            <Label className="text-xs">Setores</Label>
-            <Switch checked={showSectorTitles} onCheckedChange={setShowSectorTitles} />
+            <Label className="text-xs">Setor único</Label>
+            <Switch checked={singleSectorMode} onCheckedChange={setSingleSectorMode} />
           </div>
+          {singleSectorMode && (
+            <Select value={selectedSector} onValueChange={setSelectedSector}>
+              <SelectTrigger className="w-40 h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {SECTOR_ORDER.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
           <div className="flex items-center gap-2">
             <Label className="text-xs">Desempenho</Label>
             <Switch checked={showPerformance} onCheckedChange={setShowPerformance} />
@@ -431,6 +443,9 @@ export default function Escala() {
               const allSectors = Object.keys(todayData.collaboratorsBySector);
               const sortedSectors = SECTOR_ORDER.filter(s => allSectors.includes(s));
               allSectors.sort().forEach(s => { if (!sortedSectors.includes(s)) sortedSectors.push(s); });
+              const visibleSectors = singleSectorMode
+                ? sortedSectors.filter(s => s === selectedSector)
+                : sortedSectors;
 
               return (
                 <Card>
@@ -441,7 +456,7 @@ export default function Escala() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-3 space-y-3">
-                    {sortedSectors.map(sector => {
+                    {visibleSectors.map(sector => {
                       const names = todayData!.collaboratorsBySector[sector] || [];
                       if (names.length === 0) return null;
                       const dateKey = formatDateKey(today);
@@ -474,7 +489,7 @@ export default function Escala() {
                         </div>
                       );
                     })}
-                    {sortedSectors.every(s => (todayData!.collaboratorsBySector[s] || []).length === 0) && (
+                    {visibleSectors.every(s => (todayData!.collaboratorsBySector[s] || []).length === 0) && (
                       <p className="text-center text-muted-foreground py-4">Nenhum colaborador escalado hoje.</p>
                     )}
                   </CardContent>
