@@ -4,6 +4,7 @@ import { useCollaborators } from '@/hooks/useCollaborators';
 import { useFreelancers } from '@/hooks/useFreelancers';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
 import { useHolidayCompensations } from '@/hooks/useHolidayCompensations';
+import { useAvisosPrevios, computeAvisosAlerts } from '@/hooks/useAvisosPrevios';
 import { Loader2 } from 'lucide-react';
 import {
   getDateRange,
@@ -46,6 +47,7 @@ export default function Dashboard() {
   const { data: allFreelancers = [] } = useFreelancers();
   const { data: scheduledVacations = [] } = useScheduledVacations();
   const { data: compensations = [] } = useHolidayCompensations();
+  const { data: avisosPrevios = [] } = useAvisosPrevios();
 
   const loading = loadingSales || loadingCollab;
 
@@ -72,10 +74,14 @@ export default function Dashboard() {
 
   const flSummary = useMemo(() => computeFreelancerSummary(allFreelancers), [allFreelancers]);
 
-  const alerts = useMemo(() =>
+  const baseAlerts = useMemo(() =>
     computeAlerts(collaborators, scheduledVacations, compensations, sales, freelancers),
     [collaborators, scheduledVacations, compensations, sales, freelancers]
   );
+
+  const avisosAlerts = useMemo(() => computeAvisosAlerts(avisosPrevios), [avisosPrevios]);
+
+  const alerts = useMemo(() => [...baseAlerts, ...avisosAlerts], [baseAlerts, avisosAlerts]);
 
   const health = useMemo(() =>
     computeHealth(sales, allSales, collaborators, freelancers, allFreelancers, scheduledVacations),

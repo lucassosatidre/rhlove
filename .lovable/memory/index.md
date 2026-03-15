@@ -25,7 +25,7 @@ Estrela RH - internal HR scheduling app for Pizzaria Estrela da Ilha
 
 ## Role access
 - admin: all pages + user management
-- gestor: escala, colaboradores, produtividade, férias, compensações
+- gestor: escala, colaboradores, produtividade, férias, compensações, avisos prévios
 - lider: escala, produtividade
 - visualizador: escala only (view)
 
