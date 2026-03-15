@@ -726,10 +726,10 @@ export default function Produtividade() {
           </TabsContent>
 
           <TabsContent value="charts" className="space-y-6">
-            {/* 1. PCS — Pedidos por Colaborador - Setor */}
+            {/* 1. Pedidos por colaborador do setor */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">PCS — Pedidos por Colaborador - Setor</CardTitle>
+                <CardTitle className="text-sm">Pedidos por colaborador do setor</CardTitle>
               </CardHeader>
               <CardContent>
                 <ChartContainer config={tcsChartConfig} className="h-[300px] w-full">
