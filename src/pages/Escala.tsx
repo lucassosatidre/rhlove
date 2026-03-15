@@ -1,7 +1,8 @@
 import { useState, useMemo, useRef } from 'react';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useFreelancers } from '@/hooks/useFreelancers';
-import { useDailySales } from '@/hooks/useDailySales';
+import { useFreelancerEntries, useAddFreelancerEntry, useDeleteFreelancerEntry } from '@/hooks/useFreelancerEntries';
+import { useDailySales, useUpsertDailySales } from '@/hooks/useDailySales';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
 import { generateSchedule, getMonthLabel, type ScheduleWeek } from '@/lib/scheduleEngine';
 import { countPeopleBySectorOnDate } from '@/lib/productivityEngine';
@@ -11,8 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { CalendarDays, ChevronLeft, ChevronRight, Download, Printer, Users } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Download, Printer, Users, X } from 'lucide-react';
 import FreesDialog from '@/components/FreesDialog';
+import InlineFreelancerInput from '@/components/schedule/InlineFreelancerInput';
+import EditableSalesCell from '@/components/schedule/EditableSalesCell';
+import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 
 const MONTHS = [
@@ -35,6 +39,7 @@ export default function Escala() {
   const [freesDialogOpen, setFreesDialogOpen] = useState(false);
   const [freesWeekIdx, setFreesWeekIdx] = useState(0);
   const printRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   const { data: collaborators = [] } = useCollaborators();
   const { data: scheduledVacations = [] } = useScheduledVacations();
@@ -44,7 +49,6 @@ export default function Escala() {
     [collaborators, year, month, scheduledVacations]
   );
 
-  // Compute date range for data queries
   const dateRange = useMemo(() => {
     if (weeks.length === 0) return { start: '', end: '' };
     const first = weeks[0].days[0].date;
@@ -54,7 +58,12 @@ export default function Escala() {
   }, [weeks]);
 
   const { data: freelancers = [] } = useFreelancers(dateRange.start, dateRange.end);
+  const { data: freelancerEntries = [] } = useFreelancerEntries(dateRange.start, dateRange.end);
   const { data: salesData = [] } = useDailySales(dateRange.start, dateRange.end);
+
+  const addFreelancerEntry = useAddFreelancerEntry();
+  const deleteFreelancerEntry = useDeleteFreelancerEntry();
+  const upsertSales = useUpsertDailySales();
 
   // Build lookup maps
   const freelancerMap = useMemo(() => {
@@ -64,6 +73,17 @@ export default function Escala() {
     }
     return map;
   }, [freelancers]);
+
+  // Named freelancers by date|sector
+  const freelancerEntriesMap = useMemo(() => {
+    const map: Record<string, typeof freelancerEntries> = {};
+    for (const fe of freelancerEntries) {
+      const key = `${fe.date}|${fe.sector}`;
+      if (!map[key]) map[key] = [];
+      map[key].push(fe);
+    }
+    return map;
+  }, [freelancerEntries]);
 
   const salesMap = useMemo(() => {
     const map: Record<string, typeof salesData[0]> = {};
@@ -175,6 +195,79 @@ export default function Escala() {
   const formatNum = (v: number) =>
     v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+  const handleAddFreelancer = async (date: string, sector: string, name: string) => {
+    try {
+      await addFreelancerEntry.mutateAsync({ date, sector, name });
+      toast({ title: `${name} (F) adicionado` });
+    } catch {
+      toast({ title: 'Erro ao adicionar free-lancer', variant: 'destructive' });
+    }
+  };
+
+  const handleRemoveFreelancer = async (id: string) => {
+    try {
+      await deleteFreelancerEntry.mutateAsync(id);
+    } catch {
+      toast({ title: 'Erro ao remover free-lancer', variant: 'destructive' });
+    }
+  };
+
+  const handleSaveSales = async (dateKey: string, sector: string, field: 'vendas' | 'pedidos', value: number) => {
+    const existingSale = salesMap[dateKey];
+
+    const input: any = {
+      date: dateKey,
+      faturamento_total: existingSale ? Number(existingSale.faturamento_total) || 0 : 0,
+      pedidos_totais: existingSale ? Number(existingSale.pedidos_totais) || 0 : 0,
+      faturamento_salao: existingSale ? Number(existingSale.faturamento_salao) || 0 : 0,
+      pedidos_salao: existingSale ? Number(existingSale.pedidos_salao) || 0 : 0,
+      faturamento_tele: existingSale ? Number(existingSale.faturamento_tele) || 0 : 0,
+      pedidos_tele: existingSale ? Number(existingSale.pedidos_tele) || 0 : 0,
+    };
+
+    if (field === 'vendas') {
+      switch (sector) {
+        case 'COZINHA':
+        case 'DIURNO':
+          input.faturamento_total = value;
+          break;
+        case 'SALÃO':
+          input.faturamento_salao = value;
+          break;
+        case 'TELE - ENTREGA':
+          input.faturamento_tele = value;
+          break;
+      }
+    } else {
+      switch (sector) {
+        case 'COZINHA':
+        case 'DIURNO':
+          input.pedidos_totais = value;
+          break;
+        case 'SALÃO':
+          input.pedidos_salao = value;
+          break;
+        case 'TELE - ENTREGA':
+          input.pedidos_tele = value;
+          break;
+      }
+    }
+
+    try {
+      await upsertSales.mutateAsync(input);
+      toast({ title: 'Dados salvos' });
+    } catch {
+      toast({ title: 'Erro ao salvar', variant: 'destructive' });
+    }
+  };
+
+  /** Get total frees count (quantity-based + named entries) */
+  const getTotalFrees = (dateKey: string, sector: string): number => {
+    const qtyFrees = freelancerMap[`${dateKey}|${sector}`] || 0;
+    const namedFrees = (freelancerEntriesMap[`${dateKey}|${sector}`] || []).length;
+    return qtyFrees + namedFrees;
+  };
+
   const renderWeek = (week: ScheduleWeek) => {
     const allSectors = new Set<string>();
     week.days.forEach(d => Object.keys(d.collaboratorsBySector).forEach(s => allSectors.add(s)));
@@ -196,11 +289,20 @@ export default function Escala() {
             ...week.days.map(d => (d.collaboratorsBySector[sector] || []).length),
             0
           );
-          if (maxNames === 0) return null;
+          if (maxNames === 0 && !singleSectorMode) return null;
 
           const sectorPeriod = firstDate && lastDate
             ? `${sector} ${formatDateBR(firstDate)} à ${formatDateBR(lastDate)}`
             : sector;
+
+          // Get max named freelancers across days for this sector
+          const maxNamedFrees = Math.max(
+            ...week.days.map(d => {
+              const dateKey = formatDateKey(d.date);
+              return (freelancerEntriesMap[`${dateKey}|${sector}`] || []).length;
+            }),
+            0
+          );
 
           return (
             <div key={sector} className="overflow-x-auto">
@@ -229,6 +331,7 @@ export default function Escala() {
                   </tr>
                 </thead>
                 <tbody>
+                  {/* Regular collaborators */}
                   {Array.from({ length: maxNames }, (_, idx) => (
                     <tr key={idx}>
                       {week.days.map((d, di) => {
@@ -251,13 +354,70 @@ export default function Escala() {
                       })}
                     </tr>
                   ))}
+
+                  {/* Named freelancers rows */}
+                  {Array.from({ length: maxNamedFrees }, (_, idx) => (
+                    <tr key={`free-${idx}`}>
+                      {week.days.map((d, di) => {
+                        const dateKey = formatDateKey(d.date);
+                        const namedFrees = freelancerEntriesMap[`${dateKey}|${sector}`] || [];
+                        const entry = namedFrees[idx];
+                        const baseNames = d.collaboratorsBySector[sector] || [];
+                        const num = baseNames.length + idx + 1;
+
+                        return (
+                          <td
+                            key={di}
+                            className={`border border-border px-2 ${compact ? 'py-0.5' : 'py-1'} text-left ${
+                              di === 6 ? 'bg-accent/30' : ''
+                            }`}
+                          >
+                            {entry ? (
+                              <span className="text-primary/80 flex items-center gap-1 group">
+                                <span>{num} - {entry.name} (F)</span>
+                                <button
+                                  onClick={() => handleRemoveFreelancer(entry.id)}
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity no-print"
+                                  title="Remover free-lancer"
+                                >
+                                  <X className="w-3 h-3 text-destructive" />
+                                </button>
+                              </span>
+                            ) : ''}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
+
+                  {/* Inline add freelancer row */}
+                  <tr className="no-print">
+                    {week.days.map((d, di) => {
+                      const dateKey = formatDateKey(d.date);
+                      return (
+                        <td
+                          key={di}
+                          className={`border border-border px-2 ${compact ? 'py-0' : 'py-0.5'} ${
+                            di === 6 ? 'bg-accent/30' : ''
+                          }`}
+                        >
+                          <InlineFreelancerInput
+                            onAdd={(name) => handleAddFreelancer(dateKey, sector, name)}
+                            compact={compact}
+                            textSize={textSize}
+                          />
+                        </td>
+                      );
+                    })}
+                  </tr>
+
                   {/* Performance summary rows */}
                   {showPerformance && (
                     <>
                       <tr>
                         {week.days.map((d, di) => {
                           const dateKey = formatDateKey(d.date);
-                          const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
+                          const frees = getTotalFrees(dateKey, sector);
                           return (
                             <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
                               Frees: {frees}
@@ -269,7 +429,7 @@ export default function Escala() {
                         {week.days.map((d, di) => {
                           const dateKey = formatDateKey(d.date);
                           const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date, scheduledVacations);
-                          const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
+                          const frees = getTotalFrees(dateKey, sector);
                           const total = scheduled + frees;
                           return (
                             <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
@@ -286,7 +446,7 @@ export default function Escala() {
                             return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>Ticket/colab.: -</td>;
                           }
                           const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date, scheduledVacations);
-                          const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
+                          const frees = getTotalFrees(dateKey, sector);
                           const total = scheduled + frees;
                           const { vendas } = getSectorSales(sale, sector);
                           const tmp = total > 0 ? vendas / total : 0;
@@ -305,7 +465,7 @@ export default function Escala() {
                             return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>Pedidos/colab.: -</td>;
                           }
                           const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date, scheduledVacations);
-                          const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
+                          const frees = getTotalFrees(dateKey, sector);
                           const total = scheduled + frees;
                           const { pedidos } = getSectorSales(sale, sector);
                           const ppp = total > 0 ? pedidos / total : 0;
@@ -316,6 +476,7 @@ export default function Escala() {
                           );
                         })}
                       </tr>
+                      {/* Editable Total de vendas */}
                       <tr>
                         {week.days.map((d, di) => {
                           const dateKey = formatDateKey(d.date);
@@ -323,11 +484,17 @@ export default function Escala() {
                           const { vendas } = getSectorSales(sale, sector);
                           return (
                             <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
-                              Total de vendas: {sale ? `R$ ${formatNum(vendas)}` : '-'}
+                              <EditableSalesCell
+                                label="Total de vendas:"
+                                value={sale ? vendas : null}
+                                isCurrency
+                                onSave={(v) => handleSaveSales(dateKey, sector, 'vendas', v)}
+                              />
                             </td>
                           );
                         })}
                       </tr>
+                      {/* Editable Total de pedidos */}
                       <tr>
                         {week.days.map((d, di) => {
                           const dateKey = formatDateKey(d.date);
@@ -335,7 +502,11 @@ export default function Escala() {
                           const { pedidos } = getSectorSales(sale, sector);
                           return (
                             <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
-                              Total de pedidos: {sale ? String(pedidos) : '-'}
+                              <EditableSalesCell
+                                label="Total de pedidos:"
+                                value={sale ? pedidos : null}
+                                onSave={(v) => handleSaveSales(dateKey, sector, 'pedidos', Math.round(v))}
+                              />
                             </td>
                           );
                         })}
@@ -440,7 +611,6 @@ export default function Escala() {
               const today = new Date();
               const todayKey = formatDateKey(today);
               const todayDayName = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][today.getDay()];
-              // Find today in weeks
               let todayData: typeof weeks[0]['days'][0] | null = null;
               for (const w of weeks) {
                 for (const d of w.days) {
@@ -482,16 +652,17 @@ export default function Escala() {
                   <CardContent className="p-3 space-y-3">
                     {visibleSectors.map(sector => {
                       const names = todayData!.collaboratorsBySector[sector] || [];
-                      if (names.length === 0) return null;
+                      const namedFrees = freelancerEntriesMap[`${todayKey}|${sector}`] || [];
+                      if (names.length === 0 && namedFrees.length === 0) return null;
                       const dateKey = formatDateKey(today);
-                      const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
+                      const frees = getTotalFrees(dateKey, sector);
                       return (
                         <div key={sector} className="overflow-x-auto">
                           <table className={`w-full border-collapse ${textSize}`}>
                             <thead>
                               <tr>
                                 <th className={`border border-border px-3 py-2 text-left font-bold uppercase tracking-wide ${SECTOR_HEADER_CLASSES[sector] || 'bg-secondary text-secondary-foreground'}`}>
-                                  {sector} — {names.length} colaborador{names.length !== 1 ? 'es' : ''}{frees > 0 ? ` + ${frees} free${frees !== 1 ? 's' : ''}` : ''}
+                                  {sector} — {names.length + namedFrees.length} colaborador{(names.length + namedFrees.length) !== 1 ? 'es' : ''}{frees > 0 ? ` (${namedFrees.length} free${namedFrees.length !== 1 ? 's' : ''})` : ''}
                                 </th>
                               </tr>
                             </thead>
@@ -508,6 +679,31 @@ export default function Escala() {
                                   </tr>
                                 );
                               })}
+                              {namedFrees.map((fe, idx) => (
+                                <tr key={`free-${fe.id}`}>
+                                  <td className="border border-border px-3 py-1.5">
+                                    <span className="text-primary/80 flex items-center gap-2 group">
+                                      <span>{names.length + idx + 1} - {fe.name} (F)</span>
+                                      <button
+                                        onClick={() => handleRemoveFreelancer(fe.id)}
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity no-print"
+                                        title="Remover free-lancer"
+                                      >
+                                        <X className="w-3 h-3 text-destructive" />
+                                      </button>
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                              <tr className="no-print">
+                                <td className="border border-border px-3 py-1">
+                                  <InlineFreelancerInput
+                                    onAdd={(name) => handleAddFreelancer(todayKey, sector, name)}
+                                    compact={compact}
+                                    textSize={textSize}
+                                  />
+                                </td>
+                              </tr>
                             </tbody>
                           </table>
                         </div>
