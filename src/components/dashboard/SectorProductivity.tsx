@@ -38,8 +38,20 @@ export default function SectorProductivity({ data }: { data: SectorMetric[] }) {
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-semibold">Produtividade por Setor</CardTitle>
           <div className="flex gap-1 no-print">
-            <Button size="sm" variant={mode === 'pcs' ? 'default' : 'outline'} onClick={() => setMode('pcs')} className="h-7 text-xs px-3">PCS</Button>
-            <Button size="sm" variant={mode === 'tcs' ? 'default' : 'outline'} onClick={() => setMode('tcs')} className="h-7 text-xs px-3">TCS</Button>
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="sm" variant={mode === 'pcs' ? 'default' : 'outline'} onClick={() => setMode('pcs')} className="h-7 text-xs px-3">PCS</Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Pedidos por Colaborador — Setor</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="sm" variant={mode === 'tcs' ? 'default' : 'outline'} onClick={() => setMode('tcs')} className="h-7 text-xs px-3">TCS</Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">Ticket por Colaborador — Setor</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
       </CardHeader>
