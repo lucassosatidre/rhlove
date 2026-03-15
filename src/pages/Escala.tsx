@@ -443,6 +443,9 @@ export default function Escala() {
               const allSectors = Object.keys(todayData.collaboratorsBySector);
               const sortedSectors = SECTOR_ORDER.filter(s => allSectors.includes(s));
               allSectors.sort().forEach(s => { if (!sortedSectors.includes(s)) sortedSectors.push(s); });
+              const visibleSectors = singleSectorMode
+                ? sortedSectors.filter(s => s === selectedSector)
+                : sortedSectors;
 
               return (
                 <Card>
