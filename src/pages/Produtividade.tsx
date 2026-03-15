@@ -480,8 +480,8 @@ export default function Produtividade() {
         Vendas: r.vendas || '',
         Pedidos: r.pedidos || '',
         'Nº Colaboradores': r.numero_pessoas,
-        TCS: r.tcs ? Math.round(r.tcs * 100) / 100 : '',
-        PCS: r.pcs ? Math.round(r.pcs * 100) / 100 : '',
+        'Ticket p/ colab. do setor': r.tcs ? Math.round(r.tcs * 100) / 100 : '',
+        'Pedidos p/ colab. do setor': r.pcs ? Math.round(r.pcs * 100) / 100 : '',
       }))
     );
     const ws = XLSX.utils.json_to_sheet(exportRows);
@@ -501,11 +501,11 @@ export default function Produtividade() {
   };
 
   const tctChartConfig = {
-    TCT: { label: 'TCT', color: 'hsl(var(--primary))' },
+    TCT: { label: 'Ticket por colaborador do time', color: 'hsl(var(--primary))' },
   };
 
   const pctChartConfig = {
-    PCT: { label: 'PCT', color: 'hsl(var(--chart-2, 160 60% 45%))' },
+    PCT: { label: 'Pedidos por colaborador do time', color: 'hsl(var(--chart-2, 160 60% 45%))' },
   };
 
   return (
@@ -675,8 +675,8 @@ export default function Produtividade() {
                         <TableHead className="text-right font-bold">Vendas</TableHead>
                         <TableHead className="text-right font-bold">Pedidos</TableHead>
                         <TableHead className="text-right font-bold">Nº Colaboradores</TableHead>
-                        <TableHead className="text-right font-bold"><IndicatorTooltip sigla="TCS">TCS</IndicatorTooltip></TableHead>
-                        <TableHead className="text-right font-bold"><IndicatorTooltip sigla="PCS">PCS</IndicatorTooltip></TableHead>
+                        <TableHead className="text-right font-bold">Ticket p/ colab. do setor</TableHead>
+                        <TableHead className="text-right font-bold">Pedidos p/ colab. do setor</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -698,7 +698,7 @@ export default function Produtividade() {
                               {rowIdx === 0 ? formatDateBR(row.date) : ''}
                             </TableCell>
                             <TableCell className={`${isSummaryRow(row.sector) ? 'font-bold' : ''}`}>
-                              {row.sector}
+                              {row.sector === 'TCT' ? 'Ticket p/ colab. do time' : row.sector === 'PCT' ? 'Pedidos p/ colab. do time' : row.sector}
                             </TableCell>
                             <TableCell className="text-right tabular-nums">
                               {row.vendas ? formatCurrency(row.vendas) : '-'}
@@ -726,10 +726,10 @@ export default function Produtividade() {
           </TabsContent>
 
           <TabsContent value="charts" className="space-y-6">
-            {/* 1. PCS — Pedidos por Colaborador - Setor */}
+            {/* 1. Pedidos por colaborador do setor */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">PCS — Pedidos por Colaborador - Setor</CardTitle>
+                <CardTitle className="text-sm">Pedidos por colaborador do setor</CardTitle>
               </CardHeader>
               <CardContent>
                 <ChartContainer config={tcsChartConfig} className="h-[300px] w-full">
@@ -748,10 +748,10 @@ export default function Produtividade() {
               </CardContent>
             </Card>
 
-            {/* 2. TCT — Ticket por Colaborador - Time */}
+            {/* 2. Ticket por colaborador do time */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">TCT — Ticket por Colaborador - Time</CardTitle>
+                <CardTitle className="text-sm">Ticket por colaborador do time</CardTitle>
               </CardHeader>
               <CardContent>
                 <ChartContainer config={tctChartConfig} className="h-[320px] w-full">
@@ -774,10 +774,10 @@ export default function Produtividade() {
               </CardContent>
             </Card>
 
-            {/* 3. PCT — Pedidos por Colaborador - Time */}
+            {/* 3. Pedidos por colaborador do time */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">PCT — Pedidos por Colaborador - Time</CardTitle>
+                <CardTitle className="text-sm">Pedidos por colaborador do time</CardTitle>
               </CardHeader>
               <CardContent>
                 <ChartContainer config={pctChartConfig} className="h-[320px] w-full">
@@ -800,11 +800,11 @@ export default function Produtividade() {
               </CardContent>
             </Card>
 
-            {/* 4. TCS — Ticket por Colaborador - Setor */}
+            {/* 4. Ticket por colaborador do setor */}
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <CardTitle className="text-sm">TCS — Ticket por Colaborador - Setor</CardTitle>
+                  <CardTitle className="text-sm">Ticket por colaborador do setor</CardTitle>
                   <ToggleGroup
                     type="single"
                     value={tmpSectorFilter}

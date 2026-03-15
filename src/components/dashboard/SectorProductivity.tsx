@@ -24,7 +24,7 @@ export default function SectorProductivity({ data }: { data: SectorMetric[] }) {
 
   const chartConfig = {
     value: {
-      label: mode === 'pcs' ? 'Pedidos/Colaborador' : 'Ticket/Colaborador (R$)',
+      label: mode === 'pcs' ? 'Pedidos por colaborador do setor' : 'Ticket por colaborador do setor (R$)',
       color: 'hsl(var(--primary))',
     },
   };
@@ -38,15 +38,15 @@ export default function SectorProductivity({ data }: { data: SectorMetric[] }) {
             <TooltipProvider delayDuration={200}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button size="sm" variant={mode === 'pcs' ? 'default' : 'outline'} onClick={() => setMode('pcs')} className="h-7 text-xs px-3">PCS</Button>
+                  <Button size="sm" variant={mode === 'pcs' ? 'default' : 'outline'} onClick={() => setMode('pcs')} className="h-7 text-xs px-3">Pedidos</Button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">Pedidos por Colaborador — Setor</TooltipContent>
+                <TooltipContent side="bottom" className="text-xs">Pedidos por colaborador do setor</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button size="sm" variant={mode === 'tcs' ? 'default' : 'outline'} onClick={() => setMode('tcs')} className="h-7 text-xs px-3">TCS</Button>
+                  <Button size="sm" variant={mode === 'tcs' ? 'default' : 'outline'} onClick={() => setMode('tcs')} className="h-7 text-xs px-3">Ticket</Button>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="text-xs">Ticket por Colaborador — Setor</TooltipContent>
+                <TooltipContent side="bottom" className="text-xs">Ticket por colaborador do setor</TooltipContent>
               </Tooltip>
             </TooltipProvider>
           </div>

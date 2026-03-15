@@ -354,11 +354,11 @@ export function computeHealth(
   const avgFL = allFreelancers.length > 0 ? allFreelancers.reduce((a, f) => a + f.quantity, 0) / Math.max(allSales.length, 1) * sales.length : 0;
 
   return [
-    { label: 'Produtividade Cozinha (PCS)', current: cozinhaCurr?.pcs || 0, average: cozinhaAll?.pcs || 0, unit: 'ped/col' },
-    { label: 'Produtividade Salão (PCS)', current: salaoCurr?.pcs || 0, average: salaoAll?.pcs || 0, unit: 'ped/col' },
-    { label: 'Produtividade Tele (PCS)', current: teleCurr?.pcs || 0, average: teleAll?.pcs || 0, unit: 'ped/col' },
+    { label: 'Pedidos p/ colab. Cozinha', current: cozinhaCurr?.pcs || 0, average: cozinhaAll?.pcs || 0, unit: 'ped/col' },
+    { label: 'Pedidos p/ colab. Salão', current: salaoCurr?.pcs || 0, average: salaoAll?.pcs || 0, unit: 'ped/col' },
+    { label: 'Pedidos p/ colab. Tele', current: teleCurr?.pcs || 0, average: teleAll?.pcs || 0, unit: 'ped/col' },
     { label: 'Uso de Free-lancers', current: currentFL, average: Math.round(avgFL), unit: 'pessoas' },
-    { label: 'Ticket Médio / Colaborador', current: currentMetrics.reduce((a, m) => a + m.tcs, 0) / currentMetrics.length, average: allMetrics.reduce((a, m) => a + m.tcs, 0) / allMetrics.length, unit: 'R$' },
+    { label: 'Ticket p/ colaborador do setor', current: currentMetrics.reduce((a, m) => a + m.tcs, 0) / currentMetrics.length, average: allMetrics.reduce((a, m) => a + m.tcs, 0) / allMetrics.length, unit: 'R$' },
   ];
 }
 

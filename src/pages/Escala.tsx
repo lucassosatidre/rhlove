@@ -279,7 +279,7 @@ export default function Escala() {
                           const dateKey = formatDateKey(d.date);
                           const sale = salesMap[dateKey];
                           if (!sale) {
-                            return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>TCS: -</td>;
+                            return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>Ticket/colab.: -</td>;
                           }
                           const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date, scheduledVacations);
                           const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
@@ -287,8 +287,8 @@ export default function Escala() {
                           const { vendas } = getSectorSales(sale, sector);
                           const tmp = total > 0 ? vendas / total : 0;
                           return (
-                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
-                              TCS: {tmp > 0 ? formatNum(tmp) : '-'}
+                             <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
+                               Ticket/colab.: {tmp > 0 ? formatNum(tmp) : '-'}
                             </td>
                           );
                         })}
@@ -298,7 +298,7 @@ export default function Escala() {
                           const dateKey = formatDateKey(d.date);
                           const sale = salesMap[dateKey];
                           if (!sale) {
-                            return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>PCS: -</td>;
+                            return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>Pedidos/colab.: -</td>;
                           }
                           const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date, scheduledVacations);
                           const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
@@ -307,7 +307,7 @@ export default function Escala() {
                           const ppp = total > 0 ? pedidos / total : 0;
                           return (
                             <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
-                              PCS: {ppp > 0 ? formatNum(ppp) : '-'}
+                              Pedidos/colab.: {ppp > 0 ? formatNum(ppp) : '-'}
                             </td>
                           );
                         })}
