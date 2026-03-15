@@ -356,9 +356,17 @@ export default function Escala() {
             <Switch checked={compact} onCheckedChange={setCompact} />
           </div>
           <div className="flex items-center gap-2">
-            <Label className="text-xs">Setores</Label>
-            <Switch checked={showSectorTitles} onCheckedChange={setShowSectorTitles} />
+            <Label className="text-xs">Setor único</Label>
+            <Switch checked={singleSectorMode} onCheckedChange={setSingleSectorMode} />
           </div>
+          {singleSectorMode && (
+            <Select value={selectedSector} onValueChange={setSelectedSector}>
+              <SelectTrigger className="w-40 h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {SECTOR_ORDER.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
           <div className="flex items-center gap-2">
             <Label className="text-xs">Desempenho</Label>
             <Switch checked={showPerformance} onCheckedChange={setShowPerformance} />
