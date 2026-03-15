@@ -187,6 +187,7 @@ export default function FeriasProgramadas() {
       sector: collab.sector,
       data_inicio_ferias: form.data_inicio_ferias,
       data_fim_ferias: form.data_fim_ferias,
+      data_pagamento_ferias: form.data_pagamento_ferias || calcPayDate(form.data_inicio_ferias),
       observacao: form.observacao,
     };
 
