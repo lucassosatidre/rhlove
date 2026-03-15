@@ -3,6 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { SectorMetric } from '@/lib/dashboardEngine';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { Button } from '@/components/ui/button';
 import type { SectorMetric } from '@/lib/dashboardEngine';
 
 const SECTOR_LABELS: Record<string, string> = {
