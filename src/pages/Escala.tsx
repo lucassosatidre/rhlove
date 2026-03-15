@@ -28,7 +28,8 @@ export default function Escala() {
   const [month, setMonth] = useState(now.getMonth());
   const [compact, setCompact] = useState(false);
   const [fontSize, setFontSize] = useState<'sm' | 'base' | 'lg'>('sm');
-  const [showSectorTitles, setShowSectorTitles] = useState(true);
+  const [singleSectorMode, setSingleSectorMode] = useState(false);
+  const [selectedSector, setSelectedSector] = useState('COZINHA');
   const [showPerformance, setShowPerformance] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState(0);
   const [freesDialogOpen, setFreesDialogOpen] = useState(false);
