@@ -480,8 +480,8 @@ export default function Produtividade() {
         Vendas: r.vendas || '',
         Pedidos: r.pedidos || '',
         'Nº Colaboradores': r.numero_pessoas,
-        TCS: r.tcs ? Math.round(r.tcs * 100) / 100 : '',
-        PCS: r.pcs ? Math.round(r.pcs * 100) / 100 : '',
+        'Ticket p/ colab. do setor': r.tcs ? Math.round(r.tcs * 100) / 100 : '',
+        'Pedidos p/ colab. do setor': r.pcs ? Math.round(r.pcs * 100) / 100 : '',
       }))
     );
     const ws = XLSX.utils.json_to_sheet(exportRows);
