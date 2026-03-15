@@ -22,7 +22,7 @@ export interface HREvent {
 
 const EVENT_CATEGORIES = {
   ferias: { label: 'Férias', types: ['ferias_inicio', 'ferias_fim', 'ferias_pagamento'] as string[], color: 'bg-yellow-400', textColor: 'text-yellow-900' },
-  aviso: { label: 'Aviso Prévio', types: ['aviso_inicio', 'aviso_fim'] as string[], color: 'bg-orange-400', textColor: 'text-orange-900' },
+  aviso: { label: 'Aviso Prévio', types: ['aviso_inicio', 'aviso_fim', 'rescisao_pagamento', 'rescisao_assinatura'] as string[], color: 'bg-orange-400', textColor: 'text-orange-900' },
   desligamento: { label: 'Desligamentos', types: ['desligamento'] as string[], color: 'bg-red-500', textColor: 'text-white' },
   experiencia: { label: 'Experiência', types: ['experiencia_inicio', 'experiencia_fim'] as string[], color: 'bg-blue-400', textColor: 'text-blue-900' },
   compensacao: { label: 'Compensações', types: ['compensacao'] as string[], color: 'bg-green-400', textColor: 'text-green-900' },
