@@ -4,6 +4,7 @@ import { useCollaborators } from '@/hooks/useCollaborators';
 import { useFreelancers } from '@/hooks/useFreelancers';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
 import { useHolidayCompensations } from '@/hooks/useHolidayCompensations';
+import { useAvisosPrevios, computeAvisosAlerts } from '@/hooks/useAvisosPrevios';
 import { Loader2 } from 'lucide-react';
 import {
   getDateRange,
