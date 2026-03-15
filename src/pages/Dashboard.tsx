@@ -28,6 +28,7 @@ import OperationalAlerts from '@/components/dashboard/OperationalAlerts';
 import OperationHealth from '@/components/dashboard/OperationHealth';
 import AdvisorInsights from '@/components/dashboard/AdvisorInsights';
 import OperationalTrends from '@/components/dashboard/OperationalTrends';
+import HRCalendar from '@/components/dashboard/HRCalendar';
 import IndicatorLegend from '@/components/IndicatorLegend';
 
 export default function Dashboard() {
@@ -131,10 +132,18 @@ export default function Dashboard() {
         <OperationHealth metrics={health} />
       </div>
 
-      {/* Block 8: AI Advisor */}
+      {/* Block 8: HR Calendar */}
+      <HRCalendar
+        collaborators={collaborators}
+        vacations={scheduledVacations}
+        avisos={avisosPrevios}
+        compensations={compensations}
+      />
+
+      {/* Block 9: AI Advisor */}
       <AdvisorInsights overview={overview} sectorMetrics={sectorMetrics} healthMetrics={health} />
 
-      {/* Block 9: Trends */}
+      {/* Block 10: Trends */}
       <OperationalTrends data={trends} />
 
       {/* Legenda dos Indicadores */}
