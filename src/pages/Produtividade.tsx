@@ -650,6 +650,7 @@ export default function Produtividade() {
 
       {/* Results */}
       {productivityRows.length > 0 && (
+        <>
         <Tabs defaultValue="table" className="w-full">
           <TabsList className="no-print">
             <TabsTrigger value="table">Tabela</TabsTrigger>
