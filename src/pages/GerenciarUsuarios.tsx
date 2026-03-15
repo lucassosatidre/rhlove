@@ -95,6 +95,23 @@ export default function GerenciarUsuarios() {
     fetchUsuarios();
   };
 
+  const handleResetPassword = async (u: UsuarioRow) => {
+    const newPassword = prompt(`Digite a nova senha para ${u.nome} (mínimo 6 caracteres):`);
+    if (!newPassword) return;
+    if (newPassword.length < 6) {
+      toast.error('Senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+    const { data, error } = await supabase.functions.invoke('create-user', {
+      body: { action: 'reset-password', userId: u.id, newPassword }
+    });
+    if (error || data?.error) {
+      toast.error('Erro ao redefinir senha: ' + (data?.error || error?.message));
+      return;
+    }
+    toast.success(`Senha de ${u.nome} redefinida com sucesso`);
+  };
+
   const toggleStatus = async (u: UsuarioRow) => {
     const newStatus = u.status === 'ativo' ? 'inativo' : 'ativo';
     const { error } = await supabase.from('usuarios').update({ status: newStatus }).eq('id', u.id);
