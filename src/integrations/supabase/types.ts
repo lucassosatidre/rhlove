@@ -289,6 +289,7 @@ export type Database = {
           created_at: string
           data_fim_ferias: string
           data_inicio_ferias: string
+          data_pagamento_ferias: string | null
           id: string
           observacao: string | null
           sector: string
@@ -301,6 +302,7 @@ export type Database = {
           created_at?: string
           data_fim_ferias: string
           data_inicio_ferias: string
+          data_pagamento_ferias?: string | null
           id?: string
           observacao?: string | null
           sector: string
@@ -313,6 +315,7 @@ export type Database = {
           created_at?: string
           data_fim_ferias?: string
           data_inicio_ferias?: string
+          data_pagamento_ferias?: string | null
           id?: string
           observacao?: string | null
           sector?: string
