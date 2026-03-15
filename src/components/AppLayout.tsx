@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { to: '/produtividade', label: 'Produtividade', icon: BarChart3, roles: ['admin', 'gestor', 'lider'] },
   { to: '/ferias', label: 'Férias', icon: Palmtree, roles: ['admin', 'gestor'] },
   { to: '/compensacoes', label: 'Compensações', icon: CalendarCheck, roles: ['admin', 'gestor'] },
+  { to: '/avisos-previos', label: 'Avisos Prévios', icon: FileWarning, roles: ['admin', 'gestor'] },
   { to: '/usuarios', label: 'Usuários', icon: Shield, roles: ['admin'] },
 ];
 
