@@ -774,10 +774,10 @@ export default function Produtividade() {
               </CardContent>
             </Card>
 
-            {/* 3. PCT — Pedidos por Colaborador - Time */}
+            {/* 3. Pedidos por colaborador do time */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">PCT — Pedidos por Colaborador - Time</CardTitle>
+                <CardTitle className="text-sm">Pedidos por colaborador do time</CardTitle>
               </CardHeader>
               <CardContent>
                 <ChartContainer config={pctChartConfig} className="h-[320px] w-full">
