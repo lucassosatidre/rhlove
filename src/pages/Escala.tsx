@@ -182,6 +182,9 @@ export default function Escala() {
     [...allSectors].sort().forEach(s => {
       if (!sortedSectors.includes(s)) sortedSectors.push(s);
     });
+    const visibleSectors = singleSectorMode
+      ? sortedSectors.filter(s => s === selectedSector)
+      : sortedSectors;
 
     const firstDate = week.days[0]?.date;
     const lastDate = week.days[week.days.length - 1]?.date;
