@@ -4,7 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ChevronLeft, ChevronRight, CalendarDays, UserX, Palmtree, AlertTriangle, FlaskConical, Briefcase } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { ChevronLeft, ChevronRight, CalendarDays, UserX, Palmtree, AlertTriangle, Briefcase, Check, X, Clock } from 'lucide-react';
+import { useUpdateAvisoPrevio } from '@/hooks/useAvisosPrevios';
+import { useUpdateCollaborator, useCollaborators } from '@/hooks/useCollaborators';
+import { useToast } from '@/hooks/use-toast';
 import type { Collaborator } from '@/types/collaborator';
 import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
 import type { AvisoPrevio } from '@/hooks/useAvisosPrevios';
@@ -12,12 +17,16 @@ import type { HolidayCompensation } from '@/hooks/useHolidayCompensations';
 
 export interface HREvent {
   id: string;
-  date: string; // YYYY-MM-DD
+  date: string;
   type: 'desligamento' | 'aviso_inicio' | 'aviso_fim' | 'ferias_inicio' | 'ferias_fim' | 'ferias_pagamento' | 'experiencia_inicio' | 'experiencia_fim' | 'exame' | 'contabilidade' | 'compensacao' | 'rescisao_pagamento' | 'rescisao_assinatura';
   label: string;
   collaboratorName: string;
   sector: string;
   observacao?: string;
+  // Aviso prévio actionable fields
+  avisoId?: string;
+  avisoField?: 'enviado_contabilidade' | 'exame' | 'pago' | 'assinatura';
+  avisoFieldValue?: boolean;
 }
 
 const EVENT_CATEGORIES = {
@@ -47,10 +56,25 @@ const EVENT_TYPE_META: Record<string, { emoji: string; label: string; category: 
   rescisao_assinatura: { emoji: '✍️', label: 'Assinatura rescisão', category: 'aviso' },
 };
 
+type TaskStatus = 'PENDENTE' | 'CONCLUÍDO' | 'NÃO EXECUTADO';
+
+function getTaskStatus(fieldValue: boolean | undefined): TaskStatus {
+  if (fieldValue === true) return 'CONCLUÍDO';
+  return 'PENDENTE';
+}
+
 function getEventColor(type: string): string {
   const meta = EVENT_TYPE_META[type];
   if (!meta) return 'bg-muted';
   return EVENT_CATEGORIES[meta.category].color;
+}
+
+function getStatusIndicator(ev: HREvent): { icon: React.ReactNode; className: string } | null {
+  if (!ev.avisoField) return null;
+  if (ev.avisoFieldValue === true) {
+    return { icon: <Check className="w-2.5 h-2.5" />, className: 'text-emerald-600' };
+  }
+  return { icon: <Clock className="w-2.5 h-2.5" />, className: 'text-amber-500' };
 }
 
 function buildEvents(
@@ -61,12 +85,10 @@ function buildEvents(
 ): HREvent[] {
   const events: HREvent[] = [];
 
-  // Desligamentos
   for (const c of collaborators) {
     if (c.data_desligamento) {
       events.push({ id: `desl-${c.id}`, date: c.data_desligamento, type: 'desligamento', label: 'Desligamento', collaboratorName: c.collaborator_name, sector: c.sector });
     }
-    // Experiência
     if (c.status === 'EXPERIENCIA') {
       if (c.inicio_periodo) {
         events.push({ id: `exp-i-${c.id}`, date: c.inicio_periodo, type: 'experiencia_inicio', label: 'Início experiência', collaboratorName: c.collaborator_name, sector: c.sector });
@@ -77,12 +99,10 @@ function buildEvents(
     }
   }
 
-  // Férias
   for (const v of vacations) {
     if (v.status === 'CANCELADA') continue;
     events.push({ id: `fer-i-${v.id}`, date: v.data_inicio_ferias, type: 'ferias_inicio', label: 'Início férias', collaboratorName: v.collaborator_name, sector: v.sector });
     events.push({ id: `fer-f-${v.id}`, date: v.data_fim_ferias, type: 'ferias_fim', label: 'Fim férias', collaboratorName: v.collaborator_name, sector: v.sector, observacao: v.observacao });
-    // Lembrete de pagamento (usa campo do DB ou calcula 3 dias antes)
     const payDateStr = v.data_pagamento_ferias || (() => {
       const startDate = new Date(v.data_inicio_ferias + 'T00:00:00');
       const payDate = new Date(startDate);
@@ -92,37 +112,54 @@ function buildEvents(
     events.push({ id: `fer-p-${v.id}`, date: payDateStr, type: 'ferias_pagamento', label: `Pagamento das férias do colaborador ${v.collaborator_name}`, collaboratorName: v.collaborator_name, sector: v.sector, observacao: `Pagamento deve ser realizado até esta data (3 dias antes do início das férias em ${v.data_inicio_ferias.split('-').reverse().join('/')})` });
   }
 
-  // Avisos prévios
   for (const a of avisos) {
     events.push({ id: `av-i-${a.id}`, date: a.data_inicio, type: 'aviso_inicio', label: 'Início aviso prévio', collaboratorName: a.collaborator_name, sector: a.sector, observacao: a.observacoes || undefined });
     events.push({ id: `av-f-${a.id}`, date: a.data_fim, type: 'aviso_fim', label: 'Fim aviso prévio', collaboratorName: a.collaborator_name, sector: a.sector });
 
-    // Auto-calculated deadlines based on data_fim (último dia trabalhado)
     const fimDate = new Date(a.data_fim + 'T00:00:00');
 
-    // Contabilidade: D+1 após último dia trabalhado
+    // Contabilidade: D+1
     const contabDate = new Date(fimDate);
     contabDate.setDate(contabDate.getDate() + 1);
     const contabStr = contabDate.toISOString().slice(0, 10);
-    events.push({ id: `cont-auto-${a.id}`, date: contabStr, type: 'contabilidade', label: `Info contabilidade — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector, observacao: `Enviar informações para contabilidade (D+1 do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})` });
+    events.push({
+      id: `cont-auto-${a.id}`, date: contabStr, type: 'contabilidade',
+      label: `Info contabilidade — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector,
+      observacao: `Enviar informações para contabilidade (D+1 do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})`,
+      avisoId: a.id, avisoField: 'enviado_contabilidade', avisoFieldValue: a.enviado_contabilidade,
+    });
 
-    // Exame demissional: D+1 após último dia trabalhado
-    events.push({ id: `ex-auto-${a.id}`, date: contabStr, type: 'exame', label: `Exame demissional — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector, observacao: `Exame demissional (D+1 do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})` });
+    // Exame: D+1
+    events.push({
+      id: `ex-auto-${a.id}`, date: contabStr, type: 'exame',
+      label: `Exame demissional — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector,
+      observacao: `Exame demissional (D+1 do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})`,
+      avisoId: a.id, avisoField: 'exame', avisoFieldValue: a.exame,
+    });
 
-    // Pagamento das verbas rescisórias: D+7 do último dia trabalhado
+    // Pagamento: D+7
     const pagDate = new Date(fimDate);
     pagDate.setDate(pagDate.getDate() + 7);
     const pagStr = pagDate.toISOString().slice(0, 10);
-    events.push({ id: `pag-auto-${a.id}`, date: pagStr, type: 'rescisao_pagamento', label: `Pagamento verbas rescisórias — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector, observacao: `Prazo para pagamento das verbas rescisórias (D+7 do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})` });
+    events.push({
+      id: `pag-auto-${a.id}`, date: pagStr, type: 'rescisao_pagamento',
+      label: `Pagamento verbas rescisórias — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector,
+      observacao: `Prazo para pagamento das verbas rescisórias (D+7 do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})`,
+      avisoId: a.id, avisoField: 'pago', avisoFieldValue: a.pago,
+    });
 
-    // Assinatura dos documentos: D+8 do último dia trabalhado
+    // Assinatura: D+8
     const assDate = new Date(fimDate);
     assDate.setDate(assDate.getDate() + 8);
     const assStr = assDate.toISOString().slice(0, 10);
-    events.push({ id: `ass-auto-${a.id}`, date: assStr, type: 'rescisao_assinatura', label: `Assinatura rescisão — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector, observacao: `Assinatura dos documentos da rescisão com colaborador (D+8 do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})` });
+    events.push({
+      id: `ass-auto-${a.id}`, date: assStr, type: 'rescisao_assinatura',
+      label: `Assinatura rescisão — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector,
+      observacao: `Assinatura dos documentos da rescisão com colaborador (D+8 do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})`,
+      avisoId: a.id, avisoField: 'assinatura', avisoFieldValue: a.assinatura,
+    });
   }
 
-  // Compensações
   for (const c of compensations) {
     if (c.compensation_date && c.status === 'COMPENSADO') {
       events.push({ id: `comp-${c.id}`, date: c.compensation_date, type: 'compensacao', label: `Compensação — ${c.holiday_name}`, collaboratorName: c.collaborator_name, sector: c.sector });
@@ -145,9 +182,16 @@ function getCalendarDays(year: number, month: number): (number | null)[] {
   return cells;
 }
 
-function fmt(y: number, m: number, d: number): string {
+function fmtDate(y: number, m: number, d: number): string {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
+
+const FIELD_LABELS: Record<string, string> = {
+  enviado_contabilidade: 'Envio para contabilidade',
+  exame: 'Exame demissional',
+  pago: 'Pagamento de verbas rescisórias',
+  assinatura: 'Assinatura da rescisão',
+};
 
 interface Props {
   collaborators: Collaborator[];
@@ -162,10 +206,14 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
   const [month, setMonth] = useState(today.getMonth());
   const [activeFilters, setActiveFilters] = useState<Set<CategoryKey>>(new Set(Object.keys(EVENT_CATEGORIES) as CategoryKey[]));
   const [selectedEvent, setSelectedEvent] = useState<HREvent | null>(null);
+  const [obs, setObs] = useState('');
+
+  const updateAviso = useUpdateAvisoPrevio();
+  const updateCollaborator = useUpdateCollaborator();
+  const { toast } = useToast();
 
   const allEvents = useMemo(() => buildEvents(collaborators, vacations, avisos, compensations), [collaborators, vacations, avisos, compensations]);
 
-  // Filter events by active categories
   const filteredEvents = useMemo(() => {
     const activeTypes = new Set<string>();
     for (const cat of activeFilters) {
@@ -174,13 +222,11 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
     return allEvents.filter(e => activeTypes.has(e.type));
   }, [allEvents, activeFilters]);
 
-  // Events for current month
   const monthEvents = useMemo(() => {
     const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
     return filteredEvents.filter(e => e.date.startsWith(prefix));
   }, [filteredEvents, year, month]);
 
-  // Map date -> events
   const eventsByDate = useMemo(() => {
     const map = new Map<string, HREvent[]>();
     for (const e of monthEvents) {
@@ -191,7 +237,6 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
     return map;
   }, [monthEvents]);
 
-  // Month summary
   const summary = useMemo(() => {
     const desligamentos = monthEvents.filter(e => e.type === 'desligamento').length;
     const ferias = monthEvents.filter(e => e.type === 'ferias_inicio').length;
@@ -201,7 +246,7 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
   }, [monthEvents]);
 
   const cells = getCalendarDays(year, month);
-  const todayStr = fmt(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayStr = fmtDate(today.getFullYear(), today.getMonth(), today.getDate());
 
   const in7Days = new Date(today);
   in7Days.setDate(in7Days.getDate() + 7);
@@ -228,6 +273,54 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
     const d = new Date(dateStr + 'T00:00:00');
     return d >= today && d <= in7Days;
   }
+
+  async function handleSetStatus(ev: HREvent, status: TaskStatus) {
+    if (!ev.avisoId || !ev.avisoField) return;
+    const newVal = status === 'CONCLUÍDO';
+    const updates: any = { id: ev.avisoId, [ev.avisoField]: newVal };
+
+    if (ev.avisoField === 'enviado_contabilidade' && newVal) {
+      updates.data_envio_contabilidade = new Date().toISOString().slice(0, 10);
+    }
+
+    try {
+      await updateAviso.mutateAsync(updates);
+
+      // Check auto-discharge
+      const aviso = avisos.find(a => a.id === ev.avisoId);
+      if (aviso) {
+        const updated = { ...aviso, [ev.avisoField!]: newVal };
+        const now = new Date(); now.setHours(0, 0, 0, 0);
+        const fim = new Date(updated.data_fim + 'T00:00:00');
+        if (now >= fim && updated.pago && updated.exame && updated.assinatura) {
+          await updateAviso.mutateAsync({ id: aviso.id, status_processo: 'Concluído' });
+          const collab = collaborators.find(c => c.id === aviso.collaborator_id);
+          if (collab && collab.status !== 'DESLIGADO') {
+            await updateCollaborator.mutateAsync({
+              id: collab.id,
+              collaborator_name: collab.collaborator_name,
+              sector: collab.sector,
+              tipo_escala: collab.tipo_escala,
+              folgas_semanais: collab.folgas_semanais,
+              sunday_n: collab.sunday_n,
+              status: 'DESLIGADO',
+              inicio_na_empresa: collab.inicio_na_empresa,
+              data_desligamento: aviso.data_fim,
+            });
+            toast({ title: `${collab.collaborator_name} desligado automaticamente` });
+          }
+        }
+      }
+
+      toast({ title: status === 'CONCLUÍDO' ? 'Marcado como concluído' : 'Marcado como pendente' });
+      setSelectedEvent(null);
+    } catch {
+      toast({ title: 'Erro ao atualizar', variant: 'destructive' });
+    }
+  }
+
+  const currentStatus: TaskStatus | null = selectedEvent?.avisoField != null
+    ? getTaskStatus(selectedEvent.avisoFieldValue) : null;
 
   return (
     <>
@@ -275,7 +368,7 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
           </div>
           <div className="grid grid-cols-7 border-t border-l border-border">
             {cells.map((day, i) => {
-              const dateStr = day ? fmt(year, month, day) : '';
+              const dateStr = day ? fmtDate(year, month, day) : '';
               const dayEvents = day ? eventsByDate.get(dateStr) || [] : [];
               const isToday = dateStr === todayStr;
               const hasNearEvent = dayEvents.some(e => isNear(e.date));
@@ -293,17 +386,21 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
                         {day}
                       </div>
                       <div className="space-y-0.5 mt-0.5">
-                        {dayEvents.slice(0, 3).map(ev => (
-                          <button
-                            key={ev.id}
-                            onClick={() => setSelectedEvent(ev)}
-                            className={`w-full text-left text-[9px] sm:text-[10px] leading-tight px-1 py-0.5 rounded truncate ${getEventColor(ev.type)} ${EVENT_TYPE_META[ev.type]?.category ? EVENT_CATEGORIES[EVENT_TYPE_META[ev.type].category].textColor : ''} hover:opacity-80 transition-opacity`}
-                            title={`${ev.label} — ${ev.collaboratorName}`}
-                          >
-                            <span className="hidden sm:inline">{EVENT_TYPE_META[ev.type]?.emoji} </span>
-                            {ev.collaboratorName}
-                          </button>
-                        ))}
+                        {dayEvents.slice(0, 3).map(ev => {
+                          const statusInd = getStatusIndicator(ev);
+                          return (
+                            <button
+                              key={ev.id}
+                              onClick={() => { setSelectedEvent(ev); setObs(''); }}
+                              className={`w-full text-left text-[9px] sm:text-[10px] leading-tight px-1 py-0.5 rounded truncate flex items-center gap-0.5 ${getEventColor(ev.type)} ${EVENT_TYPE_META[ev.type]?.category ? EVENT_CATEGORIES[EVENT_TYPE_META[ev.type].category].textColor : ''} hover:opacity-80 transition-opacity`}
+                              title={`${ev.label} — ${ev.collaboratorName}${ev.avisoField ? ` [${getTaskStatus(ev.avisoFieldValue)}]` : ''}`}
+                            >
+                              {statusInd && <span className={statusInd.className}>{statusInd.icon}</span>}
+                              <span className="hidden sm:inline">{EVENT_TYPE_META[ev.type]?.emoji} </span>
+                              <span className="truncate">{ev.collaboratorName}</span>
+                            </button>
+                          );
+                        })}
                         {dayEvents.length > 3 && (
                           <div className="text-[9px] text-muted-foreground px-1">+{dayEvents.length - 3} mais</div>
                         )}
@@ -327,7 +424,7 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
             </DialogTitle>
           </DialogHeader>
           {selectedEvent && (
-            <div className="space-y-3 text-sm">
+            <div className="space-y-4 text-sm">
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <span className="text-muted-foreground">Colaborador</span>
@@ -342,24 +439,87 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
                   <p className="font-medium">{EVENT_TYPE_META[selectedEvent.type]?.label}</p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Data</span>
+                  <span className="text-muted-foreground">Data prevista</span>
                   <p className="font-medium">{selectedEvent.date.split('-').reverse().join('/')}</p>
                 </div>
               </div>
+
               {selectedEvent.observacao && (
                 <div>
-                  <span className="text-muted-foreground">Observações</span>
-                  <p className="mt-1">{selectedEvent.observacao}</p>
+                  <span className="text-muted-foreground">Observações do evento</span>
+                  <p className="mt-1 text-xs">{selectedEvent.observacao}</p>
                 </div>
               )}
-              <Badge variant="outline" className={`${getEventColor(selectedEvent.type)} ${EVENT_TYPE_META[selectedEvent.type]?.category ? EVENT_CATEGORIES[EVENT_TYPE_META[selectedEvent.type].category].textColor : ''} border-0`}>
-                {EVENT_TYPE_META[selectedEvent.type]?.label}
-              </Badge>
+
+              {/* Actionable section for aviso prévio tasks */}
+              {selectedEvent.avisoField && (
+                <div className="border border-border rounded-lg p-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-xs">Status da etapa</span>
+                    <StatusBadge status={currentStatus!} />
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    {FIELD_LABELS[selectedEvent.avisoField]}
+                  </p>
+
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant={currentStatus === 'CONCLUÍDO' ? 'default' : 'outline'}
+                      className="flex-1 gap-1"
+                      onClick={() => handleSetStatus(selectedEvent, 'CONCLUÍDO')}
+                      disabled={updateAviso.isPending}
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      Concluído
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={currentStatus === 'PENDENTE' ? 'secondary' : 'outline'}
+                      className="flex-1 gap-1"
+                      onClick={() => handleSetStatus(selectedEvent, 'PENDENTE')}
+                      disabled={updateAviso.isPending}
+                    >
+                      <Clock className="w-3.5 h-3.5" />
+                      Pendente
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {!selectedEvent.avisoField && (
+                <Badge variant="outline" className={`${getEventColor(selectedEvent.type)} ${EVENT_TYPE_META[selectedEvent.type]?.category ? EVENT_CATEGORIES[EVENT_TYPE_META[selectedEvent.type].category].textColor : ''} border-0`}>
+                  {EVENT_TYPE_META[selectedEvent.type]?.label}
+                </Badge>
+              )}
             </div>
           )}
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+function StatusBadge({ status }: { status: TaskStatus }) {
+  if (status === 'CONCLUÍDO') {
+    return (
+      <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 gap-1">
+        <Check className="w-3 h-3" /> Concluído
+      </Badge>
+    );
+  }
+  if (status === 'NÃO EXECUTADO') {
+    return (
+      <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-0 gap-1">
+        <X className="w-3 h-3" /> Não executado
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-0 gap-1">
+      <Clock className="w-3 h-3" /> Pendente
+    </Badge>
   );
 }
 
