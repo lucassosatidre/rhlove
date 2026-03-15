@@ -5,9 +5,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { SectorMetric } from '@/lib/dashboardEngine';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { Button } from '@/components/ui/button';
-import type { SectorMetric } from '@/lib/dashboardEngine';
 
 const SECTOR_LABELS: Record<string, string> = {
   'COZINHA': 'Cozinha',
