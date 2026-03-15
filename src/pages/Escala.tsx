@@ -448,7 +448,7 @@ export default function Escala() {
           </TabsContent>
 
           <TabsContent value="grid">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className={`grid grid-cols-1 lg:grid-cols-2 ${weeks.length > 4 ? 'xl:grid-cols-3' : ''} gap-4`}>
               {weeks.map((week, i) => (
                 <Card key={i}>
                   <CardHeader className="pb-2 flex flex-row items-center justify-between">

@@ -150,9 +150,10 @@ export function generateSchedule(
   scheduledVacations: ScheduledVacation[] = []
 ): ScheduleWeek[] {
   const firstMonday = getFirstMondayOfMonthGrid(year, month);
+  const totalWeeks = getWeekCount(year, month);
   const weeks: ScheduleWeek[] = [];
 
-  for (let w = 0; w < 4; w++) {
+  for (let w = 0; w < totalWeeks; w++) {
     const weekStart = new Date(firstMonday);
     weekStart.setDate(firstMonday.getDate() + w * 7);
     const days: ScheduleDay[] = [];
