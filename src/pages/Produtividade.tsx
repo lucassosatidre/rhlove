@@ -195,7 +195,7 @@ export default function Produtividade() {
     }
   };
 
-  // ====== NEW IMPORT LOGIC: read by column position ======
+  // ====== IMPORT LOGIC: Saipos "Relatório canais de venda" ======
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -207,86 +207,101 @@ export default function Produtividade() {
       const wb = XLSX.read(buffer, { type: 'array' });
       const ws = wb.Sheets[wb.SheetNames[0]];
 
-      // Read as array of arrays (raw, by position)
       const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
       if (raw.length < 2) {
-        setImportError('Planilha vazia ou sem dados. Esperado ao menos 1 linha de cabeçalho + 1 de dados.');
+        setImportError('Planilha vazia ou sem dados.');
         setImportDialogOpen(true);
         return;
       }
 
-      // Skip header (row 0), read data rows
-      const preview: ImportPreviewRow[] = [];
+      // Find header row (row with "TOTAL QTD" or "TOTAL" columns)
+      let headerIdx = -1;
+      let colMap: Record<string, number> = {};
+      const normalizeHeader = (v: any) => String(v || '').trim().toUpperCase();
 
-      for (let i = 1; i < raw.length; i++) {
+      for (let i = 0; i < Math.min(raw.length, 10); i++) {
         const row = raw[i];
-        if (!row || row.length === 0) continue;
+        if (!row) continue;
+        const headers = row.map(normalizeHeader);
+        if (headers.includes('TOTAL QTD') || headers.includes('TOTAL')) {
+          headerIdx = i;
+          headers.forEach((h, idx) => { colMap[h] = idx; });
+          break;
+        }
+      }
 
-        // Check if row has any meaningful data (at least column B)
-        const colB = row[1]; // B = index 1 = total pedidos
-        const colC = row[2]; // C = index 2 = total vendas
-        const colD = row[3]; // D = index 3 = pedidos tele
-        const colE = row[4]; // E = index 4 = vendas tele
-        const colH = row[7]; // H = index 7 = pedidos salão
-        const colI = row[8]; // I = index 8 = vendas salão
+      if (headerIdx === -1) {
+        // Fallback: try old column-position logic
+        setImportError('Cabeçalho não encontrado. Esperado colunas como "TOTAL QTD", "TOTAL", "DELIVERY QTD", etc.');
+        setImportDialogOpen(true);
+        return;
+      }
 
-        // Skip rows where key columns are all empty
-        if (!colB && !colC && !colD && !colE && !colH && !colI) continue;
-        // Skip "TOTAL" summary rows
-        const colA = String(row[0] || '').trim().toUpperCase();
-        if (colA === 'TOTAL') continue;
+      // Find the row for "ESTRELA DA ILHA"
+      let dataRow: any[] | null = null;
+      for (let i = headerIdx + 1; i < raw.length; i++) {
+        const row = raw[i];
+        if (!row) continue;
+        const firstCol = normalizeHeader(row[0]);
+        if (firstCol.includes('ESTRELA DA ILHA') || firstCol.includes('ESTRELA')) {
+          dataRow = row;
+          break;
+        }
+      }
 
-        const errors: string[] = [];
-        const parseNum = (val: any, colName: string): number => {
-          if (val === '' || val === null || val === undefined) return 0;
-          const n = Number(val);
-          if (isNaN(n)) {
-            errors.push(`Coluna ${colName}: valor "${val}" não é numérico`);
-            return 0;
-          }
-          return n;
-        };
-
-        // Try to extract date from column A
-        let dateStr = '';
-        const colAVal = row[0];
-        if (colAVal) {
-          if (typeof colAVal === 'number' && colAVal > 30000) {
-            // Excel serial date
-            const d = XLSX.SSF.parse_date_code(colAVal);
-            dateStr = `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}`;
-          } else if (typeof colAVal === 'string') {
-            const cleaned = colAVal.trim();
-            // Try DD/MM/YYYY
-            const parts = cleaned.split('/');
-            if (parts.length === 3 && parts[0].length <= 2) {
-              dateStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-            }
-            // Try YYYY-MM-DD
-            else if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
-              dateStr = cleaned;
-            }
-          } else if (colAVal instanceof Date) {
-            dateStr = colAVal.toISOString().split('T')[0];
+      if (!dataRow) {
+        // If no "ESTRELA DA ILHA", try first non-header, non-TOTAL row
+        for (let i = headerIdx + 1; i < raw.length; i++) {
+          const row = raw[i];
+          if (!row) continue;
+          const firstCol = normalizeHeader(row[0]);
+          if (firstCol && firstCol !== 'TOTAL' && firstCol !== '') {
+            dataRow = row;
+            break;
           }
         }
-
-        preview.push({
-          date: dateStr,
-          pedidos_totais: parseNum(colB, 'B'),
-          faturamento_total: parseNum(colC, 'C'),
-          pedidos_tele: parseNum(colD, 'D'),
-          faturamento_tele: parseNum(colE, 'E'),
-          pedidos_salao: parseNum(colH, 'H'),
-          faturamento_salao: parseNum(colI, 'I'),
-          errors,
-        });
       }
 
-      if (preview.length === 0) {
-        setImportError('Nenhuma linha de dados válida encontrada na planilha.');
+      if (!dataRow) {
+        setImportError('Nenhuma linha de dados encontrada (busca por "ESTRELA DA ILHA").');
+        setImportDialogOpen(true);
+        return;
       }
+
+      const errors: string[] = [];
+      const getNum = (key: string): number => {
+        const idx = colMap[key];
+        if (idx === undefined) return 0;
+        const val = dataRow![idx];
+        if (val === '' || val === null || val === undefined) return 0;
+        const n = Number(val);
+        if (isNaN(n)) {
+          errors.push(`Coluna "${key}": valor "${val}" não é numérico`);
+          return 0;
+        }
+        return n;
+      };
+
+      const totalQtd = getNum('TOTAL QTD');
+      const totalVal = getNum('TOTAL');
+      const deliveryQtd = getNum('DELIVERY QTD');
+      const deliveryVal = getNum('DELIVERY');
+      const telefoneQtd = getNum('TELEFONE QTD');
+      const telefoneVal = getNum('TELEFONE');
+      const lojaQtd = getNum('LOJA FÍSICA QTD') || getNum('LOJA FISICA QTD');
+      const lojaVal = getNum('LOJA FÍSICA') || getNum('LOJA FISICA');
+
+      const preview: ImportPreviewRow[] = [{
+        date: '',
+        pedidos_totais: totalQtd,
+        faturamento_total: totalVal,
+        pedidos_tele: deliveryQtd + telefoneQtd,
+        faturamento_tele: deliveryVal + telefoneVal,
+        pedidos_salao: lojaQtd,
+        faturamento_salao: lojaVal,
+        errors,
+      }];
 
       setImportPreview(preview);
       setImportDialogOpen(true);
