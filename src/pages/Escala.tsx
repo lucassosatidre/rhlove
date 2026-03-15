@@ -456,7 +456,7 @@ export default function Escala() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-3 space-y-3">
-                    {sortedSectors.map(sector => {
+                    {visibleSectors.map(sector => {
                       const names = todayData!.collaboratorsBySector[sector] || [];
                       if (names.length === 0) return null;
                       const dateKey = formatDateKey(today);
