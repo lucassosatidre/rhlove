@@ -191,7 +191,7 @@ export default function Escala() {
 
     return (
       <div className="space-y-4">
-        {sortedSectors.map(sector => {
+        {visibleSectors.map(sector => {
           const maxNames = Math.max(
             ...week.days.map(d => (d.collaboratorsBySector[sector] || []).length),
             0
