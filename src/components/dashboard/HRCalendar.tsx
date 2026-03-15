@@ -113,13 +113,13 @@ function buildEvents(
     const pagDate = new Date(fimDate);
     pagDate.setDate(pagDate.getDate() + 7);
     const pagStr = pagDate.toISOString().slice(0, 10);
-    events.push({ id: `pag-auto-${a.id}`, date: pagStr, type: 'aviso_fim', label: `Pagamento verbas rescisórias — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector, observacao: `Prazo para pagamento das verbas rescisórias (D+7 do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})` });
+    events.push({ id: `pag-auto-${a.id}`, date: pagStr, type: 'rescisao_pagamento', label: `Pagamento verbas rescisórias — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector, observacao: `Prazo para pagamento das verbas rescisórias (D+7 do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})` });
 
     // Assinatura dos documentos: D+8 do último dia trabalhado
     const assDate = new Date(fimDate);
     assDate.setDate(assDate.getDate() + 8);
     const assStr = assDate.toISOString().slice(0, 10);
-    events.push({ id: `ass-auto-${a.id}`, date: assStr, type: 'aviso_fim', label: `Assinatura rescisão — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector, observacao: `Assinatura dos documentos da rescisão com colaborador (D+8 do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})` });
+    events.push({ id: `ass-auto-${a.id}`, date: assStr, type: 'rescisao_assinatura', label: `Assinatura rescisão — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector, observacao: `Assinatura dos documentos da rescisão com colaborador (D+8 do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})` });
   }
 
   // Compensações
