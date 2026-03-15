@@ -47,6 +47,7 @@ export default function Dashboard() {
   const { data: allFreelancers = [] } = useFreelancers();
   const { data: scheduledVacations = [] } = useScheduledVacations();
   const { data: compensations = [] } = useHolidayCompensations();
+  const { data: avisosPrevios = [] } = useAvisosPrevios();
 
   const loading = loadingSales || loadingCollab;
 
