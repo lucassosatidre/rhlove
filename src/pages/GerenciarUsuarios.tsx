@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from '@/components/ui/sonner';
-import { Plus, Pencil, UserCheck, UserX } from 'lucide-react';
+import { Plus, Pencil, UserCheck, UserX, KeyRound } from 'lucide-react';
 
 interface UsuarioRow {
   id: string;
@@ -93,6 +93,23 @@ export default function GerenciarUsuarios() {
     setDialogOpen(false);
     resetForm();
     fetchUsuarios();
+  };
+
+  const handleResetPassword = async (u: UsuarioRow) => {
+    const newPassword = prompt(`Digite a nova senha para ${u.nome} (mínimo 6 caracteres):`);
+    if (!newPassword) return;
+    if (newPassword.length < 6) {
+      toast.error('Senha deve ter pelo menos 6 caracteres');
+      return;
+    }
+    const { data, error } = await supabase.functions.invoke('create-user', {
+      body: { action: 'reset-password', userId: u.id, newPassword }
+    });
+    if (error || data?.error) {
+      toast.error('Erro ao redefinir senha: ' + (data?.error || error?.message));
+      return;
+    }
+    toast.success(`Senha de ${u.nome} redefinida com sucesso`);
   };
 
   const toggleStatus = async (u: UsuarioRow) => {
@@ -198,6 +215,9 @@ export default function GerenciarUsuarios() {
                   <TableCell className="text-right space-x-1">
                     <Button variant="ghost" size="icon" onClick={() => openEdit(u)} title="Editar">
                       <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleResetPassword(u)} title="Redefinir senha">
+                      <KeyRound className="w-4 h-4" />
                     </Button>
                     <Button variant="ghost" size="icon" onClick={() => toggleStatus(u)} title={u.status === 'ativo' ? 'Desativar' : 'Ativar'}>
                       {u.status === 'ativo' ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
