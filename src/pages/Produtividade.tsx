@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useToast } from '@/hooks/use-toast';
 import { Download, Printer, Upload, Plus, Pencil, Trash2, BarChart3, FileSpreadsheet, AlertCircle, Check, History } from 'lucide-react';
+import IndicatorLegend, { IndicatorTooltip } from '@/components/IndicatorLegend';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, Legend, LabelList } from 'recharts';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import * as XLSX from 'xlsx';
@@ -649,6 +650,7 @@ export default function Produtividade() {
 
       {/* Results */}
       {productivityRows.length > 0 && (
+        <>
         <Tabs defaultValue="table" className="w-full">
           <TabsList className="no-print">
             <TabsTrigger value="table">Tabela</TabsTrigger>
@@ -673,8 +675,8 @@ export default function Produtividade() {
                         <TableHead className="text-right font-bold">Vendas</TableHead>
                         <TableHead className="text-right font-bold">Pedidos</TableHead>
                         <TableHead className="text-right font-bold">Nº Colaboradores</TableHead>
-                        <TableHead className="text-right font-bold">TCS</TableHead>
-                        <TableHead className="text-right font-bold">PCS</TableHead>
+                        <TableHead className="text-right font-bold"><IndicatorTooltip sigla="TCS">TCS</IndicatorTooltip></TableHead>
+                        <TableHead className="text-right font-bold"><IndicatorTooltip sigla="PCS">PCS</IndicatorTooltip></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -856,6 +858,10 @@ export default function Produtividade() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Legenda dos Indicadores */}
+        <IndicatorLegend className="print-block" />
+        </>
       )}
 
       {productivityRows.length === 0 && !isLoading && (

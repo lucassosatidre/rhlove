@@ -28,6 +28,7 @@ import OperationalAlerts from '@/components/dashboard/OperationalAlerts';
 import OperationHealth from '@/components/dashboard/OperationHealth';
 import AdvisorInsights from '@/components/dashboard/AdvisorInsights';
 import OperationalTrends from '@/components/dashboard/OperationalTrends';
+import IndicatorLegend from '@/components/IndicatorLegend';
 
 export default function Dashboard() {
   const [period, setPeriod] = useState('hoje');
@@ -135,6 +136,9 @@ export default function Dashboard() {
 
       {/* Block 9: Trends */}
       <OperationalTrends data={trends} />
+
+      {/* Legenda dos Indicadores */}
+      <IndicatorLegend />
     </div>
   );
 }
