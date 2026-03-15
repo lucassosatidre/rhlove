@@ -748,10 +748,10 @@ export default function Produtividade() {
               </CardContent>
             </Card>
 
-            {/* 2. TCT — Ticket por Colaborador - Time */}
+            {/* 2. Ticket por colaborador do time */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">TCT — Ticket por Colaborador - Time</CardTitle>
+                <CardTitle className="text-sm">Ticket por colaborador do time</CardTitle>
               </CardHeader>
               <CardContent>
                 <ChartContainer config={tctChartConfig} className="h-[320px] w-full">
