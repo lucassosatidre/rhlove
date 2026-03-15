@@ -27,8 +27,8 @@ export default function OverviewCards({ data }: { data: OverviewMetrics }) {
     { label: 'Faturamento', value: formatCurrency(data.faturamento), current: data.faturamento, prev: data.prevFaturamento, icon: DollarSign },
     { label: 'Pedidos', value: data.pedidos.toLocaleString('pt-BR'), current: data.pedidos, prev: data.prevPedidos, icon: ShoppingCart },
     { label: 'Colaboradores', value: data.colaboradores.toString(), current: data.colaboradores, prev: data.prevColaboradores, icon: Users },
-    { label: 'PCT', value: data.pct.toFixed(2), current: data.pct, prev: data.prevPct, icon: BarChart3 },
-    { label: 'TCT', value: formatCurrency(data.tct), current: data.tct, prev: data.prevTct, icon: Ticket },
+    { label: 'Pedidos por colaborador do time', value: data.pct.toFixed(2), current: data.pct, prev: data.prevPct, icon: BarChart3 },
+    { label: 'Ticket por colaborador do time', value: formatCurrency(data.tct), current: data.tct, prev: data.prevTct, icon: Ticket },
   ];
 
   return (

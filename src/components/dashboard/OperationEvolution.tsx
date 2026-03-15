@@ -8,8 +8,8 @@ import type { DailyEvolution } from '@/lib/dashboardEngine';
 const LINES = [
   { key: 'pedidos', label: 'Pedidos', color: 'hsl(220, 65%, 50%)' },
   { key: 'faturamento', label: 'Faturamento', color: 'hsl(152, 55%, 38%)' },
-  { key: 'pct', label: 'PCT', color: 'hsl(24, 90%, 50%)' },
-  { key: 'tct', label: 'TCT', color: 'hsl(280, 60%, 50%)' },
+  { key: 'pct', label: 'Pedidos p/ colab. do time', color: 'hsl(24, 90%, 50%)' },
+  { key: 'tct', label: 'Ticket p/ colab. do time', color: 'hsl(280, 60%, 50%)' },
 ] as const;
 
 export default function OperationEvolution({ data }: { data: DailyEvolution[] }) {

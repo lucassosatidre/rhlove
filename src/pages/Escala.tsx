@@ -307,7 +307,7 @@ export default function Escala() {
                           const ppp = total > 0 ? pedidos / total : 0;
                           return (
                             <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
-                              PCS: {ppp > 0 ? formatNum(ppp) : '-'}
+                              Pedidos/colab.: {ppp > 0 ? formatNum(ppp) : '-'}
                             </td>
                           );
                         })}

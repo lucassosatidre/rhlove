@@ -2,10 +2,10 @@ import { Info } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export const INDICATOR_DEFINITIONS = [
-  { sigla: 'PCS', desc: 'Pedidos por Colaborador — Setor' },
-  { sigla: 'TCS', desc: 'Ticket por Colaborador — Setor' },
-  { sigla: 'PCT', desc: 'Pedidos por Colaborador — Time' },
-  { sigla: 'TCT', desc: 'Ticket por Colaborador — Time' },
+  { sigla: 'PCS', desc: 'Pedidos por colaborador do setor' },
+  { sigla: 'TCS', desc: 'Ticket por colaborador do setor' },
+  { sigla: 'PCT', desc: 'Pedidos por colaborador do time' },
+  { sigla: 'TCT', desc: 'Ticket por colaborador do time' },
 ] as const;
 
 const INDICATOR_MAP: Record<string, string> = Object.fromEntries(

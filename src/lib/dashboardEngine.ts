@@ -358,7 +358,7 @@ export function computeHealth(
     { label: 'Pedidos p/ colab. Salão', current: salaoCurr?.pcs || 0, average: salaoAll?.pcs || 0, unit: 'ped/col' },
     { label: 'Pedidos p/ colab. Tele', current: teleCurr?.pcs || 0, average: teleAll?.pcs || 0, unit: 'ped/col' },
     { label: 'Uso de Free-lancers', current: currentFL, average: Math.round(avgFL), unit: 'pessoas' },
-    { label: 'Ticket Médio / Colaborador', current: currentMetrics.reduce((a, m) => a + m.tcs, 0) / currentMetrics.length, average: allMetrics.reduce((a, m) => a + m.tcs, 0) / allMetrics.length, unit: 'R$' },
+    { label: 'Ticket p/ colaborador do setor', current: currentMetrics.reduce((a, m) => a + m.tcs, 0) / currentMetrics.length, average: allMetrics.reduce((a, m) => a + m.tcs, 0) / allMetrics.length, unit: 'R$' },
   ];
 }
 
