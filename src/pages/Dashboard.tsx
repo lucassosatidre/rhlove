@@ -74,10 +74,14 @@ export default function Dashboard() {
 
   const flSummary = useMemo(() => computeFreelancerSummary(allFreelancers), [allFreelancers]);
 
-  const alerts = useMemo(() =>
+  const baseAlerts = useMemo(() =>
     computeAlerts(collaborators, scheduledVacations, compensations, sales, freelancers),
     [collaborators, scheduledVacations, compensations, sales, freelancers]
   );
+
+  const avisosAlerts = useMemo(() => computeAvisosAlerts(avisosPrevios), [avisosPrevios]);
+
+  const alerts = useMemo(() => [...baseAlerts, ...avisosAlerts], [baseAlerts, avisosAlerts]);
 
   const health = useMemo(() =>
     computeHealth(sales, allSales, collaborators, freelancers, allFreelancers, scheduledVacations),
