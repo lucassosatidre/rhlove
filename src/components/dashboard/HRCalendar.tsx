@@ -13,7 +13,7 @@ import type { HolidayCompensation } from '@/hooks/useHolidayCompensations';
 export interface HREvent {
   id: string;
   date: string; // YYYY-MM-DD
-  type: 'desligamento' | 'aviso_inicio' | 'aviso_fim' | 'ferias_inicio' | 'ferias_fim' | 'experiencia_inicio' | 'experiencia_fim' | 'exame' | 'contabilidade' | 'compensacao';
+  type: 'desligamento' | 'aviso_inicio' | 'aviso_fim' | 'ferias_inicio' | 'ferias_fim' | 'ferias_pagamento' | 'experiencia_inicio' | 'experiencia_fim' | 'exame' | 'contabilidade' | 'compensacao';
   label: string;
   collaboratorName: string;
   sector: string;
@@ -21,7 +21,7 @@ export interface HREvent {
 }
 
 const EVENT_CATEGORIES = {
-  ferias: { label: 'Férias', types: ['ferias_inicio', 'ferias_fim'] as string[], color: 'bg-yellow-400', textColor: 'text-yellow-900' },
+  ferias: { label: 'Férias', types: ['ferias_inicio', 'ferias_fim', 'ferias_pagamento'] as string[], color: 'bg-yellow-400', textColor: 'text-yellow-900' },
   aviso: { label: 'Aviso Prévio', types: ['aviso_inicio', 'aviso_fim'] as string[], color: 'bg-orange-400', textColor: 'text-orange-900' },
   desligamento: { label: 'Desligamentos', types: ['desligamento'] as string[], color: 'bg-red-500', textColor: 'text-white' },
   experiencia: { label: 'Experiência', types: ['experiencia_inicio', 'experiencia_fim'] as string[], color: 'bg-blue-400', textColor: 'text-blue-900' },
@@ -36,6 +36,7 @@ const EVENT_TYPE_META: Record<string, { emoji: string; label: string; category: 
   aviso_inicio: { emoji: '🟠', label: 'Início aviso prévio', category: 'aviso' },
   aviso_fim: { emoji: '🟢', label: 'Fim aviso prévio', category: 'aviso' },
   ferias_inicio: { emoji: '🟡', label: 'Início férias', category: 'ferias' },
+  ferias_pagamento: { emoji: '💰', label: 'Pagamento férias', category: 'ferias' },
   ferias_fim: { emoji: '🟡', label: 'Fim férias', category: 'ferias' },
   experiencia_inicio: { emoji: '🔵', label: 'Início experiência', category: 'experiencia' },
   experiencia_fim: { emoji: '🔵', label: 'Fim experiência', category: 'experiencia' },
@@ -79,6 +80,12 @@ function buildEvents(
     if (v.status === 'CANCELADA') continue;
     events.push({ id: `fer-i-${v.id}`, date: v.data_inicio_ferias, type: 'ferias_inicio', label: 'Início férias', collaboratorName: v.collaborator_name, sector: v.sector });
     events.push({ id: `fer-f-${v.id}`, date: v.data_fim_ferias, type: 'ferias_fim', label: 'Fim férias', collaboratorName: v.collaborator_name, sector: v.sector, observacao: v.observacao });
+    // Lembrete de pagamento 3 dias antes do início
+    const startDate = new Date(v.data_inicio_ferias + 'T00:00:00');
+    const payDate = new Date(startDate);
+    payDate.setDate(payDate.getDate() - 3);
+    const payDateStr = `${payDate.getFullYear()}-${String(payDate.getMonth() + 1).padStart(2, '0')}-${String(payDate.getDate()).padStart(2, '0')}`;
+    events.push({ id: `fer-p-${v.id}`, date: payDateStr, type: 'ferias_pagamento', label: `Pagamento das férias do colaborador ${v.collaborator_name}`, collaboratorName: v.collaborator_name, sector: v.sector, observacao: `Lembrete: pagamento deve ser realizado até 3 dias antes do início das férias (${v.data_inicio_ferias.split('-').reverse().join('/')})` });
   }
 
   // Avisos prévios
