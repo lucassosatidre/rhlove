@@ -489,7 +489,7 @@ export default function Escala() {
                         </div>
                       );
                     })}
-                    {sortedSectors.every(s => (todayData!.collaboratorsBySector[s] || []).length === 0) && (
+                    {visibleSectors.every(s => (todayData!.collaboratorsBySector[s] || []).length === 0) && (
                       <p className="text-center text-muted-foreground py-4">Nenhum colaborador escalado hoje.</p>
                     )}
                   </CardContent>
