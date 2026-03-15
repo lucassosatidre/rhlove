@@ -12,6 +12,7 @@ import Colaboradores from "@/pages/Colaboradores";
 import Produtividade from "@/pages/Produtividade";
 import FeriasProgramadas from "@/pages/FeriasProgramadas";
 import Compensacoes from "@/pages/Compensacoes";
+import AvisosPrevios from "@/pages/AvisosPrevios";
 import GerenciarUsuarios from "@/pages/GerenciarUsuarios";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
