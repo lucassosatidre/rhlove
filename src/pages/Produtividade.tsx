@@ -861,6 +861,7 @@ export default function Produtividade() {
 
         {/* Legenda dos Indicadores */}
         <IndicatorLegend className="print-block" />
+        </>
       )}
 
       {productivityRows.length === 0 && !isLoading && (
