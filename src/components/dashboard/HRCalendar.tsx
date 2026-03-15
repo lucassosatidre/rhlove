@@ -36,6 +36,7 @@ const EVENT_TYPE_META: Record<string, { emoji: string; label: string; category: 
   aviso_inicio: { emoji: '🟠', label: 'Início aviso prévio', category: 'aviso' },
   aviso_fim: { emoji: '🟢', label: 'Fim aviso prévio', category: 'aviso' },
   ferias_inicio: { emoji: '🟡', label: 'Início férias', category: 'ferias' },
+  ferias_pagamento: { emoji: '💰', label: 'Pagamento férias', category: 'ferias' },
   ferias_fim: { emoji: '🟡', label: 'Fim férias', category: 'ferias' },
   experiencia_inicio: { emoji: '🔵', label: 'Início experiência', category: 'experiencia' },
   experiencia_fim: { emoji: '🔵', label: 'Fim experiência', category: 'experiencia' },
