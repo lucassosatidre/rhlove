@@ -698,7 +698,7 @@ export default function Produtividade() {
                               {rowIdx === 0 ? formatDateBR(row.date) : ''}
                             </TableCell>
                             <TableCell className={`${isSummaryRow(row.sector) ? 'font-bold' : ''}`}>
-                              {row.sector}
+                              {row.sector === 'TCT' ? 'Ticket p/ colab. do time' : row.sector === 'PCT' ? 'Pedidos p/ colab. do time' : row.sector}
                             </TableCell>
                             <TableCell className="text-right tabular-nums">
                               {row.vendas ? formatCurrency(row.vendas) : '-'}
