@@ -46,6 +46,7 @@ interface FormData {
   collaborator_id: string;
   data_inicio_ferias: string;
   data_fim_ferias: string;
+  data_pagamento_ferias: string;
   observacao: string;
 }
 
@@ -53,8 +54,16 @@ const emptyForm: FormData = {
   collaborator_id: '',
   data_inicio_ferias: '',
   data_fim_ferias: '',
+  data_pagamento_ferias: '',
   observacao: '',
 };
+
+function calcPayDate(startDate: string): string {
+  if (!startDate) return '';
+  const d = new Date(startDate + 'T00:00:00');
+  d.setDate(d.getDate() - 3);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 export default function FeriasProgramadas() {
   const { data: vacations = [], isLoading } = useScheduledVacations();
