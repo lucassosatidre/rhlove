@@ -857,6 +857,9 @@ export default function Produtividade() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Legenda dos Indicadores */}
+        <IndicatorLegend className="print-block" />
       )}
 
       {productivityRows.length === 0 && !isLoading && (
