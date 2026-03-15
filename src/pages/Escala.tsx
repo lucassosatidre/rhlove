@@ -287,8 +287,8 @@ export default function Escala() {
                           const { vendas } = getSectorSales(sale, sector);
                           const tmp = total > 0 ? vendas / total : 0;
                           return (
-                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
-                              TCS: {tmp > 0 ? formatNum(tmp) : '-'}
+                             <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
+                               Ticket/colab.: {tmp > 0 ? formatNum(tmp) : '-'}
                             </td>
                           );
                         })}
