@@ -14,6 +14,74 @@ export type Database = {
   }
   public: {
     Tables: {
+      avisos_previos: {
+        Row: {
+          assinatura: boolean
+          collaborator_id: string
+          collaborator_name: string
+          created_at: string
+          data_envio_contabilidade: string | null
+          data_fim: string
+          data_inicio: string
+          data_pagamento: string | null
+          enviado_contabilidade: boolean
+          exame: boolean
+          id: string
+          observacoes: string | null
+          opcao: string
+          pago: boolean
+          sector: string
+          status_processo: string
+          updated_at: string
+        }
+        Insert: {
+          assinatura?: boolean
+          collaborator_id: string
+          collaborator_name: string
+          created_at?: string
+          data_envio_contabilidade?: string | null
+          data_fim: string
+          data_inicio: string
+          data_pagamento?: string | null
+          enviado_contabilidade?: boolean
+          exame?: boolean
+          id?: string
+          observacoes?: string | null
+          opcao?: string
+          pago?: boolean
+          sector: string
+          status_processo?: string
+          updated_at?: string
+        }
+        Update: {
+          assinatura?: boolean
+          collaborator_id?: string
+          collaborator_name?: string
+          created_at?: string
+          data_envio_contabilidade?: string | null
+          data_fim?: string
+          data_inicio?: string
+          data_pagamento?: string | null
+          enviado_contabilidade?: boolean
+          exame?: boolean
+          id?: string
+          observacoes?: string | null
+          opcao?: string
+          pago?: boolean
+          sector?: string
+          status_processo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avisos_previos_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collaborators: {
         Row: {
           collaborator_name: string
