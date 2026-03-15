@@ -94,13 +94,30 @@ function buildEvents(
   for (const a of avisos) {
     events.push({ id: `av-i-${a.id}`, date: a.data_inicio, type: 'aviso_inicio', label: 'Início aviso prévio', collaboratorName: a.collaborator_name, sector: a.sector, observacao: a.observacoes || undefined });
     events.push({ id: `av-f-${a.id}`, date: a.data_fim, type: 'aviso_fim', label: 'Fim aviso prévio', collaboratorName: a.collaborator_name, sector: a.sector });
-    if (a.exame && a.data_fim) {
-      // Use data_fim as approximate exam date if no specific date
-      events.push({ id: `ex-${a.id}`, date: a.data_fim, type: 'exame', label: 'Exame demissional', collaboratorName: a.collaborator_name, sector: a.sector });
-    }
-    if (a.data_envio_contabilidade) {
-      events.push({ id: `cont-${a.id}`, date: a.data_envio_contabilidade, type: 'contabilidade', label: 'Envio contabilidade', collaboratorName: a.collaborator_name, sector: a.sector });
-    }
+
+    // Auto-calculated deadlines based on data_fim (último dia trabalhado)
+    const fimDate = new Date(a.data_fim + 'T00:00:00');
+
+    // Contabilidade: D+1 após último dia trabalhado
+    const contabDate = new Date(fimDate);
+    contabDate.setDate(contabDate.getDate() + 1);
+    const contabStr = contabDate.toISOString().slice(0, 10);
+    events.push({ id: `cont-auto-${a.id}`, date: contabStr, type: 'contabilidade', label: `Info contabilidade — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector, observacao: `Enviar informações para contabilidade (D+1 do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})` });
+
+    // Exame demissional: D+1 após último dia trabalhado
+    events.push({ id: `ex-auto-${a.id}`, date: contabStr, type: 'exame', label: `Exame demissional — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector, observacao: `Exame demissional (D+1 do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})` });
+
+    // Pagamento das verbas rescisórias: D+7 do último dia trabalhado
+    const pagDate = new Date(fimDate);
+    pagDate.setDate(pagDate.getDate() + 7);
+    const pagStr = pagDate.toISOString().slice(0, 10);
+    events.push({ id: `pag-auto-${a.id}`, date: pagStr, type: 'aviso_fim', label: `Pagamento verbas rescisórias — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector, observacao: `Prazo para pagamento das verbas rescisórias (D+7 do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})` });
+
+    // Assinatura dos documentos: D+8 do último dia trabalhado
+    const assDate = new Date(fimDate);
+    assDate.setDate(assDate.getDate() + 8);
+    const assStr = assDate.toISOString().slice(0, 10);
+    events.push({ id: `ass-auto-${a.id}`, date: assStr, type: 'aviso_fim', label: `Assinatura rescisão — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector, observacao: `Assinatura dos documentos da rescisão com colaborador (D+8 do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})` });
   }
 
   // Compensações

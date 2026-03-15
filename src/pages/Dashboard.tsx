@@ -126,19 +126,17 @@ export default function Dashboard() {
       {/* Block 4: Evolution */}
       <OperationEvolution data={evolution} />
 
-      {/* Block 6 & 7: Alerts + Health side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <OperationalAlerts alerts={alerts} />
-        <OperationHealth metrics={health} />
-      </div>
+      {/* Block 6: Health */}
+      <OperationHealth metrics={health} />
 
-      {/* Block 8: HR Calendar */}
+      {/* Block 7: HR Calendar + Alerts below */}
       <HRCalendar
         collaborators={collaborators}
         vacations={scheduledVacations}
         avisos={avisosPrevios}
         compensations={compensations}
       />
+      <OperationalAlerts alerts={alerts} />
 
       {/* Block 9: AI Advisor */}
       <AdvisorInsights overview={overview} sectorMetrics={sectorMetrics} healthMetrics={health} />
