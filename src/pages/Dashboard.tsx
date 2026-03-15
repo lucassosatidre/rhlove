@@ -28,6 +28,7 @@ import OperationalAlerts from '@/components/dashboard/OperationalAlerts';
 import OperationHealth from '@/components/dashboard/OperationHealth';
 import AdvisorInsights from '@/components/dashboard/AdvisorInsights';
 import OperationalTrends from '@/components/dashboard/OperationalTrends';
+import HRCalendar from '@/components/dashboard/HRCalendar';
 import IndicatorLegend from '@/components/IndicatorLegend';
 
 export default function Dashboard() {
