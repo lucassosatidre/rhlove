@@ -800,11 +800,11 @@ export default function Produtividade() {
               </CardContent>
             </Card>
 
-            {/* 4. TCS — Ticket por Colaborador - Setor */}
+            {/* 4. Ticket por colaborador do setor */}
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <CardTitle className="text-sm">TCS — Ticket por Colaborador - Setor</CardTitle>
+                  <CardTitle className="text-sm">Ticket por colaborador do setor</CardTitle>
                   <ToggleGroup
                     type="single"
                     value={tmpSectorFilter}
