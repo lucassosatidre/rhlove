@@ -69,13 +69,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 <p className="text-xs font-semibold text-sidebar-foreground truncate">{usuario.nome}</p>
                 <p className="text-[10px] text-sidebar-foreground/40 capitalize">{usuario.perfil}</p>
               </div>
-              <button
-                onClick={signOut}
-                className="p-1.5 rounded-lg hover:bg-sidebar-accent transition-colors text-sidebar-foreground/50 hover:text-sidebar-foreground"
-                title="Sair"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-1">
+                <ChangePasswordDialog />
+                <button
+                  onClick={signOut}
+                  className="p-1.5 rounded-lg hover:bg-sidebar-accent transition-colors text-sidebar-foreground/50 hover:text-sidebar-foreground"
+                  title="Sair"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           )}
           <span className="text-[11px] text-sidebar-foreground/30 font-medium block">v1.0 · Sistema interno</span>

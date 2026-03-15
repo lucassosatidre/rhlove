@@ -216,6 +216,9 @@ export default function GerenciarUsuarios() {
                     <Button variant="ghost" size="icon" onClick={() => openEdit(u)} title="Editar">
                       <Pencil className="w-4 h-4" />
                     </Button>
+                    <Button variant="ghost" size="icon" onClick={() => handleResetPassword(u)} title="Redefinir senha">
+                      <KeyRound className="w-4 h-4" />
+                    </Button>
                     <Button variant="ghost" size="icon" onClick={() => toggleStatus(u)} title={u.status === 'ativo' ? 'Desativar' : 'Ativar'}>
                       {u.status === 'ativo' ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                     </Button>

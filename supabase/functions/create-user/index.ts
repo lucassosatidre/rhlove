@@ -41,7 +41,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, password, nome, perfil, status } = await req.json();
+    const body = await req.json();
+    const { action } = body;
+
+    // Reset password for a user (admin only)
+    if (action === 'reset-password') {
+      const { userId, newPassword } = body;
+      if (!userId || !newPassword || newPassword.length < 6) {
+        return new Response(JSON.stringify({ error: "userId e newPassword (min 6 chars) são obrigatórios" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password: newPassword });
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Default: create user
+    const { email, password, nome, perfil, status } = body;
 
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
       email,
