@@ -399,6 +399,90 @@ export default function Escala() {
             <TabsTrigger value="grid">Grade</TabsTrigger>
           </TabsList>
 
+          <TabsContent value="today">
+            {(() => {
+              const today = new Date();
+              const todayKey = formatDateKey(today);
+              const todayDayName = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][today.getDay()];
+              // Find today in weeks
+              let todayData: typeof weeks[0]['days'][0] | null = null;
+              for (const w of weeks) {
+                for (const d of w.days) {
+                  if (formatDateKey(d.date) === todayKey) { todayData = d; break; }
+                }
+                if (todayData) break;
+              }
+
+              if (!todayData) {
+                return (
+                  <Card>
+                    <CardContent className="py-8 text-center text-muted-foreground">
+                      O dia de hoje não está neste mês. Navegue para <strong>{MONTHS[today.getMonth()]}/{today.getFullYear()}</strong>.
+                      <div className="mt-3">
+                        <Button size="sm" onClick={() => { setYear(today.getFullYear()); setMonth(today.getMonth()); }}>
+                          <CalendarDays className="w-4 h-4 mr-1" /> Ir para hoje
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              }
+
+              const allSectors = Object.keys(todayData.collaboratorsBySector);
+              const sortedSectors = SECTOR_ORDER.filter(s => allSectors.includes(s));
+              allSectors.sort().forEach(s => { if (!sortedSectors.includes(s)) sortedSectors.push(s); });
+
+              return (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <CalendarDays className="w-4 h-4" />
+                      {todayDayName}, {formatDateBR(today)} — Escalados Hoje
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-3 space-y-3">
+                    {sortedSectors.map(sector => {
+                      const names = todayData!.collaboratorsBySector[sector] || [];
+                      if (names.length === 0) return null;
+                      const dateKey = formatDateKey(today);
+                      const frees = freelancerMap[`${dateKey}|${sector}`] || 0;
+                      return (
+                        <div key={sector} className="overflow-x-auto">
+                          <table className={`w-full border-collapse ${textSize}`}>
+                            <thead>
+                              <tr>
+                                <th className={`border border-border px-3 py-2 text-left font-bold uppercase tracking-wide ${SECTOR_HEADER_CLASSES[sector] || 'bg-secondary text-secondary-foreground'}`}>
+                                  {sector} — {names.length} colaborador{names.length !== 1 ? 'es' : ''}{frees > 0 ? ` + ${frees} free${frees !== 1 ? 's' : ''}` : ''}
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {names.map((name, idx) => {
+                                const hasAlert = isAlertName(name);
+                                return (
+                                  <tr key={idx}>
+                                    <td className={`border border-border px-3 py-1.5 ${hasAlert ? 'bg-warning/20 font-semibold' : ''}`}>
+                                      {hasAlert ? (
+                                        <span className="text-amber-700 dark:text-amber-400">{idx + 1} - {name}</span>
+                                      ) : `${idx + 1} - ${name}`}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })}
+                    {sortedSectors.every(s => (todayData!.collaboratorsBySector[s] || []).length === 0) && (
+                      <p className="text-center text-muted-foreground py-4">Nenhum colaborador escalado hoje.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })()}
+          </TabsContent>
+
           <TabsContent value="week">
             <div className="flex items-center gap-2 mb-3 no-print">
               {weeks.map((_, i) => (
