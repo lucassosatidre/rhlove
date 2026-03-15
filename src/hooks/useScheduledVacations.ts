@@ -8,6 +8,7 @@ export interface ScheduledVacation {
   sector: string;
   data_inicio_ferias: string;
   data_fim_ferias: string;
+  data_pagamento_ferias: string | null;
   status: 'PROGRAMADA' | 'EM_ANDAMENTO' | 'CONCLUIDA' | 'CANCELADA';
   observacao: string;
   created_at: string;
@@ -20,6 +21,7 @@ export interface ScheduledVacationInput {
   sector: string;
   data_inicio_ferias: string;
   data_fim_ferias: string;
+  data_pagamento_ferias?: string | null;
   observacao?: string;
   status?: string;
 }

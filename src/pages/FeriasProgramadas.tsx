@@ -46,6 +46,7 @@ interface FormData {
   collaborator_id: string;
   data_inicio_ferias: string;
   data_fim_ferias: string;
+  data_pagamento_ferias: string;
   observacao: string;
 }
 
@@ -53,8 +54,16 @@ const emptyForm: FormData = {
   collaborator_id: '',
   data_inicio_ferias: '',
   data_fim_ferias: '',
+  data_pagamento_ferias: '',
   observacao: '',
 };
+
+function calcPayDate(startDate: string): string {
+  if (!startDate) return '';
+  const d = new Date(startDate + 'T00:00:00');
+  d.setDate(d.getDate() - 3);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 export default function FeriasProgramadas() {
   const { data: vacations = [], isLoading } = useScheduledVacations();
@@ -132,6 +141,7 @@ export default function FeriasProgramadas() {
       collaborator_id: v.collaborator_id,
       data_inicio_ferias: v.data_inicio_ferias,
       data_fim_ferias: v.data_fim_ferias,
+      data_pagamento_ferias: v.data_pagamento_ferias || calcPayDate(v.data_inicio_ferias),
       observacao: v.observacao || '',
     });
     setDialogOpen(true);
@@ -177,6 +187,7 @@ export default function FeriasProgramadas() {
       sector: collab.sector,
       data_inicio_ferias: form.data_inicio_ferias,
       data_fim_ferias: form.data_fim_ferias,
+      data_pagamento_ferias: form.data_pagamento_ferias || calcPayDate(form.data_inicio_ferias),
       observacao: form.observacao,
     };
 
@@ -325,6 +336,7 @@ export default function FeriasProgramadas() {
                   <TableHead className="hidden sm:table-cell">Setor</TableHead>
                   <TableHead>Início</TableHead>
                   <TableHead>Fim</TableHead>
+                  <TableHead className="hidden sm:table-cell">Pgto. Férias</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden md:table-cell">Observação</TableHead>
                   <TableHead className="w-28">Ações</TableHead>
@@ -342,6 +354,9 @@ export default function FeriasProgramadas() {
                       <TableCell className="hidden sm:table-cell">{v.sector}</TableCell>
                       <TableCell>{formatDateBR(v.data_inicio_ferias)}</TableCell>
                       <TableCell>{formatDateBR(v.data_fim_ferias)}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-xs">
+                        {v.data_pagamento_ferias ? formatDateBR(v.data_pagamento_ferias) : formatDateBR(calcPayDate(v.data_inicio_ferias))}
+                      </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className={`text-xs ${STATUS_COLORS[cs] || ''}`}>
                           {STATUS_LABELS[cs]}
@@ -405,7 +420,14 @@ export default function FeriasProgramadas() {
                 <Input
                   type="date"
                   value={form.data_inicio_ferias}
-                  onChange={e => setForm(f => ({ ...f, data_inicio_ferias: e.target.value }))}
+                  onChange={e => {
+                    const newStart = e.target.value;
+                    setForm(f => ({
+                      ...f,
+                      data_inicio_ferias: newStart,
+                      data_pagamento_ferias: calcPayDate(newStart),
+                    }));
+                  }}
                 />
               </div>
               <div className="space-y-2">
@@ -416,6 +438,16 @@ export default function FeriasProgramadas() {
                   onChange={e => setForm(f => ({ ...f, data_fim_ferias: e.target.value }))}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Data Pagamento das Férias</Label>
+              <Input
+                type="date"
+                value={form.data_pagamento_ferias}
+                onChange={e => setForm(f => ({ ...f, data_pagamento_ferias: e.target.value }))}
+              />
+              <p className="text-[11px] text-muted-foreground">Padrão: 3 dias antes do início das férias. Editável se necessário.</p>
             </div>
 
             <div className="space-y-2">

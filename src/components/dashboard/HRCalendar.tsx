@@ -80,12 +80,14 @@ function buildEvents(
     if (v.status === 'CANCELADA') continue;
     events.push({ id: `fer-i-${v.id}`, date: v.data_inicio_ferias, type: 'ferias_inicio', label: 'Início férias', collaboratorName: v.collaborator_name, sector: v.sector });
     events.push({ id: `fer-f-${v.id}`, date: v.data_fim_ferias, type: 'ferias_fim', label: 'Fim férias', collaboratorName: v.collaborator_name, sector: v.sector, observacao: v.observacao });
-    // Lembrete de pagamento 3 dias antes do início
-    const startDate = new Date(v.data_inicio_ferias + 'T00:00:00');
-    const payDate = new Date(startDate);
-    payDate.setDate(payDate.getDate() - 3);
-    const payDateStr = `${payDate.getFullYear()}-${String(payDate.getMonth() + 1).padStart(2, '0')}-${String(payDate.getDate()).padStart(2, '0')}`;
-    events.push({ id: `fer-p-${v.id}`, date: payDateStr, type: 'ferias_pagamento', label: `Pagamento das férias do colaborador ${v.collaborator_name}`, collaboratorName: v.collaborator_name, sector: v.sector, observacao: `Lembrete: pagamento deve ser realizado até 3 dias antes do início das férias (${v.data_inicio_ferias.split('-').reverse().join('/')})` });
+    // Lembrete de pagamento (usa campo do DB ou calcula 3 dias antes)
+    const payDateStr = v.data_pagamento_ferias || (() => {
+      const startDate = new Date(v.data_inicio_ferias + 'T00:00:00');
+      const payDate = new Date(startDate);
+      payDate.setDate(payDate.getDate() - 3);
+      return `${payDate.getFullYear()}-${String(payDate.getMonth() + 1).padStart(2, '0')}-${String(payDate.getDate()).padStart(2, '0')}`;
+    })();
+    events.push({ id: `fer-p-${v.id}`, date: payDateStr, type: 'ferias_pagamento', label: `Pagamento das férias do colaborador ${v.collaborator_name}`, collaboratorName: v.collaborator_name, sector: v.sector, observacao: `Pagamento deve ser realizado até esta data (3 dias antes do início das férias em ${v.data_inicio_ferias.split('-').reverse().join('/')})` });
   }
 
   // Avisos prévios
