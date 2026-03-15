@@ -392,8 +392,8 @@ export default function Escala() {
         <Tabs defaultValue="week" className="w-full">
           <TabsList className="no-print">
             <TabsTrigger value="week">Semana</TabsTrigger>
-            <TabsTrigger value="4weeks">4 Semanas</TabsTrigger>
-            <TabsTrigger value="grid">Grade 2×2</TabsTrigger>
+            <TabsTrigger value="4weeks">Visão Mensal</TabsTrigger>
+            <TabsTrigger value="grid">Grade</TabsTrigger>
           </TabsList>
 
           <TabsContent value="week">
