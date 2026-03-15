@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ChevronLeft, ChevronRight, CalendarDays, UserX, Palmtree, AlertTriangle, Briefcase, Check, X, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CalendarDays, UserX, Palmtree, AlertTriangle, Briefcase, Check, X, Clock, GripVertical } from 'lucide-react';
 import { useUpdateAvisoPrevio } from '@/hooks/useAvisosPrevios';
 import { useUpdateCollaborator, useCollaborators } from '@/hooks/useCollaborators';
 import { useToast } from '@/hooks/use-toast';
@@ -23,10 +23,11 @@ export interface HREvent {
   collaboratorName: string;
   sector: string;
   observacao?: string;
-  // Aviso prévio actionable fields
   avisoId?: string;
   avisoField?: 'enviado_contabilidade' | 'exame' | 'pago' | 'assinatura';
   avisoFieldValue?: boolean;
+  /** Which date field on aviso_previo this event maps to, for drag-drop rescheduling */
+  avisoDateField?: string;
 }
 
 const EVENT_CATEGORIES = {
@@ -40,20 +41,20 @@ const EVENT_CATEGORIES = {
 
 type CategoryKey = keyof typeof EVENT_CATEGORIES;
 
-const EVENT_TYPE_META: Record<string, { emoji: string; label: string; category: CategoryKey }> = {
-  desligamento: { emoji: '🔴', label: 'Desligamento', category: 'desligamento' },
-  aviso_inicio: { emoji: '🟠', label: 'Início aviso prévio', category: 'aviso' },
-  aviso_fim: { emoji: '🟢', label: 'Fim aviso prévio', category: 'aviso' },
-  ferias_inicio: { emoji: '🟡', label: 'Início férias', category: 'ferias' },
-  ferias_pagamento: { emoji: '💰', label: 'Pagamento férias', category: 'ferias' },
-  ferias_fim: { emoji: '🟡', label: 'Fim férias', category: 'ferias' },
-  experiencia_inicio: { emoji: '🔵', label: 'Início experiência', category: 'experiencia' },
-  experiencia_fim: { emoji: '🔵', label: 'Fim experiência', category: 'experiencia' },
-  exame: { emoji: '🟣', label: 'Exame demissional', category: 'admin' },
-  contabilidade: { emoji: '🟣', label: 'Envio contabilidade', category: 'admin' },
-  compensacao: { emoji: '🟢', label: 'Compensação feriado', category: 'compensacao' },
-  rescisao_pagamento: { emoji: '💵', label: 'Pgto. verbas rescisórias', category: 'aviso' },
-  rescisao_assinatura: { emoji: '✍️', label: 'Assinatura rescisão', category: 'aviso' },
+const EVENT_TYPE_META: Record<string, { emoji: string; label: string; shortLabel: string; category: CategoryKey }> = {
+  desligamento: { emoji: '🔴', label: 'Desligamento', shortLabel: 'Deslig.', category: 'desligamento' },
+  aviso_inicio: { emoji: '🟠', label: 'Início aviso prévio', shortLabel: 'Início AP', category: 'aviso' },
+  aviso_fim: { emoji: '🟢', label: 'Fim aviso prévio', shortLabel: 'Fim AP', category: 'aviso' },
+  ferias_inicio: { emoji: '🟡', label: 'Início férias', shortLabel: 'Início Fér.', category: 'ferias' },
+  ferias_pagamento: { emoji: '💰', label: 'Pagamento férias', shortLabel: 'Pgto Fér.', category: 'ferias' },
+  ferias_fim: { emoji: '🟡', label: 'Fim férias', shortLabel: 'Fim Fér.', category: 'ferias' },
+  experiencia_inicio: { emoji: '🔵', label: 'Início experiência', shortLabel: 'Início Exp.', category: 'experiencia' },
+  experiencia_fim: { emoji: '🔵', label: 'Fim experiência', shortLabel: 'Fim Exp.', category: 'experiencia' },
+  exame: { emoji: '🟣', label: 'Exame demissional', shortLabel: 'Exame', category: 'admin' },
+  contabilidade: { emoji: '🟣', label: 'Envio contabilidade', shortLabel: 'Contab.', category: 'admin' },
+  compensacao: { emoji: '🟢', label: 'Compensação feriado', shortLabel: 'Compens.', category: 'compensacao' },
+  rescisao_pagamento: { emoji: '💵', label: 'Pgto. verbas rescisórias', shortLabel: 'Pgto Resc.', category: 'aviso' },
+  rescisao_assinatura: { emoji: '✍️', label: 'Assinatura rescisão', shortLabel: 'Assinatura', category: 'aviso' },
 };
 
 type TaskStatus = 'PENDENTE' | 'CONCLUÍDO' | 'NÃO EXECUTADO';
@@ -75,6 +76,10 @@ function getStatusIndicator(ev: HREvent): { icon: React.ReactNode; className: st
     return { icon: <Check className="w-2.5 h-2.5" />, className: 'text-emerald-600' };
   }
   return { icon: <Clock className="w-2.5 h-2.5" />, className: 'text-amber-500' };
+}
+
+function toDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function buildEvents(
@@ -107,21 +112,21 @@ function buildEvents(
       const startDate = new Date(v.data_inicio_ferias + 'T00:00:00');
       const payDate = new Date(startDate);
       payDate.setDate(payDate.getDate() - 3);
-      return `${payDate.getFullYear()}-${String(payDate.getMonth() + 1).padStart(2, '0')}-${String(payDate.getDate()).padStart(2, '0')}`;
+      return toDateStr(payDate);
     })();
     events.push({ id: `fer-p-${v.id}`, date: payDateStr, type: 'ferias_pagamento', label: `Pagamento das férias do colaborador ${v.collaborator_name}`, collaboratorName: v.collaborator_name, sector: v.sector, observacao: `Pagamento deve ser realizado até esta data (3 dias antes do início das férias em ${v.data_inicio_ferias.split('-').reverse().join('/')})` });
   }
 
   for (const a of avisos) {
-    events.push({ id: `av-i-${a.id}`, date: a.data_inicio, type: 'aviso_inicio', label: 'Início aviso prévio', collaboratorName: a.collaborator_name, sector: a.sector, observacao: a.observacoes || undefined });
-    events.push({ id: `av-f-${a.id}`, date: a.data_fim, type: 'aviso_fim', label: 'Fim aviso prévio', collaboratorName: a.collaborator_name, sector: a.sector });
+    events.push({ id: `av-i-${a.id}`, date: a.data_inicio, type: 'aviso_inicio', label: 'Início aviso prévio', collaboratorName: a.collaborator_name, sector: a.sector, observacao: a.observacoes || undefined, avisoId: a.id, avisoDateField: 'data_inicio' });
+    events.push({ id: `av-f-${a.id}`, date: a.data_fim, type: 'aviso_fim', label: 'Fim aviso prévio', collaboratorName: a.collaborator_name, sector: a.sector, avisoId: a.id, avisoDateField: 'data_fim' });
 
     const fimDate = new Date(a.data_fim + 'T00:00:00');
 
-    // Contabilidade: D+1
+    // Contabilidade: D+1 after last working day
     const contabDate = new Date(fimDate);
     contabDate.setDate(contabDate.getDate() + 1);
-    const contabStr = contabDate.toISOString().slice(0, 10);
+    const contabStr = toDateStr(contabDate);
     events.push({
       id: `cont-auto-${a.id}`, date: contabStr, type: 'contabilidade',
       label: `Info contabilidade — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector,
@@ -129,18 +134,21 @@ function buildEvents(
       avisoId: a.id, avisoField: 'enviado_contabilidade', avisoFieldValue: a.enviado_contabilidade,
     });
 
-    // Exame: D+1
+    // Exame demissional: 7 days BEFORE last working day (D-7)
+    const exameDate = new Date(fimDate);
+    exameDate.setDate(exameDate.getDate() - 7);
+    const exameStr = toDateStr(exameDate);
     events.push({
-      id: `ex-auto-${a.id}`, date: contabStr, type: 'exame',
+      id: `ex-auto-${a.id}`, date: exameStr, type: 'exame',
       label: `Exame demissional — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector,
-      observacao: `Exame demissional (D+1 do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})`,
+      observacao: `Exame demissional (7 dias antes do último dia trabalhado: ${a.data_fim.split('-').reverse().join('/')})`,
       avisoId: a.id, avisoField: 'exame', avisoFieldValue: a.exame,
     });
 
     // Pagamento: D+7
     const pagDate = new Date(fimDate);
     pagDate.setDate(pagDate.getDate() + 7);
-    const pagStr = pagDate.toISOString().slice(0, 10);
+    const pagStr = toDateStr(pagDate);
     events.push({
       id: `pag-auto-${a.id}`, date: pagStr, type: 'rescisao_pagamento',
       label: `Pagamento verbas rescisórias — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector,
@@ -151,7 +159,7 @@ function buildEvents(
     // Assinatura: D+8
     const assDate = new Date(fimDate);
     assDate.setDate(assDate.getDate() + 8);
-    const assStr = assDate.toISOString().slice(0, 10);
+    const assStr = toDateStr(assDate);
     events.push({
       id: `ass-auto-${a.id}`, date: assStr, type: 'rescisao_assinatura',
       label: `Assinatura rescisão — ${a.collaborator_name}`, collaboratorName: a.collaborator_name, sector: a.sector,
@@ -193,6 +201,9 @@ const FIELD_LABELS: Record<string, string> = {
   assinatura: 'Assinatura da rescisão',
 };
 
+// Draggable aviso event types
+const DRAGGABLE_TYPES = new Set(['exame', 'contabilidade', 'rescisao_pagamento', 'rescisao_assinatura', 'aviso_inicio', 'aviso_fim']);
+
 interface Props {
   collaborators: Collaborator[];
   vacations: ScheduledVacation[];
@@ -207,6 +218,8 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
   const [activeFilters, setActiveFilters] = useState<Set<CategoryKey>>(new Set(Object.keys(EVENT_CATEGORIES) as CategoryKey[]));
   const [selectedEvent, setSelectedEvent] = useState<HREvent | null>(null);
   const [obs, setObs] = useState('');
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
+  const draggedEventRef = useRef<HREvent | null>(null);
 
   const updateAviso = useUpdateAvisoPrevio();
   const updateCollaborator = useUpdateCollaborator();
@@ -274,6 +287,119 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
     return d >= today && d <= in7Days;
   }
 
+  // ── Drag & Drop ──
+  const handleDragStart = useCallback((ev: HREvent, e: React.DragEvent) => {
+    if (!ev.avisoId || !DRAGGABLE_TYPES.has(ev.type)) {
+      e.preventDefault();
+      return;
+    }
+    draggedEventRef.current = ev;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', ev.id);
+  }, []);
+
+  const handleDragOver = useCallback((dateStr: string, e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverDate(dateStr);
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverDate(null);
+  }, []);
+
+  const handleDrop = useCallback(async (newDateStr: string, e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverDate(null);
+    const ev = draggedEventRef.current;
+    draggedEventRef.current = null;
+
+    if (!ev || !ev.avisoId) return;
+    if (ev.date === newDateStr) return;
+
+    const aviso = avisos.find(a => a.id === ev.avisoId);
+    if (!aviso) return;
+
+    // Validation: don't allow moving before aviso start date for non-start events
+    if (ev.type !== 'aviso_inicio') {
+      const inicio = new Date(aviso.data_inicio + 'T00:00:00');
+      const newDate = new Date(newDateStr + 'T00:00:00');
+      if (newDate < inicio) {
+        toast({ title: 'Não é possível mover para antes do início do aviso prévio', variant: 'destructive' });
+        return;
+      }
+    }
+
+    // Map event type to the update field
+    const updateData: any = { id: ev.avisoId };
+    let fieldLabel = '';
+
+    switch (ev.type) {
+      case 'aviso_inicio':
+        updateData.data_inicio = newDateStr;
+        fieldLabel = 'Início do aviso';
+        break;
+      case 'aviso_fim':
+        updateData.data_fim = newDateStr;
+        fieldLabel = 'Fim do aviso';
+        break;
+      case 'exame':
+        // Exame is computed from data_fim - 7, so moving exame means adjusting data_fim
+        // New data_fim = exame date + 7
+        {
+          const newExameDate = new Date(newDateStr + 'T00:00:00');
+          const newFim = new Date(newExameDate);
+          newFim.setDate(newFim.getDate() + 7);
+          updateData.data_fim = toDateStr(newFim);
+          fieldLabel = 'Exame demissional (data_fim recalculada)';
+        }
+        break;
+      case 'contabilidade':
+        // Contabilidade is D+1, so new data_fim = contab date - 1
+        {
+          const newContabDate = new Date(newDateStr + 'T00:00:00');
+          const newFim = new Date(newContabDate);
+          newFim.setDate(newFim.getDate() - 1);
+          updateData.data_fim = toDateStr(newFim);
+          fieldLabel = 'Contabilidade (data_fim recalculada)';
+        }
+        break;
+      case 'rescisao_pagamento':
+        // Pagamento is D+7, so new data_fim = pag date - 7
+        {
+          const newPagDate = new Date(newDateStr + 'T00:00:00');
+          const newFim = new Date(newPagDate);
+          newFim.setDate(newFim.getDate() - 7);
+          updateData.data_fim = toDateStr(newFim);
+          fieldLabel = 'Pagamento rescisório (data_fim recalculada)';
+        }
+        break;
+      case 'rescisao_assinatura':
+        // Assinatura is D+8, so new data_fim = ass date - 8
+        {
+          const newAssDate = new Date(newDateStr + 'T00:00:00');
+          const newFim = new Date(newAssDate);
+          newFim.setDate(newFim.getDate() - 8);
+          updateData.data_fim = toDateStr(newFim);
+          fieldLabel = 'Assinatura rescisão (data_fim recalculada)';
+        }
+        break;
+      default:
+        return;
+    }
+
+    try {
+      await updateAviso.mutateAsync(updateData);
+      toast({
+        title: 'Evento reagendado com sucesso',
+        description: `${ev.collaboratorName} — ${fieldLabel}: ${newDateStr.split('-').reverse().join('/')}`,
+      });
+    } catch {
+      toast({ title: 'Erro ao reagendar evento', variant: 'destructive' });
+    }
+  }, [avisos, updateAviso, toast]);
+
+  // ── Status actions ──
   async function handleSetStatus(ev: HREvent, status: TaskStatus) {
     if (!ev.avisoId || !ev.avisoField) return;
     const newVal = status === 'CONCLUÍDO';
@@ -322,6 +448,8 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
   const currentStatus: TaskStatus | null = selectedEvent?.avisoField != null
     ? getTaskStatus(selectedEvent.avisoFieldValue) : null;
 
+  const isDraggable = (ev: HREvent) => !!ev.avisoId && DRAGGABLE_TYPES.has(ev.type);
+
   return (
     <>
       <Card>
@@ -362,6 +490,11 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
             <Button variant="ghost" size="icon" onClick={nextMonth}><ChevronRight className="w-4 h-4" /></Button>
           </div>
 
+          {/* Drag hint */}
+          <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+            <GripVertical className="w-3 h-3" /> Arraste eventos de aviso prévio para reagendar
+          </p>
+
           {/* Calendar grid */}
           <div className="grid grid-cols-7 text-center text-[11px] font-medium text-muted-foreground">
             {WEEKDAY_LABELS.map(d => <div key={d} className="py-1">{d}</div>)}
@@ -372,13 +505,19 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
               const dayEvents = day ? eventsByDate.get(dateStr) || [] : [];
               const isToday = dateStr === todayStr;
               const hasNearEvent = dayEvents.some(e => isNear(e.date));
+              const isDropTarget = dragOverDate === dateStr;
 
               return (
                 <div
                   key={i}
-                  className={`border-r border-b border-border min-h-[60px] sm:min-h-[80px] p-0.5 ${
+                  className={`border-r border-b border-border min-h-[60px] sm:min-h-[80px] p-0.5 transition-colors ${
                     day ? '' : 'bg-muted/30'
-                  } ${isToday ? 'bg-primary/5' : ''} ${hasNearEvent ? 'ring-2 ring-inset ring-orange-400/60' : ''}`}
+                  } ${isToday ? 'bg-primary/5' : ''} ${hasNearEvent ? 'ring-2 ring-inset ring-orange-400/60' : ''} ${
+                    isDropTarget ? 'bg-primary/15 ring-2 ring-inset ring-primary/50' : ''
+                  }`}
+                  onDragOver={day ? (e) => handleDragOver(dateStr, e) : undefined}
+                  onDragLeave={day ? handleDragLeave : undefined}
+                  onDrop={day ? (e) => handleDrop(dateStr, e) : undefined}
                 >
                   {day && (
                     <>
@@ -388,16 +527,22 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
                       <div className="space-y-0.5 mt-0.5">
                         {dayEvents.slice(0, 3).map(ev => {
                           const statusInd = getStatusIndicator(ev);
+                          const meta = EVENT_TYPE_META[ev.type];
+                          const canDrag = isDraggable(ev);
                           return (
                             <button
                               key={ev.id}
+                              draggable={canDrag}
+                              onDragStart={canDrag ? (e) => handleDragStart(ev, e) : undefined}
                               onClick={() => { setSelectedEvent(ev); setObs(''); }}
-                              className={`w-full text-left text-[9px] sm:text-[10px] leading-tight px-1 py-0.5 rounded truncate flex items-center gap-0.5 ${getEventColor(ev.type)} ${EVENT_TYPE_META[ev.type]?.category ? EVENT_CATEGORIES[EVENT_TYPE_META[ev.type].category].textColor : ''} hover:opacity-80 transition-opacity`}
-                              title={`${ev.label} — ${ev.collaboratorName}${ev.avisoField ? ` [${getTaskStatus(ev.avisoFieldValue)}]` : ''}`}
+                              className={`w-full text-left text-[9px] sm:text-[10px] leading-tight px-1 py-0.5 rounded truncate flex items-center gap-0.5 ${getEventColor(ev.type)} ${meta?.category ? EVENT_CATEGORIES[meta.category].textColor : ''} hover:opacity-80 transition-opacity ${canDrag ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                              title={`${ev.collaboratorName} — ${meta?.label || ev.label}${ev.avisoField ? ` [${getTaskStatus(ev.avisoFieldValue)}]` : ''}`}
                             >
                               {statusInd && <span className={statusInd.className}>{statusInd.icon}</span>}
-                              <span className="hidden sm:inline">{EVENT_TYPE_META[ev.type]?.emoji} </span>
-                              <span className="truncate">{ev.collaboratorName}</span>
+                              <span className="truncate">
+                                <span className="font-semibold">{ev.collaboratorName}</span>
+                                <span className="hidden sm:inline"> · {meta?.shortLabel}</span>
+                              </span>
                             </button>
                           );
                         })}
@@ -420,7 +565,7 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {selectedEvent && EVENT_TYPE_META[selectedEvent.type]?.emoji}
-              {selectedEvent?.label}
+              {selectedEvent?.collaboratorName} — {selectedEvent && EVENT_TYPE_META[selectedEvent.type]?.label}
             </DialogTitle>
           </DialogHeader>
           {selectedEvent && (
@@ -486,6 +631,13 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
                     </Button>
                   </div>
                 </div>
+              )}
+
+              {/* Drag hint for draggable events */}
+              {isDraggable(selectedEvent) && (
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <GripVertical className="w-3 h-3" /> Arraste este evento no calendário para reagendar
+                </p>
               )}
 
               {!selectedEvent.avisoField && (
