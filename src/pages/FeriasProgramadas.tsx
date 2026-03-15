@@ -336,6 +336,7 @@ export default function FeriasProgramadas() {
                   <TableHead className="hidden sm:table-cell">Setor</TableHead>
                   <TableHead>Início</TableHead>
                   <TableHead>Fim</TableHead>
+                  <TableHead className="hidden sm:table-cell">Pgto. Férias</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden md:table-cell">Observação</TableHead>
                   <TableHead className="w-28">Ações</TableHead>
