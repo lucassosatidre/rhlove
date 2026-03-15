@@ -416,7 +416,14 @@ export default function FeriasProgramadas() {
                 <Input
                   type="date"
                   value={form.data_inicio_ferias}
-                  onChange={e => setForm(f => ({ ...f, data_inicio_ferias: e.target.value }))}
+                  onChange={e => {
+                    const newStart = e.target.value;
+                    setForm(f => ({
+                      ...f,
+                      data_inicio_ferias: newStart,
+                      data_pagamento_ferias: calcPayDate(newStart),
+                    }));
+                  }}
                 />
               </div>
               <div className="space-y-2">
@@ -427,6 +434,16 @@ export default function FeriasProgramadas() {
                   onChange={e => setForm(f => ({ ...f, data_fim_ferias: e.target.value }))}
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Data Pagamento das Férias</Label>
+              <Input
+                type="date"
+                value={form.data_pagamento_ferias}
+                onChange={e => setForm(f => ({ ...f, data_pagamento_ferias: e.target.value }))}
+              />
+              <p className="text-[11px] text-muted-foreground">Padrão: 3 dias antes do início das férias. Editável se necessário.</p>
             </div>
 
             <div className="space-y-2">
