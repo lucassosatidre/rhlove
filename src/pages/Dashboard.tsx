@@ -136,6 +136,9 @@ export default function Dashboard() {
 
       {/* Block 9: Trends */}
       <OperationalTrends data={trends} />
+
+      {/* Legenda dos Indicadores */}
+      <IndicatorLegend />
     </div>
   );
 }
