@@ -13,7 +13,7 @@ import type { HolidayCompensation } from '@/hooks/useHolidayCompensations';
 export interface HREvent {
   id: string;
   date: string; // YYYY-MM-DD
-  type: 'desligamento' | 'aviso_inicio' | 'aviso_fim' | 'ferias_inicio' | 'ferias_fim' | 'ferias_pagamento' | 'experiencia_inicio' | 'experiencia_fim' | 'exame' | 'contabilidade' | 'compensacao';
+  type: 'desligamento' | 'aviso_inicio' | 'aviso_fim' | 'ferias_inicio' | 'ferias_fim' | 'ferias_pagamento' | 'experiencia_inicio' | 'experiencia_fim' | 'exame' | 'contabilidade' | 'compensacao' | 'rescisao_pagamento' | 'rescisao_assinatura';
   label: string;
   collaboratorName: string;
   sector: string;
