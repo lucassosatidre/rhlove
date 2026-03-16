@@ -53,6 +53,7 @@ export default function Colaboradores() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
+  const [profileCollaborator, setProfileCollaborator] = useState<Collaborator | null>(null);
 
   const openNew = () => {
     setEditingId(null);
