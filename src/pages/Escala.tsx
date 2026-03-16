@@ -909,6 +909,7 @@ export default function Escala() {
       )}
 
       <ScheduleAdjustmentsHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} />
+      <PrintFooter />
     </div>
   );
 }
