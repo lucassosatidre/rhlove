@@ -63,6 +63,7 @@ export default function CollaboratorActionMenu({
   const [newDayOff, setNewDayOff] = useState('');
 
   const { toast } = useToast();
+  const { usuario } = useAuth();
   const createEvent = useCreateScheduleEvent();
   const { data: compensations = [] } = useHolidayCompensations();
   const updateCompensation = useUpdateHolidayCompensation();
