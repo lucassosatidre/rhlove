@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import logo from '@/assets/logo.png';
+import rhLoveIcon from '@/assets/rh-love-icon.png';
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -28,10 +28,13 @@ export default function Login() {
       <Card className="w-full max-w-sm shadow-lg">
         <CardHeader className="text-center space-y-3 pb-2">
           <div className="mx-auto w-16 h-16 rounded-2xl overflow-hidden shadow-md ring-2 ring-border">
-            <img src={logo} alt="RH Love" className="w-full h-full object-cover" />
+            <img src={rhLoveIcon} alt="RH Love" className="w-full h-full object-cover" />
           </div>
           <CardTitle className="text-xl font-bold tracking-tight text-foreground">RH Love</CardTitle>
-          <p className="text-xs text-muted-foreground">Pizzaria Estrela da Ilha</p>
+          <div className="space-y-0.5">
+            <p className="text-xs text-muted-foreground">Plataforma de gestão de pessoas</p>
+            <p className="text-[10px] text-muted-foreground/60">Propósito Soluções</p>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

@@ -1,9 +1,9 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock } from 'lucide-react';
+import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, Building2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
-import logo from '@/assets/logo.png';
+import rhLoveIcon from '@/assets/rh-love-icon.png';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'gestor', 'lider', 'visualizador'] },
@@ -30,13 +30,25 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar desktop */}
       <aside className="hidden md:flex md:w-60 flex-col bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
-        <div className="p-5 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg ring-2 ring-sidebar-primary/30">
-            <img src={logo} alt="RH Love" className="w-full h-full object-cover" />
+        {/* Product identity */}
+        <div className="p-5 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg ring-2 ring-sidebar-primary/30">
+              <img src={rhLoveIcon} alt="RH Love" className="w-full h-full object-cover" />
+            </div>
+            <div className="leading-tight">
+              <span className="text-sm font-bold tracking-tight block">RH Love</span>
+              <span className="text-[10px] text-sidebar-foreground/40 font-medium">Plataforma de gestão de pessoas</span>
+            </div>
           </div>
-          <div className="leading-tight">
-            <span className="text-sm font-bold tracking-tight block">RH Love</span>
-            <span className="text-[10px] text-sidebar-foreground/40 font-medium">Pizzaria Estrela da Ilha</span>
+          
+          {/* Active client */}
+          <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-sidebar-accent/50">
+            <Building2 className="w-3.5 h-3.5 text-sidebar-foreground/50 shrink-0" />
+            <div className="min-w-0">
+              <span className="text-[9px] text-sidebar-foreground/40 font-medium uppercase tracking-wider block">Cliente ativo</span>
+              <span className="text-[11px] text-sidebar-foreground/80 font-semibold block truncate">Pizzaria Estrela da Ilha</span>
+            </div>
           </div>
         </div>
 
@@ -64,7 +76,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           })}
         </nav>
 
-        {/* User info */}
+        {/* User info + developer credit */}
         <div className="p-4 border-t border-sidebar-border space-y-3">
           {usuario && (
             <div className="flex items-center justify-between">
@@ -84,7 +96,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               </div>
             </div>
           )}
-          <span className="text-[11px] text-sidebar-foreground/30 font-medium block">v1.0 · Sistema interno</span>
+          <span className="text-[10px] text-sidebar-foreground/30 font-medium block">Propósito Soluções · v1.0</span>
         </div>
       </aside>
 
@@ -93,11 +105,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg overflow-hidden shadow ring-1 ring-primary/20">
-              <img src={logo} alt="RH Love" className="w-full h-full object-cover" />
+              <img src={rhLoveIcon} alt="RH Love" className="w-full h-full object-cover" />
             </div>
             <div>
               <span className="font-bold text-sm block">RH Love</span>
-              {usuario && <span className="text-[10px] text-muted-foreground">{usuario.nome}</span>}
+              {usuario && <span className="text-[10px] text-muted-foreground">{usuario.nome} · Pizzaria Estrela da Ilha</span>}
             </div>
           </div>
           <div className="flex items-center gap-1">
