@@ -78,7 +78,8 @@ function getDisplayName(
   collab: Collaborator,
   scheduleDate: Date,
   scheduledVacations: ScheduledVacation[] = [],
-  dayOffOverride?: DayOffOverride
+  dayOffOverride?: DayOffOverride,
+  afastamentos: Afastamento[] = []
 ): string | null {
   const sd = dateOnly(scheduleDate);
   const dayKey = JS_DAY_TO_KEY[sd.getDay()];

@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { to: '/ferias', label: 'Férias', icon: Palmtree, roles: ['admin', 'gestor'] },
   { to: '/compensacoes', label: 'Compensações', icon: CalendarCheck, roles: ['admin', 'gestor'] },
   { to: '/avisos-previos', label: 'Avisos Prévios', icon: FileWarning, roles: ['admin', 'gestor'] },
+  { to: '/afastamentos', label: 'Afastamentos', icon: UserMinus, roles: ['admin', 'gestor'] },
   { to: '/usuarios', label: 'Usuários', icon: Shield, roles: ['admin'] },
 ];
 
