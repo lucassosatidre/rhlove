@@ -832,7 +832,7 @@ export default function Escala() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">
-                    Semana {selectedWeek + 1} — {weeks[selectedWeek].days[0].label}
+                    {formatDateBR(weeks[selectedWeek].days[0].date)} - {formatDateBR(weeks[selectedWeek].days[6].date)}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-2">{renderWeek(weeks[selectedWeek])}</CardContent>
