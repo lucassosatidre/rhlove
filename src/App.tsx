@@ -46,7 +46,8 @@ function ProtectedRoute({ children, allowedRoles }: { children: ReactNode; allow
   }
 
   if (allowedRoles && !allowedRoles.includes(usuario.perfil)) {
-    return <Navigate to="/" replace />;
+    const fallback = usuario.perfil === 'lider' ? '/escala' : '/';
+    return <Navigate to={fallback} replace />;
   }
 
   return <>{children}</>;
