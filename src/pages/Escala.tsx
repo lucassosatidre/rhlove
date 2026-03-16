@@ -833,7 +833,7 @@ export default function Escala() {
                 return (
                   <Button
                     key={i}
-                    variant={selectedWeek === i ? 'default' : 'outline'}
+                    variant={effectiveSelectedWeek === i ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setSelectedWeek(i)}
                   >
