@@ -63,7 +63,18 @@ export default function Escala() {
   const { data: freelancers = [] } = useFreelancers(dateRange.start, dateRange.end);
   const { data: freelancerEntries = [] } = useFreelancerEntries(dateRange.start, dateRange.end);
   const { data: salesData = [] } = useDailySales(dateRange.start, dateRange.end);
+  const { data: scheduleEvents = [] } = useScheduleEvents(dateRange.start, dateRange.end);
 
+  const eventsMap = useMemo(() => buildEventsMap(scheduleEvents), [scheduleEvents]);
+
+  // Lookup: collaborator name → collaborator object
+  const collabByName = useMemo(() => {
+    const map: Record<string, typeof collaborators[0]> = {};
+    for (const c of collaborators) {
+      map[c.collaborator_name] = c;
+    }
+    return map;
+  }, [collaborators]);
   const addFreelancerEntry = useAddFreelancerEntry();
   const deleteFreelancerEntry = useDeleteFreelancerEntry();
   const upsertSales = useUpsertDailySales();
