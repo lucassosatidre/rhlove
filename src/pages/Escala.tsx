@@ -4,6 +4,7 @@ import { useFreelancers } from '@/hooks/useFreelancers';
 import { useFreelancerEntries, useAddFreelancerEntry, useDeleteFreelancerEntry } from '@/hooks/useFreelancerEntries';
 import { useDailySales, useUpsertDailySales } from '@/hooks/useDailySales';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
+import { useAfastamentos } from '@/hooks/useAfastamentos';
 import { useScheduleEvents, buildEventsMap, buildSwapOverrides, type ScheduleEvent } from '@/hooks/useScheduleEvents';
 import { generateSchedule, getMonthLabel, getFirstMondayOfMonthGrid, getWeekCount, type ScheduleWeek } from '@/lib/scheduleEngine';
 
@@ -46,6 +47,7 @@ export default function Escala() {
 
   const { data: collaborators = [] } = useCollaborators();
   const { data: scheduledVacations = [] } = useScheduledVacations();
+  const { data: afastamentos = [] } = useAfastamentos();
 
   // Compute dateRange from year/month (independent of weeks)
   const dateRange = useMemo(() => {
@@ -69,8 +71,8 @@ export default function Escala() {
 
   // Generate schedule WITH day-off overrides applied
   const weeks = useMemo(
-    () => generateSchedule(collaborators, year, month, scheduledVacations, swapOverrides),
-    [collaborators, year, month, scheduledVacations, swapOverrides]
+    () => generateSchedule(collaborators, year, month, scheduledVacations, swapOverrides, afastamentos),
+    [collaborators, year, month, scheduledVacations, swapOverrides, afastamentos]
   );
 
   // Auto-select the week containing today when weeks change

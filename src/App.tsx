@@ -13,6 +13,7 @@ import Produtividade from "@/pages/Produtividade";
 import FeriasProgramadas from "@/pages/FeriasProgramadas";
 import Compensacoes from "@/pages/Compensacoes";
 import AvisosPrevios from "@/pages/AvisosPrevios";
+import Afastamentos from "@/pages/Afastamentos";
 import CalendarioRH from "@/pages/CalendarioRH";
 import GerenciarUsuarios from "@/pages/GerenciarUsuarios";
 import NotFound from "./pages/NotFound";
@@ -85,6 +86,7 @@ function AppRoutes() {
         <Route path="/ferias" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><FeriasProgramadas /></ProtectedRoute>} />
         <Route path="/compensacoes" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Compensacoes /></ProtectedRoute>} />
         <Route path="/avisos-previos" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><AvisosPrevios /></ProtectedRoute>} />
+        <Route path="/afastamentos" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Afastamentos /></ProtectedRoute>} />
         <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['admin']}><GerenciarUsuarios /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>

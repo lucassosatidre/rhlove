@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      afastamentos: {
+        Row: {
+          collaborator_id: string
+          collaborator_name: string
+          created_at: string
+          created_by: string | null
+          data_fim: string
+          data_inicio: string
+          id: string
+          observacao: string | null
+          sector: string
+          updated_at: string
+        }
+        Insert: {
+          collaborator_id: string
+          collaborator_name: string
+          created_at?: string
+          created_by?: string | null
+          data_fim: string
+          data_inicio: string
+          id?: string
+          observacao?: string | null
+          sector: string
+          updated_at?: string
+        }
+        Update: {
+          collaborator_id?: string
+          collaborator_name?: string
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string
+          data_inicio?: string
+          id?: string
+          observacao?: string | null
+          sector?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "afastamentos_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       avisos_previos: {
         Row: {
           assinatura: boolean

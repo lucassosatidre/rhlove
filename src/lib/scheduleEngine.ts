@@ -1,6 +1,8 @@
 import type { Collaborator, DayOfWeek } from '@/types/collaborator';
 import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
 import { isOnScheduledVacation } from '@/hooks/useScheduledVacations';
+import type { Afastamento } from '@/hooks/useAfastamentos';
+import { isOnAfastamento } from '@/hooks/useAfastamentos';
 
 export interface ScheduleWeek {
   weekNumber: number;
@@ -76,7 +78,8 @@ function getDisplayName(
   collab: Collaborator,
   scheduleDate: Date,
   scheduledVacations: ScheduledVacation[] = [],
-  dayOffOverride?: DayOffOverride
+  dayOffOverride?: DayOffOverride,
+  afastamentos: Afastamento[] = []
 ): string | null {
   const sd = dateOnly(scheduleDate);
   const dayKey = JS_DAY_TO_KEY[sd.getDay()];
@@ -95,6 +98,8 @@ function getDisplayName(
   // STEP 0.5 — SCHEDULED VACATIONS
   if (isOnScheduledVacation(scheduledVacations, collab.id, sd)) return null;
 
+  // STEP 0.6 — AFASTAMENTOS
+  if (isOnAfastamento(afastamentos, collab.id, sd)) return null;
   // STEP 1 — STATUS with periodo
   if (collab.status === 'FERIAS' || collab.status === 'AFASTADO') {
     const inicio = parseDate(collab.inicio_periodo);
@@ -176,7 +181,8 @@ export function generateSchedule(
   year: number,
   month: number,
   scheduledVacations: ScheduledVacation[] = [],
-  dayOffOverrides?: DayOffOverridesMap
+  dayOffOverrides?: DayOffOverridesMap,
+  afastamentos: Afastamento[] = []
 ): ScheduleWeek[] {
   const firstMonday = getFirstMondayOfMonthGrid(year, month);
   const totalWeeks = getWeekCount(year, month);
@@ -204,7 +210,7 @@ export function generateSchedule(
         const overrideKey = `${weekStartKey}|${collab.id}`;
         const override = dayOffOverrides?.get(overrideKey);
 
-        const displayName = getDisplayName(collab, date, scheduledVacations, override);
+        const displayName = getDisplayName(collab, date, scheduledVacations, override, afastamentos);
         if (!displayName) continue;
 
         if (!collaboratorsBySector[collab.sector]) {
