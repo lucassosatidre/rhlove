@@ -127,11 +127,12 @@ export default function CollaboratorActionMenu({
             event_type: 'TROCA_FOLGA',
             event_date: weekStartKey,
             week_start: weekStartKey,
-            original_day: currentDayOff,       // A's day off being given away
-            swapped_day: swapCollabDayOff,     // B's day off that A receives
+            original_day: currentDayOff,
+            swapped_day: swapCollabDayOff,
             related_collaborator_id: swapCollaboratorId,
             related_collaborator_name: selectedSwapCollab?.collaborator_name || '',
             observation,
+            created_by: usuario?.nome || usuario?.email || null,
           };
 
           await createEvent.mutateAsync(input);
