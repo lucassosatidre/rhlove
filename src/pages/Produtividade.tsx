@@ -637,6 +637,9 @@ export default function Produtividade() {
     const descCol = findCol(['DESCRI']);
     if (vencCol === -1 || descCol === -1) return [];
 
+    const catCol = findCol(['CATEGORI']);
+    const valorCol = findCol(['VALOR']);
+
     const parseExcelDate = (rawDate: any): string => {
       if (!rawDate) return '';
       if (typeof rawDate === 'number') {
@@ -650,6 +653,14 @@ export default function Produtividade() {
       return '';
     };
 
+    const inferSectorFromCategory = (cat: string): string | null => {
+      const u = cat.toUpperCase();
+      if (/EXTRAS\s*-\s*SAL/i.test(u)) return 'SALÃO';
+      if (/EXTRAS\s*-\s*COZ/i.test(u)) return 'COZINHA';
+      if (/EXTRAS\s*-\s*TELE/i.test(u)) return 'TELE - ENTREGA';
+      return null;
+    };
+
     const entries: FreeReviewEntry[] = [];
     let lastDate = '';
 
@@ -660,19 +671,58 @@ export default function Produtividade() {
       const rowDate = parseExcelDate(row[vencCol]);
       if (rowDate) lastDate = rowDate;
       if (!/free/i.test(desc)) continue;
+
+      // --- Filter: only principal entries ---
+      // If we have Categoria column, use it to filter
+      if (catCol !== -1) {
+        const cat = String(row[catCol] || '').trim().toUpperCase();
+        // Skip complementary lines (Frente de Caixa, etc.)
+        if (cat.includes('FRENTE DE CA') || cat.includes('FRENTE DE CAIXA')) continue;
+        // Only accept lines where Categoria starts with "Extras -"
+        if (!cat.startsWith('EXTRAS')) continue;
+      }
+
+      // If we have Valor column, skip positive values (complementary lines)
+      if (valorCol !== -1) {
+        const rawVal = row[valorCol];
+        const numVal = typeof rawVal === 'number' ? rawVal : parseFloat(String(rawVal || '0').replace(/[^\d.,-]/g, '').replace(',', '.'));
+        if (!isNaN(numVal) && numVal > 0) continue;
+      }
+
+      // Skip lines with pipe "|" in description (complementary)
+      if (desc.includes('|')) continue;
+
       const date = rowDate || lastDate;
       if (!date) continue;
+
+      // Infer sector from Categoria first, fallback to description
+      let sector: string | null = null;
+      if (catCol !== -1) {
+        sector = inferSectorFromCategory(String(row[catCol] || ''));
+      }
+      if (!sector) {
+        sector = inferSectorFromDesc(desc);
+      }
 
       entries.push({
         id: generateEntryId(),
         date,
         name: extractFreeName(desc).toUpperCase(),
-        sector: inferSectorFromDesc(desc),
+        sector,
         origin: 'automático',
       });
     }
 
-    return entries;
+    // Deduplication: same date + name + sector → keep first
+    const seen = new Set<string>();
+    const deduped = entries.filter(e => {
+      const key = `${e.date}|${(e.name || '').toUpperCase()}|${e.sector || ''}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    return deduped;
   };
 
   /** Parse Modelo A — consolidated file → individual review entries */
