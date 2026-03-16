@@ -665,6 +665,9 @@ export default function Escala() {
             </Select>
           </div>
           <div className="flex items-center gap-2 ml-auto">
+            <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
+              <History className="w-4 h-4 mr-1" /> Histórico de Trocas
+            </Button>
             <Button variant="outline" size="sm" onClick={handleExport}>
               <Download className="w-4 h-4 mr-1" /> Excel
             </Button>
