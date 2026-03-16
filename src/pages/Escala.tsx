@@ -350,19 +350,64 @@ export default function Escala() {
                     <tr key={idx}>
                       {week.days.map((d, di) => {
                         const names = d.collaboratorsBySector[sector] || [];
-                        const name = names[idx] || '';
-                        const hasAlert = name ? isAlertName(name) : false;
-                        const numbered = name ? `${idx + 1} - ${name}` : '';
+                        const rawName = names[idx] || '';
+                        // Strip alert suffixes to find collaborator
+                        const cleanName = rawName.replace(/ \(EXPERIÊNCIA VENCENDO\)/, '').replace(/ \(AVISO TERMINANDO\)/, '');
+                        const hasAlert = rawName ? isAlertName(rawName) : false;
+                        const numbered = rawName ? `${idx + 1} - ${rawName}` : '';
+                        
+                        const dateKey = formatDateKey(d.date);
+                        const collab = cleanName ? collabByName[cleanName] : null;
+                        const collabEvents = collab ? (eventsMap[dateKey]?.[collab.id] || []) : [];
+                        const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
+                        const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
+                        const hasCompensacao = collabEvents.some(e => e.event_type === 'COMPENSACAO');
+                        const hasTroca = collabEvents.some(e => e.event_type === 'TROCA_FOLGA');
+                        const hasEvent = hasFalta || hasAtestado || hasCompensacao || hasTroca;
+
+                        const cellClasses = [
+                          'border border-border px-2 text-left',
+                          compact ? 'py-0.5' : 'py-1',
+                          di === 6 ? 'bg-accent/30' : '',
+                          hasAlert ? 'bg-warning/20 font-semibold' : '',
+                          hasFalta ? 'bg-destructive/10' : '',
+                          hasAtestado ? 'bg-blue-50 dark:bg-blue-950/30' : '',
+                          hasCompensacao ? 'bg-green-50 dark:bg-green-950/30' : '',
+                          hasTroca ? 'bg-orange-50 dark:bg-orange-950/30' : '',
+                        ].filter(Boolean).join(' ');
+
+                        if (!rawName) {
+                          return <td key={di} className={cellClasses} />;
+                        }
+
+                        const nameContent = (
+                          <span className="flex items-center gap-1 flex-wrap">
+                            <span className={`${hasFalta ? 'line-through text-destructive/70' : ''} ${hasAtestado ? 'text-blue-600 dark:text-blue-400' : ''} ${hasAlert ? 'text-amber-700 dark:text-amber-400' : ''}`}>
+                              {numbered}
+                            </span>
+                            {hasFalta && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">faltou</Badge>}
+                            {hasAtestado && <Badge className="text-[9px] px-1 py-0 h-4 bg-blue-500 text-white">atestado</Badge>}
+                            {hasCompensacao && <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600 text-white">compensação</Badge>}
+                            {hasTroca && <Badge className="text-[9px] px-1 py-0 h-4 bg-orange-500 text-white">ajuste</Badge>}
+                          </span>
+                        );
+
                         return (
-                          <td
-                            key={di}
-                            className={`border border-border px-2 ${compact ? 'py-0.5' : 'py-1'} text-left ${
-                              di === 6 ? 'bg-accent/30' : ''
-                            } ${hasAlert ? 'bg-warning/20 font-semibold' : ''}`}
-                          >
-                            {hasAlert ? (
-                              <span className="text-amber-700 dark:text-amber-400">{numbered}</span>
-                            ) : numbered}
+                          <td key={di} className={cellClasses}>
+                            {collab ? (
+                              <CollaboratorActionMenu
+                                collaboratorName={cleanName}
+                                collaboratorId={collab.id}
+                                date={d.date}
+                                weekStart={week.startDate}
+                                allCollaborators={collaborators}
+                                sector={sector}
+                              >
+                                <button className="w-full text-left cursor-pointer hover:bg-accent/50 rounded px-0.5 -mx-0.5 transition-colors no-print">
+                                  {nameContent}
+                                </button>
+                              </CollaboratorActionMenu>
+                            ) : nameContent}
                           </td>
                         );
                       })}
