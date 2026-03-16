@@ -21,7 +21,7 @@ import InlineFreelancerInput from '@/components/schedule/InlineFreelancerInput';
 import EditableSalesCell from '@/components/schedule/EditableSalesCell';
 import CollaboratorActionMenu from '@/components/schedule/CollaboratorActionMenu';
 import ScheduleAdjustmentsHistoryDialog from '@/components/schedule/ScheduleAdjustmentsHistoryDialog';
-import PrintHeader from '@/components/PrintHeader';
+import PrintHeader, { PrintFooter } from '@/components/PrintHeader';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 
@@ -909,6 +909,7 @@ export default function Escala() {
       )}
 
       <ScheduleAdjustmentsHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} />
+      <PrintFooter />
     </div>
   );
 }
