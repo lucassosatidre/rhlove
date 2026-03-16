@@ -7,6 +7,7 @@ import { Loader2, CalendarDays, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import TopKPICards from '@/components/dashboard/TopKPICards';
 import MetricBlock from '@/components/dashboard/MetricBlock';
+import MonthlyComparison from '@/components/dashboard/MonthlyComparison';
 import { computeBlockMetrics, type BlockMetrics } from '@/lib/dashboardEngine';
 
 function fmt(d: Date): string {
