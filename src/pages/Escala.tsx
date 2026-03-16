@@ -756,7 +756,7 @@ export default function Escala() {
                                 const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
                                 const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
                                 const hasCompensacao = collabEvents.some(e => e.event_type === 'COMPENSACAO');
-                                const hasTroca = collabEvents.some(e => e.event_type === 'TROCA_FOLGA');
+                                const hasTroca = collabEvents.some(e => e.event_type === 'TROCA_FOLGA' || e.event_type === 'MUDANCA_FOLGA');
 
                                 // Find the week containing today
                                 const todayWeek = weeks.find(w => w.days.some(dd => formatDateKey(dd.date) === todayKey));
