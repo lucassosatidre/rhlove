@@ -37,6 +37,23 @@ export function useAddFreelancerEntry() {
   });
 }
 
+export function useBulkInsertFreelancerEntries() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (entries: { date: string; sector: string; name: string }[]) => {
+      if (entries.length === 0) return;
+      // Delete existing entries for these dates first to avoid duplicates
+      const dates = [...new Set(entries.map(e => e.date))];
+      for (const date of dates) {
+        await supabase.from('freelancer_entries' as any).delete().eq('date', date);
+      }
+      const { error } = await supabase.from('freelancer_entries' as any).insert(entries as any);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['freelancer_entries'] }),
+  });
+}
+
 export function useDeleteFreelancerEntry() {
   const qc = useQueryClient();
   return useMutation({
