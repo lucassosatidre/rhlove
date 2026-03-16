@@ -453,6 +453,12 @@ export default function Colaboradores() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <CollaboratorProfileDialog
+        collaborator={profileCollaborator}
+        open={!!profileCollaborator}
+        onOpenChange={open => { if (!open) setProfileCollaborator(null); }}
+      />
     </div>
   );
 }
