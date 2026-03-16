@@ -44,8 +44,10 @@ export default function FreelancerImportReviewDialog({ open, onOpenChange, entri
   }
 
   const hasPendingSectors = entries.some(e => !e.sector);
+  const hasMissingDates = entries.some(e => !e.date);
+  const hasMissingNames = entries.some(e => !e.name.trim());
 
-  const updateEntry = (id: string, field: 'name' | 'sector', value: string) => {
+  const updateEntry = (id: string, field: 'name' | 'sector' | 'date', value: string) => {
     setEntries(prev => prev.map(e => e.id === id ? { ...e, [field]: value || (field === 'sector' ? null : '') } : e));
   };
 
@@ -91,12 +93,15 @@ export default function FreelancerImportReviewDialog({ open, onOpenChange, entri
           </DialogDescription>
         </DialogHeader>
 
-        {hasPendingSectors && (
+        {(hasPendingSectors || hasMissingDates || hasMissingNames) && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
-            <p className="text-sm text-destructive">
-              Existem free-lancers com <strong>setor pendente</strong>. Corrija antes de confirmar.
-            </p>
+            <div className="text-sm text-destructive space-y-1">
+              {hasPendingSectors && <p>Existem free-lancers com <strong>setor pendente</strong>.</p>}
+              {hasMissingDates && <p>Existem free-lancers com <strong>data em branco</strong>.</p>}
+              {hasMissingNames && <p>Existem free-lancers com <strong>nome em branco</strong>.</p>}
+              <p>Corrija antes de confirmar.</p>
+            </div>
           </div>
         )}
 
@@ -116,7 +121,14 @@ export default function FreelancerImportReviewDialog({ open, onOpenChange, entri
             <TableBody>
               {entries.map(entry => (
                 <TableRow key={entry.id} className={!entry.sector ? 'bg-destructive/5' : ''}>
-                  <TableCell className="text-xs font-medium">{formatDateBR(entry.date)}</TableCell>
+                  <TableCell>
+                    <Input
+                      type="date"
+                      value={entry.date}
+                      onChange={e => updateEntry(entry.id, 'date', e.target.value)}
+                      className="h-7 text-xs w-32"
+                    />
+                  </TableCell>
                   <TableCell>
                     <Input
                       value={entry.name}
@@ -229,7 +241,7 @@ export default function FreelancerImportReviewDialog({ open, onOpenChange, entri
             <Button
               size="sm"
               onClick={() => onConfirm(entries)}
-              disabled={hasPendingSectors || entries.length === 0 || isPending}
+              disabled={hasPendingSectors || hasMissingDates || hasMissingNames || entries.length === 0 || isPending}
             >
               <Check className="w-4 h-4 mr-1" /> Confirmar Importação
             </Button>

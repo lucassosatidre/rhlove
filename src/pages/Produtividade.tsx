@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useCallback } from 'react';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useDailySales, useUpsertDailySales, useBulkInsertDailySales, useDeleteDailySales, type DailySalesInput } from '@/hooks/useDailySales';
 import { useFreelancers, useBulkUpsertFreelancers } from '@/hooks/useFreelancers';
+import { useBulkInsertFreelancerEntries } from '@/hooks/useFreelancerEntries';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
 import { supabase } from '@/integrations/supabase/client';
 import { generateProductivityData, formatCurrency, formatDecimal, formatDateBR, getSectorOrder } from '@/lib/productivityEngine';
@@ -104,6 +105,7 @@ export default function Produtividade() {
   const bulkMut = useBulkInsertDailySales();
   const deleteMut = useDeleteDailySales();
   const bulkFreeMut = useBulkUpsertFreelancers();
+  const bulkFreeEntriesMut = useBulkInsertFreelancerEntries();
 
   const productivityRows = useMemo(
     () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations),
@@ -810,7 +812,15 @@ export default function Produtividade() {
     }
 
     try {
+      // Save consolidated quantities
       await bulkFreeMut.mutateAsync(rows);
+      // Save individual named entries for display in Escala
+      const individualEntries = reviewed
+        .filter(e => e.sector && e.name.trim() && e.date)
+        .map(e => ({ date: e.date, sector: e.sector!, name: e.name.trim() }));
+      if (individualEntries.length > 0) {
+        await bulkFreeEntriesMut.mutateAsync(individualEntries);
+      }
       const totalFrees = rows.reduce((s, r) => s + r.quantity, 0);
       toast({ title: 'Free-lancers importados com sucesso', description: `${totalFrees} free(s) em ${Object.keys(consolidated).length} dia(s)` });
       setFreeReviewOpen(false);
