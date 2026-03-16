@@ -842,14 +842,14 @@ export default function Escala() {
                 );
               })}
             </div>
-            {weeks[selectedWeek] && (
+            {weeks[effectiveSelectedWeek] && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">
-                    {formatDateBR(weeks[selectedWeek].days[0].date)} - {formatDateBR(weeks[selectedWeek].days[6].date)}
+                    {formatDateBR(weeks[effectiveSelectedWeek].days[0].date)} - {formatDateBR(weeks[effectiveSelectedWeek].days[6].date)}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-2">{renderWeek(weeks[selectedWeek])}</CardContent>
+                <CardContent className="p-2">{renderWeek(weeks[effectiveSelectedWeek])}</CardContent>
               </Card>
             )}
           </TabsContent>
