@@ -292,7 +292,9 @@ export default function Colaboradores() {
                   {members.map(c => (
                     <TableRow key={c.id}>
                       <TableCell className="font-medium">
-                        {c.collaborator_name}
+                        <button onClick={() => setProfileCollaborator(c)} className="hover:text-primary hover:underline transition-colors text-left">
+                          {c.collaborator_name}
+                        </button>
                         <span className="sm:hidden block text-xs text-muted-foreground">
                           {c.tipo_escala} · {c.folgas_semanais.map(d => DAY_LABELS[d]?.slice(0, 3)).join(', ')} · Dom {c.sunday_n}º
                         </span>
