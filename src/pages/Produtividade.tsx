@@ -601,21 +601,15 @@ export default function Produtividade() {
 
   /** Extract freelancer name from description like "FREE Gabriel | Caixa Salão" */
   const extractFreeName = (desc: string): string => {
-    // Remove "FREE " prefix (case-insensitive)
     let name = desc.replace(/^free\s+/i, '').trim();
-    // Remove sector hints after | or at end
     name = name.replace(/\|.*$/, '').trim();
-    // Remove known sector keywords from the end
-    name = name.replace(/\s*(COZINHA|COZ|COZI|SALAO|SALÃO|TELE)\s*$/i, '').trim();
-    // Remove "DOBRADO" etc but keep the name
-    return name || 'Free';
+    name = name.replace(/\s*(COZINHA|COZ|COZI|SALAO|SALÃO|TELE|DOBRADO)\s*$/i, '').trim();
+    return name || 'FREE';
   };
 
-  /** Parse Modelo B — financial raw file */
-  const parseModeloB = (raw: any[][], wb: XLSX.WorkBook, ws: XLSX.WorkSheet): typeof freeImportPreview => {
+  /** Parse Modelo B — financial raw file → individual review entries */
+  const parseModeloBToEntries = (raw: any[][]): FreeReviewEntry[] => {
     const normalize = (v: any) => String(v || '').trim().toUpperCase();
-
-    // Find header row
     let headerIdx = -1;
     let colMap: Record<string, number> = {};
     for (let i = 0; i < Math.min(raw.length, 10); i++) {
@@ -641,7 +635,6 @@ export default function Produtividade() {
     const descCol = findCol(['DESCRI']);
     if (vencCol === -1 || descCol === -1) return [];
 
-    // Parse date helper
     const parseExcelDate = (rawDate: any): string => {
       if (!rawDate) return '';
       if (typeof rawDate === 'number') {
@@ -655,9 +648,7 @@ export default function Produtividade() {
       return '';
     };
 
-    // Collect all free entries: { date, sector, name }
-    type FreeEntry = { date: string; sector: string | null; name: string };
-    const entries: FreeEntry[] = [];
+    const entries: FreeReviewEntry[] = [];
     let lastDate = '';
 
     for (let i = headerIdx + 1; i < raw.length; i++) {
@@ -666,49 +657,87 @@ export default function Produtividade() {
       const desc = String(row[descCol] || '').trim();
       const rowDate = parseExcelDate(row[vencCol]);
       if (rowDate) lastDate = rowDate;
-
-      // Only consider lines containing "FREE"
       if (!/free/i.test(desc)) continue;
       const date = rowDate || lastDate;
       if (!date) continue;
 
-      const sector = inferSectorFromDesc(desc);
-      const name = extractFreeName(desc);
-      entries.push({ date, sector, name });
-    }
-
-    // Consolidate by date
-    const byDate: Record<string, { cozinha: number; salao: number; tele: number; unknown: number }> = {};
-    for (const e of entries) {
-      if (!byDate[e.date]) byDate[e.date] = { cozinha: 0, salao: 0, tele: 0, unknown: 0 };
-      if (e.sector === 'COZINHA') byDate[e.date].cozinha++;
-      else if (e.sector === 'SALÃO') byDate[e.date].salao++;
-      else if (e.sector === 'TELE - ENTREGA') byDate[e.date].tele++;
-      else byDate[e.date].unknown++;
-    }
-
-    return Object.entries(byDate)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, counts]) => {
-        const total = counts.cozinha + counts.salao + counts.tele + counts.unknown;
-        return {
-          date,
-          cozinha: counts.cozinha,
-          salao: counts.salao,
-          tele: counts.tele,
-          total,
-          totalCheck: total,
-          ok: counts.unknown === 0,
-        };
+      entries.push({
+        id: generateEntryId(),
+        date,
+        name: extractFreeName(desc).toUpperCase(),
+        sector: inferSectorFromDesc(desc),
+        origin: 'automático',
       });
+    }
+
+    return entries;
+  };
+
+  /** Parse Modelo A — consolidated file → individual review entries */
+  const parseModeloAToEntries = (raw: any[][]): FreeReviewEntry[] => {
+    const normalize = (v: any) => String(v || '').trim().toUpperCase();
+    let headerIdx = -1;
+    let colMap: Record<string, number> = {};
+    for (let i = 0; i < Math.min(raw.length, 10); i++) {
+      const row = raw[i];
+      if (!row) continue;
+      const headers = row.map(normalize);
+      if (headers.some(h => h.includes('DATA')) && headers.some(h => h.includes('FREE') || h.includes('COZINHA'))) {
+        headerIdx = i;
+        headers.forEach((h, idx) => { colMap[h] = idx; });
+        break;
+      }
+    }
+    if (headerIdx === -1) return [];
+
+    const findCol = (keywords: string[]): number => {
+      for (const key of Object.keys(colMap)) {
+        if (keywords.every(k => key.includes(k))) return colMap[key];
+      }
+      return -1;
+    };
+
+    const dateCol = findCol(['DATA']);
+    const cozinhaCol = findCol(['COZINHA']);
+    const salaoCol = findCol(['SAL']);
+    const teleCol = findCol(['TELE']);
+
+    if (dateCol === -1 || cozinhaCol === -1 || salaoCol === -1 || teleCol === -1) return [];
+
+    const entries: FreeReviewEntry[] = [];
+    for (let i = headerIdx + 1; i < raw.length; i++) {
+      const row = raw[i];
+      if (!row || !row[dateCol]) continue;
+
+      let dateStr = '';
+      const rawDate = row[dateCol];
+      if (typeof rawDate === 'number') {
+        const excelDate = XLSX.SSF.parse_date_code(rawDate);
+        dateStr = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`;
+      } else {
+        const ds = String(rawDate).trim();
+        const brMatch = ds.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+        if (brMatch) dateStr = `${brMatch[3]}-${brMatch[2]}-${brMatch[1]}`;
+        else if (/^\d{4}-\d{2}-\d{2}$/.test(ds)) dateStr = ds;
+      }
+      if (!dateStr) continue;
+
+      const cozinha = Number(row[cozinhaCol]) || 0;
+      const salao = Number(row[salaoCol]) || 0;
+      const tele = Number(row[teleCol]) || 0;
+
+      for (let n = 0; n < cozinha; n++) entries.push({ id: generateEntryId(), date: dateStr, name: `FREE ${n + 1}`, sector: 'COZINHA', origin: 'consolidado' });
+      for (let n = 0; n < salao; n++) entries.push({ id: generateEntryId(), date: dateStr, name: `FREE ${n + 1}`, sector: 'SALÃO', origin: 'consolidado' });
+      for (let n = 0; n < tele; n++) entries.push({ id: generateEntryId(), date: dateStr, name: `FREE ${n + 1}`, sector: 'TELE - ENTREGA', origin: 'consolidado' });
+    }
+
+    return entries;
   };
 
   const handleFreeFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
-    setFreeImportError('');
-    setFreeImportPreview([]);
 
     try {
       const buffer = await file.arrayBuffer();
@@ -717,12 +746,10 @@ export default function Produtividade() {
       const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
       if (raw.length < 2) {
-        setFreeImportError('Planilha vazia ou sem dados.');
-        setFreeImportDialogOpen(true);
+        toast({ title: 'Planilha vazia ou sem dados.', variant: 'destructive' });
         return;
       }
 
-      // Detect model by scanning headers
       const normalize = (v: any) => String(v || '').trim().toUpperCase();
       let isModeloA = false;
       let isModeloB = false;
@@ -732,131 +759,50 @@ export default function Produtividade() {
         if (!row) continue;
         const headers = row.map(normalize);
         if (headers.some(h => h.includes('DATA')) && headers.some(h => h.includes('FREE') || h.includes('COZINHA'))) {
-          isModeloA = true;
-          break;
+          isModeloA = true; break;
         }
         if (headers.some(h => h.includes('VENCIMENTO')) && headers.some(h => h.includes('DESCRI'))) {
-          isModeloB = true;
-          break;
+          isModeloB = true; break;
         }
       }
 
+      let entries: FreeReviewEntry[] = [];
       if (isModeloB) {
-        const preview = parseModeloB(raw, wb, ws);
-        if (preview.length === 0) {
-          setFreeImportError('Nenhum lançamento de free-lancer encontrado no arquivo financeiro. Verifique se a coluna Descrição contém "FREE".');
-          setFreeImportDialogOpen(true);
-          return;
-        }
-        const hasUnknown = preview.some(p => !p.ok);
-        if (hasUnknown) {
-          setFreeImportError('⚠️ Alguns free-lancers não tiveram o setor identificado automaticamente. Revise antes de confirmar.');
-        }
-        setFreeImportPreview(preview);
-        setFreeImportDialogOpen(true);
+        entries = parseModeloBToEntries(raw);
+      } else if (isModeloA) {
+        entries = parseModeloAToEntries(raw);
+      } else {
+        toast({ title: 'Formato não reconhecido', description: 'Esperado: Modelo Consolidado ou Modelo Financeiro.', variant: 'destructive' });
         return;
       }
 
-      if (!isModeloA) {
-        setFreeImportError('Formato não reconhecido. Esperado: Modelo Consolidado (Data, Free Cozinha, Free Salão, Free Tele) ou Modelo Financeiro (Vencimento, Descrição, Valor).');
-        setFreeImportDialogOpen(true);
+      if (entries.length === 0) {
+        toast({ title: 'Nenhum free-lancer encontrado na planilha.', variant: 'destructive' });
         return;
       }
 
-      // ===== MODELO A — consolidated =====
-      let headerIdx = -1;
-      let colMap: Record<string, number> = {};
-      for (let i = 0; i < Math.min(raw.length, 10); i++) {
-        const row = raw[i];
-        if (!row) continue;
-        const headers = row.map(normalize);
-        if (headers.some(h => h.includes('DATA')) && headers.some(h => h.includes('FREE') || h.includes('COZINHA'))) {
-          headerIdx = i;
-          headers.forEach((h, idx) => { colMap[h] = idx; });
-          break;
-        }
-      }
-
-      const findCol = (keywords: string[]): number => {
-        for (const key of Object.keys(colMap)) {
-          if (keywords.every(k => key.includes(k))) return colMap[key];
-        }
-        return -1;
-      };
-
-      const dateCol = findCol(['DATA']);
-      const cozinhaCol = findCol(['COZINHA']);
-      const salaoCol = findCol(['SAL']);
-      const teleCol = findCol(['TELE']);
-      const totalCol = findCol(['TOTAL']);
-
-      if (dateCol === -1 || cozinhaCol === -1 || salaoCol === -1 || teleCol === -1) {
-        setFreeImportError('Colunas obrigatórias não encontradas: Data, Free Cozinha, Free Salão, Free Tele.');
-        setFreeImportDialogOpen(true);
-        return;
-      }
-
-      const preview: typeof freeImportPreview = [];
-      for (let i = headerIdx + 1; i < raw.length; i++) {
-        const row = raw[i];
-        if (!row || !row[dateCol]) continue;
-
-        let dateStr = '';
-        const rawDate = row[dateCol];
-        if (typeof rawDate === 'number') {
-          const excelDate = XLSX.SSF.parse_date_code(rawDate);
-          dateStr = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`;
-        } else {
-          const ds = String(rawDate).trim();
-          const brMatch = ds.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-          if (brMatch) {
-            dateStr = `${brMatch[3]}-${brMatch[2]}-${brMatch[1]}`;
-          } else if (/^\d{4}-\d{2}-\d{2}$/.test(ds)) {
-            dateStr = ds;
-          }
-        }
-
-        if (!dateStr) continue;
-
-        const cozinha = Number(row[cozinhaCol]) || 0;
-        const salao = Number(row[salaoCol]) || 0;
-        const tele = Number(row[teleCol]) || 0;
-        const total = cozinha + salao + tele;
-        const totalFile = totalCol >= 0 ? (Number(row[totalCol]) || 0) : total;
-
-        preview.push({
-          date: dateStr,
-          cozinha,
-          salao,
-          tele,
-          total,
-          totalCheck: totalFile,
-          ok: Math.abs(total - totalFile) < 0.01 || totalCol === -1,
-        });
-      }
-
-      if (preview.length === 0) {
-        setFreeImportError('Nenhuma linha de dados válida encontrada na planilha.');
-        setFreeImportDialogOpen(true);
-        return;
-      }
-
-      setFreeImportPreview(preview);
-      setFreeImportDialogOpen(true);
+      setFreeReviewEntries(entries);
+      setFreeReviewOpen(true);
     } catch (err: any) {
-      setFreeImportError(`Erro ao ler arquivo: ${err.message}`);
-      setFreeImportDialogOpen(true);
+      toast({ title: `Erro ao ler arquivo: ${err.message}`, variant: 'destructive' });
     }
   };
 
-  const handleConfirmFreeImport = async () => {
-    const rows = freeImportPreview.flatMap(p => {
-      const entries: { date: string; sector: string; quantity: number }[] = [];
-      if (p.cozinha > 0) entries.push({ date: p.date, sector: 'COZINHA', quantity: p.cozinha });
-      if (p.salao > 0) entries.push({ date: p.date, sector: 'SALÃO', quantity: p.salao });
-      if (p.tele > 0) entries.push({ date: p.date, sector: 'TELE - ENTREGA', quantity: p.tele });
-      return entries;
-    });
+  const handleConfirmFreeReview = async (reviewed: FreeReviewEntry[]) => {
+    // Consolidate by date + sector
+    const consolidated: Record<string, Record<string, number>> = {};
+    for (const e of reviewed) {
+      if (!e.sector) continue;
+      if (!consolidated[e.date]) consolidated[e.date] = {};
+      consolidated[e.date][e.sector] = (consolidated[e.date][e.sector] || 0) + 1;
+    }
+
+    const rows: { date: string; sector: string; quantity: number }[] = [];
+    for (const [date, sectors] of Object.entries(consolidated)) {
+      for (const [sector, qty] of Object.entries(sectors)) {
+        rows.push({ date, sector, quantity: qty });
+      }
+    }
 
     if (rows.length === 0) {
       toast({ title: 'Nenhum free-lancer para importar', variant: 'destructive' });
@@ -865,9 +811,10 @@ export default function Produtividade() {
 
     try {
       await bulkFreeMut.mutateAsync(rows);
-      toast({ title: 'Free-lancers importados com sucesso', description: `${freeImportPreview.length} dia(s) processado(s)` });
-      setFreeImportDialogOpen(false);
-      setFreeImportPreview([]);
+      const totalFrees = rows.reduce((s, r) => s + r.quantity, 0);
+      toast({ title: 'Free-lancers importados com sucesso', description: `${totalFrees} free(s) em ${Object.keys(consolidated).length} dia(s)` });
+      setFreeReviewOpen(false);
+      setFreeReviewEntries([]);
     } catch (err: any) {
       toast({ title: 'Erro ao importar free-lancers', description: err.message, variant: 'destructive' });
     }
