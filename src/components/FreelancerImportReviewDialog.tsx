@@ -238,7 +238,7 @@ export default function FreelancerImportReviewDialog({ open, onOpenChange, entri
             <Button
               size="sm"
               onClick={() => onConfirm(entries)}
-              disabled={hasPendingSectors || entries.length === 0 || isPending}
+              disabled={hasPendingSectors || hasMissingDates || hasMissingNames || entries.length === 0 || isPending}
             >
               <Check className="w-4 h-4 mr-1" /> Confirmar Importação
             </Button>
