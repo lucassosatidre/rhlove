@@ -429,7 +429,7 @@ export default function Escala() {
                                 allCollaborators={collaborators}
                                 sector={sector}
                               >
-                                <button className="w-full text-left cursor-pointer hover:bg-accent/50 rounded px-0.5 -mx-0.5 transition-colors no-print">
+                                <button data-print-keep className="w-full text-left cursor-pointer hover:bg-accent/50 rounded px-0.5 -mx-0.5 transition-colors">
                                   {nameContent}
                                 </button>
                               </CollaboratorActionMenu>
