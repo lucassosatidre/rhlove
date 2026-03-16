@@ -116,7 +116,14 @@ export default function FreelancerImportReviewDialog({ open, onOpenChange, entri
             <TableBody>
               {entries.map(entry => (
                 <TableRow key={entry.id} className={!entry.sector ? 'bg-destructive/5' : ''}>
-                  <TableCell className="text-xs font-medium">{formatDateBR(entry.date)}</TableCell>
+                  <TableCell>
+                    <Input
+                      type="date"
+                      value={entry.date}
+                      onChange={e => updateEntry(entry.id, 'date', e.target.value)}
+                      className="h-7 text-xs w-32"
+                    />
+                  </TableCell>
                   <TableCell>
                     <Input
                       value={entry.name}
