@@ -589,6 +589,120 @@ export default function Produtividade() {
   };
 
   // ====== FREELANCER IMPORT LOGIC ======
+
+  /** Detect sector from a description string (Modelo B) */
+  const inferSectorFromDesc = (desc: string): string | null => {
+    const upper = desc.toUpperCase();
+    if (upper.includes('CAIXA TELE') || upper.includes('TELE')) return 'TELE - ENTREGA';
+    if (upper.includes('CAIXA SAL') || upper.includes('SALAO') || upper.includes('SALÃO')) return 'SALÃO';
+    if (/COZINHA|COZIN|COZI(?!NHA)|(?<!\w)COZ(?!\w)/.test(upper)) return 'COZINHA';
+    return null;
+  };
+
+  /** Extract freelancer name from description like "FREE Gabriel | Caixa Salão" */
+  const extractFreeName = (desc: string): string => {
+    // Remove "FREE " prefix (case-insensitive)
+    let name = desc.replace(/^free\s+/i, '').trim();
+    // Remove sector hints after | or at end
+    name = name.replace(/\|.*$/, '').trim();
+    // Remove known sector keywords from the end
+    name = name.replace(/\s*(COZINHA|COZ|COZI|SALAO|SALÃO|TELE)\s*$/i, '').trim();
+    // Remove "DOBRADO" etc but keep the name
+    return name || 'Free';
+  };
+
+  /** Parse Modelo B — financial raw file */
+  const parseModeloB = (raw: any[][], wb: XLSX.WorkBook, ws: XLSX.WorkSheet): typeof freeImportPreview => {
+    const normalize = (v: any) => String(v || '').trim().toUpperCase();
+
+    // Find header row
+    let headerIdx = -1;
+    let colMap: Record<string, number> = {};
+    for (let i = 0; i < Math.min(raw.length, 10); i++) {
+      const row = raw[i];
+      if (!row) continue;
+      const headers = row.map(normalize);
+      if (headers.some(h => h.includes('VENCIMENTO')) && headers.some(h => h.includes('DESCRI'))) {
+        headerIdx = i;
+        headers.forEach((h, idx) => { colMap[h] = idx; });
+        break;
+      }
+    }
+    if (headerIdx === -1) return [];
+
+    const findCol = (keywords: string[]): number => {
+      for (const key of Object.keys(colMap)) {
+        if (keywords.every(k => key.includes(k))) return colMap[key];
+      }
+      return -1;
+    };
+
+    const vencCol = findCol(['VENCIMENTO']);
+    const descCol = findCol(['DESCRI']);
+    if (vencCol === -1 || descCol === -1) return [];
+
+    // Parse date helper
+    const parseExcelDate = (rawDate: any): string => {
+      if (!rawDate) return '';
+      if (typeof rawDate === 'number') {
+        const ed = XLSX.SSF.parse_date_code(rawDate);
+        return `${ed.y}-${String(ed.m).padStart(2, '0')}-${String(ed.d).padStart(2, '0')}`;
+      }
+      const ds = String(rawDate).trim();
+      const brMatch = ds.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+      if (brMatch) return `${brMatch[3]}-${brMatch[2]}-${brMatch[1]}`;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(ds)) return ds;
+      return '';
+    };
+
+    // Collect all free entries: { date, sector, name }
+    type FreeEntry = { date: string; sector: string | null; name: string };
+    const entries: FreeEntry[] = [];
+    let lastDate = '';
+
+    for (let i = headerIdx + 1; i < raw.length; i++) {
+      const row = raw[i];
+      if (!row) continue;
+      const desc = String(row[descCol] || '').trim();
+      const rowDate = parseExcelDate(row[vencCol]);
+      if (rowDate) lastDate = rowDate;
+
+      // Only consider lines containing "FREE"
+      if (!/free/i.test(desc)) continue;
+      const date = rowDate || lastDate;
+      if (!date) continue;
+
+      const sector = inferSectorFromDesc(desc);
+      const name = extractFreeName(desc);
+      entries.push({ date, sector, name });
+    }
+
+    // Consolidate by date
+    const byDate: Record<string, { cozinha: number; salao: number; tele: number; unknown: number }> = {};
+    for (const e of entries) {
+      if (!byDate[e.date]) byDate[e.date] = { cozinha: 0, salao: 0, tele: 0, unknown: 0 };
+      if (e.sector === 'COZINHA') byDate[e.date].cozinha++;
+      else if (e.sector === 'SALÃO') byDate[e.date].salao++;
+      else if (e.sector === 'TELE - ENTREGA') byDate[e.date].tele++;
+      else byDate[e.date].unknown++;
+    }
+
+    return Object.entries(byDate)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, counts]) => {
+        const total = counts.cozinha + counts.salao + counts.tele + counts.unknown;
+        return {
+          date,
+          cozinha: counts.cozinha,
+          salao: counts.salao,
+          tele: counts.tele,
+          total,
+          totalCheck: total,
+          ok: counts.unknown === 0,
+        };
+      });
+  };
+
   const handleFreeFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -608,8 +722,48 @@ export default function Produtividade() {
         return;
       }
 
-      // Find header row
+      // Detect model by scanning headers
       const normalize = (v: any) => String(v || '').trim().toUpperCase();
+      let isModeloA = false;
+      let isModeloB = false;
+
+      for (let i = 0; i < Math.min(raw.length, 10); i++) {
+        const row = raw[i];
+        if (!row) continue;
+        const headers = row.map(normalize);
+        if (headers.some(h => h.includes('DATA')) && headers.some(h => h.includes('FREE') || h.includes('COZINHA'))) {
+          isModeloA = true;
+          break;
+        }
+        if (headers.some(h => h.includes('VENCIMENTO')) && headers.some(h => h.includes('DESCRI'))) {
+          isModeloB = true;
+          break;
+        }
+      }
+
+      if (isModeloB) {
+        const preview = parseModeloB(raw, wb, ws);
+        if (preview.length === 0) {
+          setFreeImportError('Nenhum lançamento de free-lancer encontrado no arquivo financeiro. Verifique se a coluna Descrição contém "FREE".');
+          setFreeImportDialogOpen(true);
+          return;
+        }
+        const hasUnknown = preview.some(p => !p.ok);
+        if (hasUnknown) {
+          setFreeImportError('⚠️ Alguns free-lancers não tiveram o setor identificado automaticamente. Revise antes de confirmar.');
+        }
+        setFreeImportPreview(preview);
+        setFreeImportDialogOpen(true);
+        return;
+      }
+
+      if (!isModeloA) {
+        setFreeImportError('Formato não reconhecido. Esperado: Modelo Consolidado (Data, Free Cozinha, Free Salão, Free Tele) ou Modelo Financeiro (Vencimento, Descrição, Valor).');
+        setFreeImportDialogOpen(true);
+        return;
+      }
+
+      // ===== MODELO A — consolidated =====
       let headerIdx = -1;
       let colMap: Record<string, number> = {};
       for (let i = 0; i < Math.min(raw.length, 10); i++) {
@@ -623,13 +777,6 @@ export default function Produtividade() {
         }
       }
 
-      if (headerIdx === -1) {
-        setFreeImportError('Cabeçalho não encontrado. Esperado colunas: Data, Free Cozinha, Free Salão, Free Tele.');
-        setFreeImportDialogOpen(true);
-        return;
-      }
-
-      // Find column indices with flexible matching
       const findCol = (keywords: string[]): number => {
         for (const key of Object.keys(colMap)) {
           if (keywords.every(k => key.includes(k))) return colMap[key];
@@ -654,11 +801,9 @@ export default function Produtividade() {
         const row = raw[i];
         if (!row || !row[dateCol]) continue;
 
-        // Parse date (supports dd/mm/yyyy or yyyy-mm-dd)
         let dateStr = '';
         const rawDate = row[dateCol];
         if (typeof rawDate === 'number') {
-          // Excel serial date
           const excelDate = XLSX.SSF.parse_date_code(rawDate);
           dateStr = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`;
         } else {
