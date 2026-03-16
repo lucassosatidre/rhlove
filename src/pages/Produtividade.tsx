@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useDailySales, useUpsertDailySales, useBulkInsertDailySales, useDeleteDailySales, type DailySalesInput } from '@/hooks/useDailySales';
 import { useFreelancers } from '@/hooks/useFreelancers';
@@ -18,6 +18,7 @@ import { Download, Printer, Upload, Plus, Pencil, Trash2, BarChart3, FileSpreads
 import IndicatorLegend, { IndicatorTooltip } from '@/components/IndicatorLegend';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, Legend, LabelList } from 'recharts';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import ProductivityTables from '@/components/productivity/ProductivityTables';
 import * as XLSX from 'xlsx';
 
 const SECTOR_COLORS: Record<string, string> = {
@@ -74,6 +75,23 @@ export default function Produtividade() {
   const { data: salesData = [], isLoading } = useDailySales(startDate, endDate);
   const { data: freelancersData = [] } = useFreelancers(startDate, endDate);
   const { data: scheduledVacations = [] } = useScheduledVacations();
+
+  // Previous period for comparison
+  const prevPeriod = useMemo(() => {
+    const s = new Date(startDate + 'T00:00:00');
+    const e = new Date(endDate + 'T00:00:00');
+    const days = Math.round((e.getTime() - s.getTime()) / 86400000) + 1;
+    const prevEnd = new Date(s);
+    prevEnd.setDate(prevEnd.getDate() - 1);
+    const prevStart = new Date(prevEnd);
+    prevStart.setDate(prevStart.getDate() - days + 1);
+    const toStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return { start: toStr(prevStart), end: toStr(prevEnd) };
+  }, [startDate, endDate]);
+
+  const { data: prevSalesData = [] } = useDailySales(prevPeriod.start, prevPeriod.end);
+  const { data: prevFreelancersData = [] } = useFreelancers(prevPeriod.start, prevPeriod.end);
+
   const upsertMut = useUpsertDailySales();
   const bulkMut = useBulkInsertDailySales();
   const deleteMut = useDeleteDailySales();
@@ -81,6 +99,11 @@ export default function Produtividade() {
   const productivityRows = useMemo(
     () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations),
     [salesData, collaborators, freelancersData, scheduledVacations]
+  );
+
+  const prevProductivityRows = useMemo(
+    () => generateProductivityData(prevSalesData, collaborators, prevFreelancersData, scheduledVacations),
+    [prevSalesData, collaborators, prevFreelancersData, scheduledVacations]
   );
 
   const groupedByDate = useMemo(() => {
@@ -534,6 +557,20 @@ export default function Produtividade() {
       <Card className="no-print">
         <CardContent className="py-4">
           <div className="flex flex-wrap items-end gap-4">
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { label: 'Hoje', fn: () => { const t = new Date().toISOString().split('T')[0]; setStartDate(t); setEndDate(t); } },
+                { label: 'Ontem', fn: () => { const d = new Date(); d.setDate(d.getDate() - 1); const t = d.toISOString().split('T')[0]; setStartDate(t); setEndDate(t); } },
+                { label: '7 dias', fn: () => { const e = new Date(); const s = new Date(); s.setDate(s.getDate() - 6); setStartDate(s.toISOString().split('T')[0]); setEndDate(e.toISOString().split('T')[0]); } },
+                { label: '15 dias', fn: () => { const e = new Date(); const s = new Date(); s.setDate(s.getDate() - 14); setStartDate(s.toISOString().split('T')[0]); setEndDate(e.toISOString().split('T')[0]); } },
+                { label: '30 dias', fn: () => { const e = new Date(); const s = new Date(); s.setDate(s.getDate() - 29); setStartDate(s.toISOString().split('T')[0]); setEndDate(e.toISOString().split('T')[0]); } },
+                { label: 'Mês atual', fn: () => { setStartDate(firstOfMonth); setEndDate(lastOfMonth); } },
+              ].map(p => (
+                <Button key={p.label} variant="outline" size="sm" className="h-7 text-xs px-3" onClick={p.fn}>
+                  {p.label}
+                </Button>
+              ))}
+            </div>
             <div className="space-y-1">
               <Label className="text-xs">Data Inicial</Label>
               <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-40" />
@@ -662,71 +699,12 @@ export default function Produtividade() {
           </TabsList>
 
           <TabsContent value="table">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4" />
-                   Produtividade por Colaborador
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="font-bold">Data</TableHead>
-                        <TableHead className="font-bold">Setor</TableHead>
-                        <TableHead className="text-right font-bold">Vendas</TableHead>
-                        <TableHead className="text-right font-bold">Pedidos</TableHead>
-                        <TableHead className="text-right font-bold">Nº Colaboradores</TableHead>
-                        <TableHead className="text-right font-bold">Ticket p/ colab. do setor</TableHead>
-                        <TableHead className="text-right font-bold">Pedidos p/ colab. do setor</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {groupedByDate.map(([date, rows], dateIdx) => (
-                        rows.map((row, rowIdx) => (
-                          <TableRow
-                            key={`${date}-${row.sector}`}
-                            className={`${
-                              isSummaryRow(row.sector)
-                                ? 'bg-muted/60 font-semibold border-t-2 border-border'
-                                : ''
-                            } ${
-                              row.sector === 'PCT' && dateIdx < groupedByDate.length - 1
-                                ? 'border-b-4 border-border'
-                                : ''
-                            }`}
-                          >
-                            <TableCell className="font-medium">
-                              {rowIdx === 0 ? formatDateBR(row.date) : ''}
-                            </TableCell>
-                            <TableCell className={`${isSummaryRow(row.sector) ? 'font-bold' : ''}`}>
-                              {row.sector === 'TCT' ? 'Ticket p/ colab. do time' : row.sector === 'PCT' ? 'Pedidos p/ colab. do time' : row.sector}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                              {row.vendas ? formatCurrency(row.vendas) : '-'}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                              {row.pedidos ? row.pedidos : '-'}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums font-medium">
-                              {row.numero_pessoas || '-'}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                              {row.tcs ? formatCurrency(row.tcs) : '-'}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                              {row.pcs ? formatDecimal(row.pcs) : '-'}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+            <ProductivityTables
+              currentRows={productivityRows}
+              previousRows={prevProductivityRows}
+              startDate={startDate}
+              endDate={endDate}
+            />
           </TabsContent>
 
           <TabsContent value="charts" className="space-y-6">
