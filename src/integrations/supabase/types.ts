@@ -425,6 +425,85 @@ export type Database = {
           },
         ]
       }
+      schedule_events: {
+        Row: {
+          collaborator_id: string
+          collaborator_name: string
+          created_at: string
+          created_by: string | null
+          event_date: string
+          event_date_end: string | null
+          event_type: string
+          holiday_compensation_id: string | null
+          id: string
+          observation: string | null
+          original_day: string | null
+          related_collaborator_id: string | null
+          related_collaborator_name: string | null
+          swapped_day: string | null
+          updated_at: string
+          week_start: string | null
+        }
+        Insert: {
+          collaborator_id: string
+          collaborator_name: string
+          created_at?: string
+          created_by?: string | null
+          event_date: string
+          event_date_end?: string | null
+          event_type: string
+          holiday_compensation_id?: string | null
+          id?: string
+          observation?: string | null
+          original_day?: string | null
+          related_collaborator_id?: string | null
+          related_collaborator_name?: string | null
+          swapped_day?: string | null
+          updated_at?: string
+          week_start?: string | null
+        }
+        Update: {
+          collaborator_id?: string
+          collaborator_name?: string
+          created_at?: string
+          created_by?: string | null
+          event_date?: string
+          event_date_end?: string | null
+          event_type?: string
+          holiday_compensation_id?: string | null
+          id?: string
+          observation?: string | null
+          original_day?: string | null
+          related_collaborator_id?: string | null
+          related_collaborator_name?: string | null
+          swapped_day?: string | null
+          updated_at?: string
+          week_start?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_events_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_events_holiday_compensation_id_fkey"
+            columns: ["holiday_compensation_id"]
+            isOneToOne: false
+            referencedRelation: "holiday_compensations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "schedule_events_related_collaborator_id_fkey"
+            columns: ["related_collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scheduled_vacations: {
         Row: {
           aviso_ferias_assinado: boolean

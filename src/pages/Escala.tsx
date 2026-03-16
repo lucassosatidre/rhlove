@@ -4,6 +4,7 @@ import { useFreelancers } from '@/hooks/useFreelancers';
 import { useFreelancerEntries, useAddFreelancerEntry, useDeleteFreelancerEntry } from '@/hooks/useFreelancerEntries';
 import { useDailySales, useUpsertDailySales } from '@/hooks/useDailySales';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
+import { useScheduleEvents, buildEventsMap, type ScheduleEvent } from '@/hooks/useScheduleEvents';
 import { generateSchedule, getMonthLabel, type ScheduleWeek } from '@/lib/scheduleEngine';
 import { countPeopleBySectorOnDate } from '@/lib/productivityEngine';
 import { Button } from '@/components/ui/button';
@@ -12,10 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import { CalendarDays, ChevronLeft, ChevronRight, Download, Printer, Users, X } from 'lucide-react';
 import FreesDialog from '@/components/FreesDialog';
 import InlineFreelancerInput from '@/components/schedule/InlineFreelancerInput';
 import EditableSalesCell from '@/components/schedule/EditableSalesCell';
+import CollaboratorActionMenu from '@/components/schedule/CollaboratorActionMenu';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 
@@ -60,7 +63,18 @@ export default function Escala() {
   const { data: freelancers = [] } = useFreelancers(dateRange.start, dateRange.end);
   const { data: freelancerEntries = [] } = useFreelancerEntries(dateRange.start, dateRange.end);
   const { data: salesData = [] } = useDailySales(dateRange.start, dateRange.end);
+  const { data: scheduleEvents = [] } = useScheduleEvents(dateRange.start, dateRange.end);
 
+  const eventsMap = useMemo(() => buildEventsMap(scheduleEvents), [scheduleEvents]);
+
+  // Lookup: collaborator name → collaborator object
+  const collabByName = useMemo(() => {
+    const map: Record<string, typeof collaborators[0]> = {};
+    for (const c of collaborators) {
+      map[c.collaborator_name] = c;
+    }
+    return map;
+  }, [collaborators]);
   const addFreelancerEntry = useAddFreelancerEntry();
   const deleteFreelancerEntry = useDeleteFreelancerEntry();
   const upsertSales = useUpsertDailySales();
@@ -336,19 +350,64 @@ export default function Escala() {
                     <tr key={idx}>
                       {week.days.map((d, di) => {
                         const names = d.collaboratorsBySector[sector] || [];
-                        const name = names[idx] || '';
-                        const hasAlert = name ? isAlertName(name) : false;
-                        const numbered = name ? `${idx + 1} - ${name}` : '';
+                        const rawName = names[idx] || '';
+                        // Strip alert suffixes to find collaborator
+                        const cleanName = rawName.replace(/ \(EXPERIÊNCIA VENCENDO\)/, '').replace(/ \(AVISO TERMINANDO\)/, '');
+                        const hasAlert = rawName ? isAlertName(rawName) : false;
+                        const numbered = rawName ? `${idx + 1} - ${rawName}` : '';
+                        
+                        const dateKey = formatDateKey(d.date);
+                        const collab = cleanName ? collabByName[cleanName] : null;
+                        const collabEvents = collab ? (eventsMap[dateKey]?.[collab.id] || []) : [];
+                        const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
+                        const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
+                        const hasCompensacao = collabEvents.some(e => e.event_type === 'COMPENSACAO');
+                        const hasTroca = collabEvents.some(e => e.event_type === 'TROCA_FOLGA');
+                        const hasEvent = hasFalta || hasAtestado || hasCompensacao || hasTroca;
+
+                        const cellClasses = [
+                          'border border-border px-2 text-left',
+                          compact ? 'py-0.5' : 'py-1',
+                          di === 6 ? 'bg-accent/30' : '',
+                          hasAlert ? 'bg-warning/20 font-semibold' : '',
+                          hasFalta ? 'bg-destructive/10' : '',
+                          hasAtestado ? 'bg-blue-50 dark:bg-blue-950/30' : '',
+                          hasCompensacao ? 'bg-green-50 dark:bg-green-950/30' : '',
+                          hasTroca ? 'bg-orange-50 dark:bg-orange-950/30' : '',
+                        ].filter(Boolean).join(' ');
+
+                        if (!rawName) {
+                          return <td key={di} className={cellClasses} />;
+                        }
+
+                        const nameContent = (
+                          <span className="flex items-center gap-1 flex-wrap">
+                            <span className={`${hasFalta ? 'line-through text-destructive/70' : ''} ${hasAtestado ? 'text-blue-600 dark:text-blue-400' : ''} ${hasAlert ? 'text-amber-700 dark:text-amber-400' : ''}`}>
+                              {numbered}
+                            </span>
+                            {hasFalta && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">faltou</Badge>}
+                            {hasAtestado && <Badge className="text-[9px] px-1 py-0 h-4 bg-blue-500 text-white">atestado</Badge>}
+                            {hasCompensacao && <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600 text-white">compensação</Badge>}
+                            {hasTroca && <Badge className="text-[9px] px-1 py-0 h-4 bg-orange-500 text-white">ajuste</Badge>}
+                          </span>
+                        );
+
                         return (
-                          <td
-                            key={di}
-                            className={`border border-border px-2 ${compact ? 'py-0.5' : 'py-1'} text-left ${
-                              di === 6 ? 'bg-accent/30' : ''
-                            } ${hasAlert ? 'bg-warning/20 font-semibold' : ''}`}
-                          >
-                            {hasAlert ? (
-                              <span className="text-amber-700 dark:text-amber-400">{numbered}</span>
-                            ) : numbered}
+                          <td key={di} className={cellClasses}>
+                            {collab ? (
+                              <CollaboratorActionMenu
+                                collaboratorName={cleanName}
+                                collaboratorId={collab.id}
+                                date={d.date}
+                                weekStart={week.startDate}
+                                allCollaborators={collaborators}
+                                sector={sector}
+                              >
+                                <button className="w-full text-left cursor-pointer hover:bg-accent/50 rounded px-0.5 -mx-0.5 transition-colors no-print">
+                                  {nameContent}
+                                </button>
+                              </CollaboratorActionMenu>
+                            ) : nameContent}
                           </td>
                         );
                       })}
@@ -667,14 +726,48 @@ export default function Escala() {
                               </tr>
                             </thead>
                             <tbody>
-                              {names.map((name, idx) => {
-                                const hasAlert = isAlertName(name);
+                              {names.map((rawName, idx) => {
+                                const cleanName = rawName.replace(/ \(EXPERIÊNCIA VENCENDO\)/, '').replace(/ \(AVISO TERMINANDO\)/, '');
+                                const hasAlert = isAlertName(rawName);
+                                const collab = collabByName[cleanName];
+                                const collabEvents = collab ? (eventsMap[todayKey]?.[collab.id] || []) : [];
+                                const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
+                                const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
+                                const hasCompensacao = collabEvents.some(e => e.event_type === 'COMPENSACAO');
+                                const hasTroca = collabEvents.some(e => e.event_type === 'TROCA_FOLGA');
+
+                                // Find the week containing today
+                                const todayWeek = weeks.find(w => w.days.some(dd => formatDateKey(dd.date) === todayKey));
+
+                                const nameContent = (
+                                  <span className="flex items-center gap-1 flex-wrap">
+                                    <span className={`${hasFalta ? 'line-through text-destructive/70' : ''} ${hasAtestado ? 'text-blue-600 dark:text-blue-400' : ''} ${hasAlert ? 'text-amber-700 dark:text-amber-400' : ''}`}>
+                                      {idx + 1} - {rawName}
+                                    </span>
+                                    {hasFalta && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">faltou</Badge>}
+                                    {hasAtestado && <Badge className="text-[9px] px-1 py-0 h-4 bg-blue-500 text-white">atestado</Badge>}
+                                    {hasCompensacao && <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600 text-white">compensação</Badge>}
+                                    {hasTroca && <Badge className="text-[9px] px-1 py-0 h-4 bg-orange-500 text-white">ajuste</Badge>}
+                                  </span>
+                                );
+
                                 return (
                                   <tr key={idx}>
-                                    <td className={`border border-border px-3 py-1.5 ${hasAlert ? 'bg-warning/20 font-semibold' : ''}`}>
-                                      {hasAlert ? (
-                                        <span className="text-amber-700 dark:text-amber-400">{idx + 1} - {name}</span>
-                                      ) : `${idx + 1} - ${name}`}
+                                    <td className={`border border-border px-3 py-1.5 ${hasAlert ? 'bg-warning/20 font-semibold' : ''} ${hasFalta ? 'bg-destructive/10' : ''} ${hasAtestado ? 'bg-blue-50 dark:bg-blue-950/30' : ''}`}>
+                                      {collab && todayWeek ? (
+                                        <CollaboratorActionMenu
+                                          collaboratorName={cleanName}
+                                          collaboratorId={collab.id}
+                                          date={today}
+                                          weekStart={todayWeek.startDate}
+                                          allCollaborators={collaborators}
+                                          sector={sector}
+                                        >
+                                          <button className="w-full text-left cursor-pointer hover:bg-accent/50 rounded px-0.5 -mx-0.5 transition-colors no-print">
+                                            {nameContent}
+                                          </button>
+                                        </CollaboratorActionMenu>
+                                      ) : nameContent}
                                     </td>
                                   </tr>
                                 );
