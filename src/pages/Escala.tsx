@@ -38,7 +38,7 @@ export default function Escala() {
   const [singleSectorMode, setSingleSectorMode] = useState(false);
   const [selectedSector, setSelectedSector] = useState('COZINHA');
   const [showPerformance, setShowPerformance] = useState(false);
-  const [selectedWeek, setSelectedWeek] = useState(0);
+  const [selectedWeek, setSelectedWeek] = useState(-1); // -1 = not yet initialized
   const [freesDialogOpen, setFreesDialogOpen] = useState(false);
   const [freesWeekIdx, setFreesWeekIdx] = useState(0);
   const printRef = useRef<HTMLDivElement>(null);
@@ -51,6 +51,20 @@ export default function Escala() {
     () => generateSchedule(collaborators, year, month, scheduledVacations),
     [collaborators, year, month, scheduledVacations]
   );
+
+  // Auto-select the week containing today when weeks change
+  const effectiveSelectedWeek = useMemo(() => {
+    if (selectedWeek >= 0 && selectedWeek < weeks.length) return selectedWeek;
+    if (weeks.length === 0) return 0;
+    const today = new Date();
+    const todayTime = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    for (let i = 0; i < weeks.length; i++) {
+      const start = new Date(weeks[i].days[0].date.getFullYear(), weeks[i].days[0].date.getMonth(), weeks[i].days[0].date.getDate()).getTime();
+      const end = new Date(weeks[i].days[6].date.getFullYear(), weeks[i].days[6].date.getMonth(), weeks[i].days[6].date.getDate()).getTime();
+      if (todayTime >= start && todayTime <= end) return i;
+    }
+    return 0;
+  }, [weeks, selectedWeek]);
 
   const dateRange = useMemo(() => {
     if (weeks.length === 0) return { start: '', end: '' };
@@ -108,12 +122,12 @@ export default function Escala() {
   }, [salesData]);
 
   const prevMonth = () => {
-    setSelectedWeek(0);
+    setSelectedWeek(-1);
     if (month === 0) { setMonth(11); setYear(y => y - 1); }
     else setMonth(m => m - 1);
   };
   const nextMonth = () => {
-    setSelectedWeek(0);
+    setSelectedWeek(-1);
     if (month === 11) { setMonth(0); setYear(y => y + 1); }
     else setMonth(m => m + 1);
   };
@@ -819,7 +833,7 @@ export default function Escala() {
                 return (
                   <Button
                     key={i}
-                    variant={selectedWeek === i ? 'default' : 'outline'}
+                    variant={effectiveSelectedWeek === i ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setSelectedWeek(i)}
                   >
@@ -828,14 +842,14 @@ export default function Escala() {
                 );
               })}
             </div>
-            {weeks[selectedWeek] && (
+            {weeks[effectiveSelectedWeek] && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">
-                    {formatDateBR(weeks[selectedWeek].days[0].date)} - {formatDateBR(weeks[selectedWeek].days[6].date)}
+                    {formatDateBR(weeks[effectiveSelectedWeek].days[0].date)} - {formatDateBR(weeks[effectiveSelectedWeek].days[6].date)}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-2">{renderWeek(weeks[selectedWeek])}</CardContent>
+                <CardContent className="p-2">{renderWeek(weeks[effectiveSelectedWeek])}</CardContent>
               </Card>
             )}
           </TabsContent>
