@@ -47,6 +47,7 @@ export default function Escala() {
 
   const { data: collaborators = [] } = useCollaborators();
   const { data: scheduledVacations = [] } = useScheduledVacations();
+  const { data: afastamentos = [] } = useAfastamentos();
 
   // Compute dateRange from year/month (independent of weeks)
   const dateRange = useMemo(() => {
