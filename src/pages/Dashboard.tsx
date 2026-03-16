@@ -1,96 +1,90 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useDailySales } from '@/hooks/useDailySales';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useFreelancers } from '@/hooks/useFreelancers';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
-import { useAvisosPrevios, computeAvisosAlerts } from '@/hooks/useAvisosPrevios';
-import { Loader2 } from 'lucide-react';
-import {
-  getDateRange,
-  getPreviousRange,
-  computeOverview,
-  computeSectorMetrics,
-  computeEvolution,
-  computeTeamDist,
-  computeFreelancerSummary,
-  computeAlerts,
-  computeHealth,
-  computeMonthlyTrends,
-} from '@/lib/dashboardEngine';
+import { Loader2, CalendarDays, User } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import TopKPICards from '@/components/dashboard/TopKPICards';
+import MetricBlock from '@/components/dashboard/MetricBlock';
+import { computeBlockMetrics, type BlockMetrics } from '@/lib/dashboardEngine';
 
-import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import OverviewCards from '@/components/dashboard/OverviewCards';
-import SectorProductivity from '@/components/dashboard/SectorProductivity';
-import OperationEvolution from '@/components/dashboard/OperationEvolution';
-import TeamDistribution from '@/components/dashboard/TeamDistribution';
-import OperationalAlerts from '@/components/dashboard/OperationalAlerts';
-import OperationHealth from '@/components/dashboard/OperationHealth';
-import AdvisorInsights from '@/components/dashboard/AdvisorInsights';
-import OperationalTrends from '@/components/dashboard/OperationalTrends';
-import IndicatorLegend from '@/components/IndicatorLegend';
+function fmt(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+const DIAS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 
 export default function Dashboard() {
-  const [period, setPeriod] = useState('hoje');
-  const [customStart, setCustomStart] = useState('');
-  const [customEnd, setCustomEnd] = useState('');
+  const { usuario } = useAuth();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dateStr = today.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const dayOfWeek = DIAS[today.getDay()];
 
-  const { start, end } = useMemo(() => getDateRange(period, customStart, customEnd), [period, customStart, customEnd]);
-  const prev = useMemo(() => getPreviousRange(start, end), [start, end]);
+  // Yesterday
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = fmt(yesterday);
 
-  // Fetch all data - broad range for historical
-  const { data: sales = [], isLoading: loadingSales } = useDailySales(start, end);
-  const { data: prevSales = [] } = useDailySales(prev.start, prev.end);
-  const { data: allSales = [] } = useDailySales(); // all historical
+  // Same weekday last week (for top KPI comparison)
+  const sameWeekdayPrev = new Date(yesterday);
+  sameWeekdayPrev.setDate(sameWeekdayPrev.getDate() - 7);
+  const sameWeekdayPrevStr = fmt(sameWeekdayPrev);
+
+  // 7-day range: yesterday back 7 days
+  const start7 = new Date(yesterday);
+  start7.setDate(start7.getDate() - 6);
+  const prev7End = new Date(start7);
+  prev7End.setDate(prev7End.getDate() - 1);
+  const prev7Start = new Date(prev7End);
+  prev7Start.setDate(prev7Start.getDate() - 6);
+
+  // 30-day range: yesterday back 30 days
+  const start30 = new Date(yesterday);
+  start30.setDate(start30.getDate() - 29);
+  const prev30End = new Date(start30);
+  prev30End.setDate(prev30End.getDate() - 1);
+  const prev30Start = new Date(prev30End);
+  prev30Start.setDate(prev30Start.getDate() - 29);
+
+  // Fetch data - broad range to cover all periods
+  const broadStart = fmt(prev30Start);
+  const broadEnd = fmt(yesterday);
+
+  const { data: allSales = [], isLoading: loadingSales } = useDailySales(broadStart, broadEnd);
   const { data: collaborators = [], isLoading: loadingCollab } = useCollaborators();
-  const { data: freelancers = [] } = useFreelancers(start, end);
-  const { data: prevFreelancers = [] } = useFreelancers(prev.start, prev.end);
-  const { data: allFreelancers = [] } = useFreelancers();
+  const { data: freelancers = [] } = useFreelancers(broadStart, broadEnd);
   const { data: scheduledVacations = [] } = useScheduledVacations();
-  const { data: avisosPrevios = [] } = useAvisosPrevios();
 
   const loading = loadingSales || loadingCollab;
 
-  const overview = useMemo(() =>
-    computeOverview(sales, prevSales, collaborators, freelancers, prevFreelancers, scheduledVacations),
-    [sales, prevSales, collaborators, freelancers, prevFreelancers, scheduledVacations]
-  );
+  // Helper to filter sales/freelancers by date range
+  const filterByRange = (start: string, end: string) => ({
+    sales: allSales.filter(s => s.date >= start && s.date <= end),
+    fl: freelancers.filter(f => f.date >= start && f.date <= end),
+  });
 
-  const sectorMetrics = useMemo(() =>
-    computeSectorMetrics(sales, collaborators, freelancers, scheduledVacations),
-    [sales, collaborators, freelancers, scheduledVacations]
-  );
+  // Yesterday metrics
+  const yesterdayData = useMemo(() => {
+    const curr = filterByRange(yesterdayStr, yesterdayStr);
+    const prev = filterByRange(sameWeekdayPrevStr, sameWeekdayPrevStr);
+    return computeBlockMetrics(curr.sales, prev.sales, collaborators, curr.fl, prev.fl, scheduledVacations);
+  }, [allSales, freelancers, collaborators, scheduledVacations, yesterdayStr, sameWeekdayPrevStr]);
 
-  const evolution = useMemo(() =>
-    computeEvolution(sales, collaborators, freelancers, scheduledVacations),
-    [sales, collaborators, freelancers, scheduledVacations]
-  );
+  // 7-day avg metrics
+  const avg7Data = useMemo(() => {
+    const curr = filterByRange(fmt(start7), fmt(yesterday));
+    const prev = filterByRange(fmt(prev7Start), fmt(prev7End));
+    return computeBlockMetrics(curr.sales, prev.sales, collaborators, curr.fl, prev.fl, scheduledVacations);
+  }, [allSales, freelancers, collaborators, scheduledVacations]);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const teamDist = useMemo(() =>
-    computeTeamDist(collaborators, freelancers, scheduledVacations, today),
-    [collaborators, freelancers, scheduledVacations, today]
-  );
-
-  const flSummary = useMemo(() => computeFreelancerSummary(allFreelancers), [allFreelancers]);
-
-  const baseAlerts = useMemo(() =>
-    computeAlerts(collaborators, scheduledVacations, [], sales, freelancers),
-    [collaborators, scheduledVacations, sales, freelancers]
-  );
-
-  const avisosAlerts = useMemo(() => computeAvisosAlerts(avisosPrevios), [avisosPrevios]);
-
-  const alerts = useMemo(() => [...baseAlerts, ...avisosAlerts], [baseAlerts, avisosAlerts]);
-
-  const health = useMemo(() =>
-    computeHealth(sales, allSales, collaborators, freelancers, allFreelancers, scheduledVacations),
-    [sales, allSales, collaborators, freelancers, allFreelancers, scheduledVacations]
-  );
-
-  const trends = useMemo(() =>
-    computeMonthlyTrends(allSales, collaborators, allFreelancers, scheduledVacations),
-    [allSales, collaborators, allFreelancers, scheduledVacations]
-  );
+  // 30-day avg metrics
+  const avg30Data = useMemo(() => {
+    const curr = filterByRange(fmt(start30), fmt(yesterday));
+    const prev = filterByRange(fmt(prev30Start), fmt(prev30End));
+    return computeBlockMetrics(curr.sales, prev.sales, collaborators, curr.fl, prev.fl, scheduledVacations);
+  }, [allSales, freelancers, collaborators, scheduledVacations]);
 
   if (loading) {
     return (
@@ -100,43 +94,61 @@ export default function Dashboard() {
     );
   }
 
+  const formatPeriodLabel = (start: Date, end: Date) => {
+    const s = start.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    const e = end.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    return `${s} a ${e}`;
+  };
+
   return (
-    <div className="space-y-5 max-w-[1400px] mx-auto">
-      <DashboardHeader
-        period={period}
-        setPeriod={setPeriod}
-        customStart={customStart}
-        setCustomStart={setCustomStart}
-        customEnd={customEnd}
-        setCustomEnd={setCustomEnd}
-      />
-
-      {/* Block 2: Overview */}
-      <OverviewCards data={overview} />
-
-      {/* Block 3 & 5: Sector + Team side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <SectorProductivity data={sectorMetrics} />
-        <TeamDistribution data={teamDist} freelancerWeek={flSummary.week} freelancerMonth={flSummary.month} />
+    <div className="space-y-6 max-w-[1400px] mx-auto">
+      {/* Header */}
+      <div>
+        <h1 className="text-xl font-bold tracking-tight text-foreground md:text-2xl">
+          Dashboard Operacional
+        </h1>
+        <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <CalendarDays className="w-3.5 h-3.5" />
+            {dateStr} · {dayOfWeek}
+          </span>
+          {usuario && (
+            <span className="flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5" />
+              {usuario.nome}
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Block 4: Evolution */}
-      <OperationEvolution data={evolution} />
+      {/* Top KPI Cards */}
+      <TopKPICards data={yesterdayData} periodLabel="Ontem" comparisonLabel="mesmo dia da semana anterior" />
 
-      {/* Block 6: Health */}
-      <OperationHealth metrics={health} />
+      {/* Resultado do dia anterior */}
+      <MetricBlock
+        title="Resultado do dia anterior"
+        periodLabel={yesterday.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+        comparisonLabel={`vs ${sameWeekdayPrev.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} (mesmo dia semana anterior)`}
+        data={yesterdayData}
+      />
 
-      {/* Block 7: Alerts */}
-      <OperationalAlerts alerts={alerts} />
+      {/* Média dos últimos 7 dias */}
+      <MetricBlock
+        title="Média dos últimos 7 dias"
+        periodLabel={formatPeriodLabel(start7, yesterday)}
+        comparisonLabel={`vs ${formatPeriodLabel(prev7Start, prev7End)}`}
+        data={avg7Data}
+        isAverage
+      />
 
-      {/* Block 9: AI Advisor */}
-      <AdvisorInsights overview={overview} sectorMetrics={sectorMetrics} healthMetrics={health} />
-
-      {/* Block 10: Trends */}
-      <OperationalTrends data={trends} />
-
-      {/* Legenda dos Indicadores */}
-      <IndicatorLegend />
+      {/* Média dos últimos 30 dias */}
+      <MetricBlock
+        title="Média dos últimos 30 dias"
+        periodLabel={formatPeriodLabel(start30, yesterday)}
+        comparisonLabel={`vs ${formatPeriodLabel(prev30Start, prev30End)}`}
+        data={avg30Data}
+        isAverage
+      />
     </div>
   );
 }
