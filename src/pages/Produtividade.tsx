@@ -812,7 +812,15 @@ export default function Produtividade() {
     }
 
     try {
+      // Save consolidated quantities
       await bulkFreeMut.mutateAsync(rows);
+      // Save individual named entries for display in Escala
+      const individualEntries = reviewed
+        .filter(e => e.sector && e.name.trim() && e.date)
+        .map(e => ({ date: e.date, sector: e.sector!, name: e.name.trim() }));
+      if (individualEntries.length > 0) {
+        await bulkFreeEntriesMut.mutateAsync(individualEntries);
+      }
       const totalFrees = rows.reduce((s, r) => s + r.quantity, 0);
       toast({ title: 'Free-lancers importados com sucesso', description: `${totalFrees} free(s) em ${Object.keys(consolidated).length} dia(s)` });
       setFreeReviewOpen(false);
