@@ -462,52 +462,66 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
 
   // ── Status actions ──
   async function handleSetStatus(ev: HREvent, status: TaskStatus) {
-    if (!ev.avisoId || !ev.avisoField) return;
     const newVal = status === 'CONCLUÍDO';
-    const updates: any = { id: ev.avisoId, [ev.avisoField]: newVal };
 
-    if (ev.avisoField === 'enviado_contabilidade' && newVal) {
-      updates.data_envio_contabilidade = new Date().toISOString().slice(0, 10);
-    }
-
-    try {
-      await updateAviso.mutateAsync(updates);
-
-      // Check auto-discharge
-      const aviso = avisos.find(a => a.id === ev.avisoId);
-      if (aviso) {
-        const updated = { ...aviso, [ev.avisoField!]: newVal };
-        const now = new Date(); now.setHours(0, 0, 0, 0);
-        const fim = new Date(updated.data_fim + 'T00:00:00');
-        if (now >= fim && updated.pago && updated.exame && updated.assinatura) {
-          await updateAviso.mutateAsync({ id: aviso.id, status_processo: 'Concluído' });
-          const collab = collaborators.find(c => c.id === aviso.collaborator_id);
-          if (collab && collab.status !== 'DESLIGADO') {
-            await updateCollaborator.mutateAsync({
-              id: collab.id,
-              collaborator_name: collab.collaborator_name,
-              sector: collab.sector,
-              tipo_escala: collab.tipo_escala,
-              folgas_semanais: collab.folgas_semanais,
-              sunday_n: collab.sunday_n,
-              status: 'DESLIGADO',
-              inicio_na_empresa: collab.inicio_na_empresa,
-              data_desligamento: aviso.data_fim,
-            });
-            toast({ title: `${collab.collaborator_name} desligado automaticamente` });
+    // Handle aviso prévio tasks
+    if (ev.avisoId && ev.avisoField) {
+      const updates: any = { id: ev.avisoId, [ev.avisoField]: newVal };
+      if (ev.avisoField === 'enviado_contabilidade' && newVal) {
+        updates.data_envio_contabilidade = new Date().toISOString().slice(0, 10);
+      }
+      try {
+        await updateAviso.mutateAsync(updates);
+        // Check auto-discharge
+        const aviso = avisos.find(a => a.id === ev.avisoId);
+        if (aviso) {
+          const updated = { ...aviso, [ev.avisoField!]: newVal };
+          const now = new Date(); now.setHours(0, 0, 0, 0);
+          const fim = new Date(updated.data_fim + 'T00:00:00');
+          if (now >= fim && updated.pago && updated.exame && updated.assinatura) {
+            await updateAviso.mutateAsync({ id: aviso.id, status_processo: 'Concluído' });
+            const collab = collaborators.find(c => c.id === aviso.collaborator_id);
+            if (collab && collab.status !== 'DESLIGADO') {
+              await updateCollaborator.mutateAsync({
+                id: collab.id, collaborator_name: collab.collaborator_name, sector: collab.sector,
+                tipo_escala: collab.tipo_escala, folgas_semanais: collab.folgas_semanais, sunday_n: collab.sunday_n,
+                status: 'DESLIGADO', inicio_na_empresa: collab.inicio_na_empresa, data_desligamento: aviso.data_fim,
+              });
+              toast({ title: `${collab.collaborator_name} desligado automaticamente` });
+            }
           }
         }
+        toast({ title: status === 'CONCLUÍDO' ? 'Marcado como concluído' : 'Marcado como pendente' });
+        setSelectedEvent(null);
+      } catch {
+        toast({ title: 'Erro ao atualizar', variant: 'destructive' });
       }
+      return;
+    }
 
-      toast({ title: status === 'CONCLUÍDO' ? 'Marcado como concluído' : 'Marcado como pendente' });
-      setSelectedEvent(null);
-    } catch {
-      toast({ title: 'Erro ao atualizar', variant: 'destructive' });
+    // Handle vacation tasks
+    if (ev.vacationId && ev.vacationField) {
+      const vac = vacations.find(v => v.id === ev.vacationId);
+      if (!vac) return;
+      try {
+        await updateVacation.mutateAsync({
+          id: vac.id, collaborator_id: vac.collaborator_id, collaborator_name: vac.collaborator_name,
+          sector: vac.sector, data_inicio_ferias: vac.data_inicio_ferias, data_fim_ferias: vac.data_fim_ferias,
+          [ev.vacationField]: newVal,
+        });
+        toast({ title: status === 'CONCLUÍDO' ? 'Marcado como concluído' : 'Marcado como pendente' });
+        setSelectedEvent(null);
+      } catch {
+        toast({ title: 'Erro ao atualizar', variant: 'destructive' });
+      }
+      return;
     }
   }
 
-  const currentStatus: TaskStatus | null = selectedEvent?.avisoField != null
-    ? getTaskStatus(selectedEvent.avisoFieldValue) : null;
+  const hasActionableField = selectedEvent?.avisoField != null || selectedEvent?.vacationField != null;
+  const actionableFieldValue = selectedEvent?.avisoField != null ? selectedEvent.avisoFieldValue : selectedEvent?.vacationFieldValue;
+  const currentStatus: TaskStatus | null = hasActionableField ? getTaskStatus(actionableFieldValue) : null;
+  const actionableFieldKey = selectedEvent?.avisoField || selectedEvent?.vacationField || '';
 
   const isDraggable = (ev: HREvent) => !!ev.avisoId && DRAGGABLE_TYPES.has(ev.type);
 
