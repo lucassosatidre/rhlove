@@ -902,6 +902,8 @@ export default function Escala() {
           weekEndDate={weeks[freesWeekIdx].days[weeks[freesWeekIdx].days.length - 1].date}
         />
       )}
+
+      <ScheduleAdjustmentsHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} />
     </div>
   );
 }

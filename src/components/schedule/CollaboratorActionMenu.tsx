@@ -178,6 +178,7 @@ export default function CollaboratorActionMenu({
         event_type: dialogType,
         event_date: dateKey,
         observation,
+        created_by: usuario?.nome || usuario?.email || null,
       };
 
       if (dialogType === 'ATESTADO' && atestadoEnd) {
