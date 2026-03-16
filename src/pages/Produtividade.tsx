@@ -18,6 +18,7 @@ import { Download, Printer, Upload, Plus, Pencil, Trash2, BarChart3, FileSpreads
 import IndicatorLegend, { IndicatorTooltip } from '@/components/IndicatorLegend';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, Legend, LabelList } from 'recharts';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import ProductivityTables from '@/components/productivity/ProductivityTables';
 import * as XLSX from 'xlsx';
 
 const SECTOR_COLORS: Record<string, string> = {
