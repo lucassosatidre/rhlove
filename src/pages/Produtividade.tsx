@@ -713,16 +713,7 @@ export default function Produtividade() {
       });
     }
 
-    // Deduplication: same date + name + sector → keep first
-    const seen = new Set<string>();
-    const deduped = entries.filter(e => {
-      const key = `${e.date}|${(e.name || '').toUpperCase()}|${e.sector || ''}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-
-    return deduped;
+    return entries;
   };
 
   /** Parse Modelo A — consolidated file → individual review entries */
