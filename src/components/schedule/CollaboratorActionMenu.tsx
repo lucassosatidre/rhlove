@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { useCreateScheduleEvent, type ScheduleEventInput } from '@/hooks/useScheduleEvents';
 import { useHolidayCompensations, useUpdateHolidayCompensation } from '@/hooks/useHolidayCompensations';
 import type { Collaborator } from '@/types/collaborator';
-import { AlertTriangle, Calendar, FileText, Gift, ArrowLeftRight, ArrowRight } from 'lucide-react';
+import { AlertTriangle, FileText, Gift, ArrowLeftRight, ArrowRight } from 'lucide-react';
 
 interface Props {
   collaboratorName: string;
