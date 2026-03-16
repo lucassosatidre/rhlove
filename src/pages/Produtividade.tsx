@@ -75,9 +75,8 @@ export default function Produtividade() {
   const [importValidationWarning, setImportValidationWarning] = useState('');
   // Freelancer import state
   const freeFileInputRef = useRef<HTMLInputElement>(null);
-  const [freeImportDialogOpen, setFreeImportDialogOpen] = useState(false);
-  const [freeImportPreview, setFreeImportPreview] = useState<{ date: string; cozinha: number; salao: number; tele: number; total: number; totalCheck: number; ok: boolean }[]>([]);
-  const [freeImportError, setFreeImportError] = useState('');
+  const [freeReviewOpen, setFreeReviewOpen] = useState(false);
+  const [freeReviewEntries, setFreeReviewEntries] = useState<FreeReviewEntry[]>([]);
   const { toast } = useToast();
 
   const { data: collaborators = [] } = useCollaborators();
