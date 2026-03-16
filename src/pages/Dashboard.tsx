@@ -49,8 +49,10 @@ export default function Dashboard() {
   const prev30Start = new Date(prev30End);
   prev30Start.setDate(prev30Start.getDate() - 29);
 
-  // Fetch data - broad range to cover all periods
-  const broadStart = fmt(prev30Start);
+  // Broad range: cover previous month start (for monthly comparison) and prev30
+  const prevMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const earliestNeeded = prevMonthStart < prev30Start ? prevMonthStart : prev30Start;
+  const broadStart = fmt(earliestNeeded);
   const broadEnd = fmt(yesterday);
 
   const { data: allSales = [], isLoading: loadingSales } = useDailySales(broadStart, broadEnd);
