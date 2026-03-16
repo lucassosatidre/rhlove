@@ -1569,6 +1569,12 @@ export default function Produtividade() {
         onConfirm={handleConfirmFreeReview}
         isPending={bulkFreeMut.isPending}
       />
+
+      {/* Freelancer History Dialog */}
+      <FreelancerHistoryDialog
+        open={freeHistoryOpen}
+        onOpenChange={setFreeHistoryOpen}
+      />
     </div>
   );
 }
