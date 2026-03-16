@@ -19,7 +19,7 @@ import type { HolidayCompensation } from '@/hooks/useHolidayCompensations';
 export interface HREvent {
   id: string;
   date: string;
-  type: 'desligamento' | 'aviso_inicio' | 'aviso_fim' | 'ferias_inicio' | 'ferias_fim' | 'ferias_pagamento' | 'experiencia_inicio' | 'experiencia_fim' | 'exame' | 'contabilidade' | 'compensacao' | 'rescisao_pagamento' | 'rescisao_assinatura';
+  type: 'desligamento' | 'aviso_inicio' | 'aviso_fim' | 'ferias_inicio' | 'ferias_fim' | 'ferias_pagamento' | 'experiencia_inicio' | 'experiencia_fim' | 'exame' | 'contabilidade' | 'compensacao' | 'rescisao_pagamento' | 'rescisao_assinatura' | 'ferias_aviso' | 'ferias_contabilidade' | 'ferias_pagamento_exec' | 'ferias_recibo' | 'ferias_retorno';
   label: string;
   collaboratorName: string;
   sector: string;
@@ -29,6 +29,10 @@ export interface HREvent {
   avisoFieldValue?: boolean;
   /** Which date field on aviso_previo this event maps to, for drag-drop rescheduling */
   avisoDateField?: string;
+  /** Vacation task tracking */
+  vacationId?: string;
+  vacationField?: 'aviso_ferias_assinado' | 'contabilidade_solicitada' | 'pagamento_efetuado' | 'recibo_assinado';
+  vacationFieldValue?: boolean;
 }
 
 const EVENT_CATEGORIES = {
