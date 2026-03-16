@@ -7,11 +7,11 @@ import rhLoveIcon from '@/assets/rh-love-icon.png';
 import clienteIcon from '@/assets/cliente-estrela-icon.png';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'gestor', 'lider', 'visualizador'] },
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'gestor', 'visualizador'] },
   { to: '/calendario-rh', label: 'Calendário RH', icon: CalendarClock, roles: ['admin', 'gestor'] },
   { to: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'gestor', 'lider', 'visualizador'] },
   { to: '/colaboradores', label: 'Colaboradores', icon: Users, roles: ['admin', 'gestor'] },
-  { to: '/produtividade', label: 'Produtividade', icon: BarChart3, roles: ['admin', 'gestor', 'lider'] },
+  { to: '/produtividade', label: 'Produtividade', icon: BarChart3, roles: ['admin', 'gestor'] },
   { to: '/ferias', label: 'Férias', icon: Palmtree, roles: ['admin', 'gestor'] },
   { to: '/compensacoes', label: 'Compensações', icon: CalendarCheck, roles: ['admin', 'gestor'] },
   { to: '/avisos-previos', label: 'Avisos Prévios', icon: FileWarning, roles: ['admin', 'gestor'] },
