@@ -787,59 +787,7 @@ export default function Produtividade() {
               </CardContent>
             </Card>
 
-            {/* 2. Ticket por colaborador do time */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Ticket por colaborador do time</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer config={tctChartConfig} className="h-[320px] w-full">
-                  <LineChart data={chartTCT} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line type="monotone" dataKey="TCT" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 4, fill: 'hsl(var(--primary))' }} name="TCT">
-                      <LabelList
-                        dataKey="TCT"
-                        position="top"
-                        offset={10}
-                        formatter={(v: number) => `R$ ${Math.round(v).toLocaleString('pt-BR')}`}
-                        style={{ fontSize: 10, fontWeight: 600, fill: 'hsl(var(--primary))' }}
-                      />
-                    </Line>
-                  </LineChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-
-            {/* 3. Pedidos por colaborador do time */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Pedidos por colaborador do time</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ChartContainer config={pctChartConfig} className="h-[320px] w-full">
-                  <LineChart data={chartPCT} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line type="monotone" dataKey="PCT" stroke="hsl(160, 60%, 45%)" strokeWidth={2.5} dot={{ r: 4, fill: 'hsl(160, 60%, 45%)' }} name="PCT">
-                      <LabelList
-                        dataKey="PCT"
-                        position="top"
-                        offset={10}
-                        formatter={(v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        style={{ fontSize: 10, fontWeight: 600, fill: 'hsl(160, 60%, 45%)' }}
-                      />
-                    </Line>
-                  </LineChart>
-                </ChartContainer>
-              </CardContent>
-            </Card>
-
-            {/* 4. Ticket por colaborador do setor */}
+            {/* 2. Ticket por colaborador do setor */}
             <Card>
               <CardHeader className="pb-2">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -893,6 +841,58 @@ export default function Produtividade() {
                     </LineChart>
                   </ChartContainer>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* 3. Pedidos por colaborador do time */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Pedidos por colaborador do time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={pctChartConfig} className="h-[320px] w-full">
+                  <LineChart data={chartPCT} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Line type="monotone" dataKey="PCT" stroke="hsl(160, 60%, 45%)" strokeWidth={2.5} dot={{ r: 4, fill: 'hsl(160, 60%, 45%)' }} name="PCT">
+                      <LabelList
+                        dataKey="PCT"
+                        position="top"
+                        offset={10}
+                        formatter={(v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        style={{ fontSize: 10, fontWeight: 600, fill: 'hsl(160, 60%, 45%)' }}
+                      />
+                    </Line>
+                  </LineChart>
+                </ChartContainer>
+              </CardContent>
+            </Card>
+
+            {/* 4. Ticket por colaborador do time */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Ticket por colaborador do time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChartContainer config={tctChartConfig} className="h-[320px] w-full">
+                  <LineChart data={chartTCT} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <Line type="monotone" dataKey="TCT" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 4, fill: 'hsl(var(--primary))' }} name="TCT">
+                      <LabelList
+                        dataKey="TCT"
+                        position="top"
+                        offset={10}
+                        formatter={(v: number) => `R$ ${Math.round(v).toLocaleString('pt-BR')}`}
+                        style={{ fontSize: 10, fontWeight: 600, fill: 'hsl(var(--primary))' }}
+                      />
+                    </Line>
+                  </LineChart>
+                </ChartContainer>
               </CardContent>
             </Card>
           </TabsContent>
