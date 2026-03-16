@@ -1,16 +1,17 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useCreateScheduleEvent, type ScheduleEventInput } from '@/hooks/useScheduleEvents';
-import { useHolidayCompensations, useUpdateHolidayCompensation, type HolidayCompensation } from '@/hooks/useHolidayCompensations';
+import { useHolidayCompensations, useUpdateHolidayCompensation } from '@/hooks/useHolidayCompensations';
 import type { Collaborator } from '@/types/collaborator';
-import { AlertTriangle, Calendar, FileText, Gift, ArrowLeftRight } from 'lucide-react';
+import { AlertTriangle, Calendar, FileText, Gift, ArrowLeftRight, ArrowRight } from 'lucide-react';
 
 interface Props {
   collaboratorName: string;
@@ -25,6 +26,21 @@ interface Props {
 const formatDateKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+const DAY_OPTIONS = [
+  { value: 'SEGUNDA', label: 'Segunda' },
+  { value: 'TERCA', label: 'Terça' },
+  { value: 'QUARTA', label: 'Quarta' },
+  { value: 'QUINTA', label: 'Quinta' },
+  { value: 'SEXTA', label: 'Sexta' },
+  { value: 'SABADO', label: 'Sábado' },
+  { value: 'DOMINGO', label: 'Domingo' },
+];
+
+const DAY_LABELS: Record<string, string> = {
+  SEGUNDA: 'Segunda', TERCA: 'Terça', QUARTA: 'Quarta', QUINTA: 'Quinta',
+  SEXTA: 'Sexta', SABADO: 'Sábado', DOMINGO: 'Domingo',
+};
+
 export default function CollaboratorActionMenu({
   collaboratorName,
   collaboratorId,
@@ -35,12 +51,15 @@ export default function CollaboratorActionMenu({
   children,
 }: Props) {
   const [open, setOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<'FALTA' | 'ATESTADO' | 'COMPENSACAO' | 'TROCA_FOLGA' | null>(null);
+  const [dialogType, setDialogType] = useState<'FALTA' | 'ATESTADO' | 'COMPENSACAO' | 'AJUSTE_FOLGA' | null>(null);
   const [observation, setObservation] = useState('');
   const [atestadoEnd, setAtestadoEnd] = useState('');
-  const [swapCollaboratorId, setSwapCollaboratorId] = useState('');
-  const [swapDay, setSwapDay] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Swap mode state
+  const [ajusteMode, setAjusteMode] = useState<'troca' | 'mover'>('troca');
+  const [swapCollaboratorId, setSwapCollaboratorId] = useState('');
+  const [newDayOff, setNewDayOff] = useState('');
 
   const { toast } = useToast();
   const createEvent = useCreateScheduleEvent();
@@ -50,12 +69,25 @@ export default function CollaboratorActionMenu({
   const dateKey = formatDateKey(date);
   const weekStartKey = formatDateKey(weekStart);
 
-  // Available compensations for this collaborator
+  const currentCollab = allCollaborators.find(c => c.id === collaboratorId);
+  const currentDayOff = currentCollab?.folgas_semanais[0] || '';
+
   const availableCompensations = compensations.filter(
     (c) => c.collaborator_id === collaboratorId && c.status === 'SIM'
   );
 
   const [selectedCompensationId, setSelectedCompensationId] = useState('');
+
+  // Other collaborators in same sector for swap
+  const swapCandidates = allCollaborators.filter(
+    (c) => c.id !== collaboratorId && c.sector === sector && c.status === 'ATIVO'
+  );
+
+  const selectedSwapCollab = useMemo(
+    () => allCollaborators.find(c => c.id === swapCollaboratorId),
+    [allCollaborators, swapCollaboratorId]
+  );
+  const swapCollabDayOff = selectedSwapCollab?.folgas_semanais[0] || '';
 
   const openDialog = (type: typeof dialogType) => {
     setDialogType(type);
@@ -63,8 +95,9 @@ export default function CollaboratorActionMenu({
     setObservation('');
     setAtestadoEnd('');
     setSwapCollaboratorId('');
-    setSwapDay('');
+    setNewDayOff('');
     setSelectedCompensationId('');
+    setAjusteMode('troca');
   };
 
   const handleSubmit = async () => {
@@ -72,6 +105,69 @@ export default function CollaboratorActionMenu({
     setLoading(true);
 
     try {
+      if (dialogType === 'AJUSTE_FOLGA') {
+        if (ajusteMode === 'troca') {
+          // TROCA_FOLGA: swap day off with another collaborator
+          if (!swapCollaboratorId) {
+            toast({ title: 'Selecione o colaborador para a troca', variant: 'destructive' });
+            setLoading(false);
+            return;
+          }
+          if (!currentDayOff || !swapCollabDayOff) {
+            toast({ title: 'Não foi possível identificar as folgas dos colaboradores', variant: 'destructive' });
+            setLoading(false);
+            return;
+          }
+
+          const input: ScheduleEventInput = {
+            collaborator_id: collaboratorId,
+            collaborator_name: collaboratorName,
+            event_type: 'TROCA_FOLGA',
+            event_date: weekStartKey,
+            week_start: weekStartKey,
+            original_day: currentDayOff,       // A's day off being given away
+            swapped_day: swapCollabDayOff,     // B's day off that A receives
+            related_collaborator_id: swapCollaboratorId,
+            related_collaborator_name: selectedSwapCollab?.collaborator_name || '',
+            observation,
+          };
+
+          await createEvent.mutateAsync(input);
+          toast({ title: 'Troca de folga aplicada' });
+        } else {
+          // MUDANCA_FOLGA: move own day off
+          if (!newDayOff) {
+            toast({ title: 'Selecione o novo dia da folga', variant: 'destructive' });
+            setLoading(false);
+            return;
+          }
+          if (!currentDayOff) {
+            toast({ title: 'Não foi possível identificar a folga atual', variant: 'destructive' });
+            setLoading(false);
+            return;
+          }
+
+          const input: ScheduleEventInput = {
+            collaborator_id: collaboratorId,
+            collaborator_name: collaboratorName,
+            event_type: 'MUDANCA_FOLGA',
+            event_date: weekStartKey,
+            week_start: weekStartKey,
+            original_day: currentDayOff,  // Current day off being removed
+            swapped_day: newDayOff,       // New day off for this week
+            observation,
+          };
+
+          await createEvent.mutateAsync(input);
+          toast({ title: 'Folga movida com sucesso' });
+        }
+
+        setDialogType(null);
+        setLoading(false);
+        return;
+      }
+
+      // Other event types (FALTA, ATESTADO, COMPENSACAO)
       const base: ScheduleEventInput = {
         collaborator_id: collaboratorId,
         collaborator_name: collaboratorName,
@@ -97,28 +193,11 @@ export default function CollaboratorActionMenu({
           return;
         }
         base.holiday_compensation_id = compId;
-        // Update compensation status to COMPENSADO
         await updateCompensation.mutateAsync({
           id: compId,
           status: 'COMPENSADO',
           compensation_date: dateKey,
         });
-      }
-
-      if (dialogType === 'TROCA_FOLGA') {
-        if (!swapCollaboratorId || !swapDay) {
-          toast({ title: 'Selecione o colaborador e o dia da troca', variant: 'destructive' });
-          setLoading(false);
-          return;
-        }
-        const swapCollab = allCollaborators.find((c) => c.id === swapCollaboratorId);
-        base.related_collaborator_id = swapCollaboratorId;
-        base.related_collaborator_name = swapCollab?.collaborator_name || '';
-        base.original_day = swapDay;
-        // The collaborator's original day off that will now be the swapped collaborator's day off
-        const collabDayOff = allCollaborators.find((c) => c.id === collaboratorId)?.folgas_semanais[0] || '';
-        base.swapped_day = collabDayOff;
-        base.week_start = weekStartKey;
       }
 
       await createEvent.mutateAsync(base);
@@ -127,7 +206,6 @@ export default function CollaboratorActionMenu({
         FALTA: 'Falta registrada',
         ATESTADO: 'Atestado registrado',
         COMPENSACAO: 'Compensação aplicada',
-        TROCA_FOLGA: 'Troca de folga aplicada',
       };
 
       toast({ title: labels[dialogType] });
@@ -138,21 +216,6 @@ export default function CollaboratorActionMenu({
       setLoading(false);
     }
   };
-
-  const DAY_OPTIONS = [
-    { value: 'SEGUNDA', label: 'Segunda' },
-    { value: 'TERCA', label: 'Terça' },
-    { value: 'QUARTA', label: 'Quarta' },
-    { value: 'QUINTA', label: 'Quinta' },
-    { value: 'SEXTA', label: 'Sexta' },
-    { value: 'SABADO', label: 'Sábado' },
-    { value: 'DOMINGO', label: 'Domingo' },
-  ];
-
-  // Other collaborators in same sector for swap
-  const swapCandidates = allCollaborators.filter(
-    (c) => c.id !== collaboratorId && c.sector === sector && c.status === 'ATIVO'
-  );
 
   return (
     <>
@@ -191,10 +254,10 @@ export default function CollaboratorActionMenu({
             </button>
             <button
               className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent transition-colors"
-              onClick={() => openDialog('TROCA_FOLGA')}
+              onClick={() => openDialog('AJUSTE_FOLGA')}
             >
               <ArrowLeftRight className="w-4 h-4 text-orange-500" />
-              Trocar folga nesta semana
+              Ajustar folga nesta semana
             </button>
           </div>
         </PopoverContent>
@@ -343,67 +406,131 @@ export default function CollaboratorActionMenu({
         </DialogContent>
       </Dialog>
 
-      {/* TROCA_FOLGA Dialog */}
-      <Dialog open={dialogType === 'TROCA_FOLGA'} onOpenChange={(o) => !o && setDialogType(null)}>
+      {/* AJUSTE FOLGA Dialog — Two modes */}
+      <Dialog open={dialogType === 'AJUSTE_FOLGA'} onOpenChange={(o) => !o && setDialogType(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ArrowLeftRight className="w-5 h-5 text-orange-500" />
-              Trocar Folga Nesta Semana
+              Ajustar Folga — Semana de {weekStart.toLocaleDateString('pt-BR')}
             </DialogTitle>
+            <DialogDescription>
+              <strong>{collaboratorName}</strong> — folga fixa: {DAY_LABELS[currentDayOff] || currentDayOff || '—'}
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm">
-              <strong>{collaboratorName}</strong> — Semana de{' '}
-              {weekStart.toLocaleDateString('pt-BR')}
-            </p>
-            <div>
-              <Label className="text-xs">Trocar com</Label>
-              <Select value={swapCollaboratorId} onValueChange={setSwapCollaboratorId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione colaborador" />
-                </SelectTrigger>
-                <SelectContent>
-                  {swapCandidates.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.collaborator_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">Dia da folga a trocar</Label>
-              <Select value={swapDay} onValueChange={setSwapDay}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o dia" />
-                </SelectTrigger>
-                <SelectContent>
-                  {DAY_OPTIONS.map((d) => (
-                    <SelectItem key={d.value} value={d.value}>
-                      {d.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-xs">Observação (opcional)</Label>
-              <Textarea
-                value={observation}
-                onChange={(e) => setObservation(e.target.value)}
-                rows={2}
-              />
-            </div>
-          </div>
+
+          <Tabs value={ajusteMode} onValueChange={(v) => setAjusteMode(v as 'troca' | 'mover')}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="troca" className="text-xs">
+                <ArrowLeftRight className="w-3.5 h-3.5 mr-1" />
+                Trocar com colega
+              </TabsTrigger>
+              <TabsTrigger value="mover" className="text-xs">
+                <ArrowRight className="w-3.5 h-3.5 mr-1" />
+                Mover folga
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Mode A: Swap with colleague */}
+            <TabsContent value="troca" className="space-y-3 mt-3">
+              <div>
+                <Label className="text-xs">Trocar com</Label>
+                <Select value={swapCollaboratorId} onValueChange={setSwapCollaboratorId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione colaborador" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {swapCandidates.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.collaborator_name} (folga: {DAY_LABELS[c.folgas_semanais[0]] || c.folgas_semanais[0] || '—'})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {swapCollaboratorId && selectedSwapCollab && (
+                <div className="rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/30 p-3 space-y-1">
+                  <p className="text-xs font-medium text-orange-700 dark:text-orange-400">Resultado da troca nesta semana:</p>
+                  <p className="text-sm">
+                    <strong>{collaboratorName}</strong>: {DAY_LABELS[currentDayOff]} → <strong>{DAY_LABELS[swapCollabDayOff]}</strong>
+                  </p>
+                  <p className="text-sm">
+                    <strong>{selectedSwapCollab.collaborator_name}</strong>: {DAY_LABELS[swapCollabDayOff]} → <strong>{DAY_LABELS[currentDayOff]}</strong>
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <Label className="text-xs">Observação (opcional)</Label>
+                <Textarea
+                  value={observation}
+                  onChange={(e) => setObservation(e.target.value)}
+                  placeholder="Motivo da troca"
+                  rows={2}
+                />
+              </div>
+            </TabsContent>
+
+            {/* Mode B: Move own day off */}
+            <TabsContent value="mover" className="space-y-3 mt-3">
+              <div className="rounded-lg border border-border bg-muted/30 p-3">
+                <p className="text-xs text-muted-foreground">Folga atual nesta semana:</p>
+                <p className="text-sm font-semibold">{DAY_LABELS[currentDayOff] || '—'}</p>
+              </div>
+
+              <div>
+                <Label className="text-xs">Novo dia da folga nesta semana</Label>
+                <Select value={newDayOff} onValueChange={setNewDayOff}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o dia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DAY_OPTIONS.filter(d => d.value !== currentDayOff).map((d) => (
+                      <SelectItem key={d.value} value={d.value}>
+                        {d.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {newDayOff && (
+                <div className="rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/30 p-3">
+                  <p className="text-xs font-medium text-orange-700 dark:text-orange-400">Resultado nesta semana:</p>
+                  <p className="text-sm">
+                    <strong>{collaboratorName}</strong>: {DAY_LABELS[currentDayOff]} → <strong>{DAY_LABELS[newDayOff]}</strong>
+                  </p>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Apenas nesta semana. A folga fixa ({DAY_LABELS[currentDayOff]}) não será alterada.
+                  </p>
+                </div>
+              )}
+
+              <div>
+                <Label className="text-xs">Observação (opcional)</Label>
+                <Textarea
+                  value={observation}
+                  onChange={(e) => setObservation(e.target.value)}
+                  placeholder="Motivo da mudança"
+                  rows={2}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogType(null)}>Cancelar</Button>
             <Button
               onClick={handleSubmit}
-              disabled={loading || !swapCollaboratorId || !swapDay}
+              disabled={
+                loading ||
+                (ajusteMode === 'troca' && !swapCollaboratorId) ||
+                (ajusteMode === 'mover' && !newDayOff)
+              }
               className="bg-orange-500 hover:bg-orange-600 text-white"
             >
-              {loading ? 'Salvando...' : 'Aplicar Troca'}
+              {loading ? 'Salvando...' : ajusteMode === 'troca' ? 'Aplicar Troca' : 'Mover Folga'}
             </Button>
           </DialogFooter>
         </DialogContent>

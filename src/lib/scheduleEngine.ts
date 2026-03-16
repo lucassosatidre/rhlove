@@ -15,6 +15,13 @@ export interface ScheduleDay {
   collaboratorsBySector: Record<string, string[]>;
 }
 
+export interface DayOffOverride {
+  removeDays: string[]; // Day-off days that become work days this week
+  addDays: string[];    // Work days that become day-off this week
+}
+
+export type DayOffOverridesMap = Map<string, DayOffOverride>;
+
 const JS_DAY_TO_KEY: DayOfWeek[] = [
   'DOMINGO', 'SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO',
 ];
@@ -24,17 +31,16 @@ const SHORT_LABELS: Record<DayOfWeek, string> = {
   SEXTA: 'Sex', SABADO: 'Sáb', DOMINGO: 'Dom',
 };
 
-function getFirstMondayOfMonthGrid(year: number, month: number): Date {
+export function getFirstMondayOfMonthGrid(year: number, month: number): Date {
   const firstDay = new Date(year, month, 1);
   const dow = firstDay.getDay();
-  // Monday=1..Sunday=0; if Sunday, go back 6 days; otherwise go back (dow-1) days
   const diff = dow === 0 ? -6 : 1 - dow;
   return new Date(year, month, 1 + diff);
 }
 
-function getWeekCount(year: number, month: number): number {
+export function getWeekCount(year: number, month: number): number {
   const firstMonday = getFirstMondayOfMonthGrid(year, month);
-  const lastDay = new Date(year, month + 1, 0); // last day of month
+  const lastDay = new Date(year, month + 1, 0);
   const diffDays = Math.ceil((lastDay.getTime() - firstMonday.getTime()) / 86400000) + 1;
   return Math.ceil(diffDays / 7);
 }
@@ -66,7 +72,12 @@ function parseDate(s: string | null): Date | null {
  * Check if collaborator should appear on a given schedule date.
  * Returns null if excluded, or the display name (possibly with alert suffix).
  */
-function getDisplayName(collab: Collaborator, scheduleDate: Date, scheduledVacations: ScheduledVacation[] = []): string | null {
+function getDisplayName(
+  collab: Collaborator,
+  scheduleDate: Date,
+  scheduledVacations: ScheduledVacation[] = [],
+  dayOffOverride?: DayOffOverride
+): string | null {
   const sd = dateOnly(scheduleDate);
   const dayKey = JS_DAY_TO_KEY[sd.getDay()];
 
@@ -78,7 +89,7 @@ function getDisplayName(collab: Collaborator, scheduleDate: Date, scheduledVacat
   if (collab.status === 'DESLIGADO') {
     const deslig = parseDate(collab.data_desligamento);
     if (deslig && sd > deslig) return null;
-    if (!deslig) return null; // no end date = don't show
+    if (!deslig) return null;
   }
 
   // STEP 0.5 — SCHEDULED VACATIONS
@@ -88,15 +99,12 @@ function getDisplayName(collab: Collaborator, scheduleDate: Date, scheduledVacat
   if (collab.status === 'FERIAS' || collab.status === 'AFASTADO') {
     const inicio = parseDate(collab.inicio_periodo);
     const fim = parseDate(collab.fim_periodo);
-    // Use new period fields if available, fallback to legacy
     if (inicio && fim) {
       if (sd >= inicio && sd <= fim) return null;
     } else {
-      // Legacy: use data_retorno
       const retorno = parseDate(collab.data_retorno);
       if (retorno && sd < retorno) return null;
       if (!retorno && (collab.status === 'FERIAS' || collab.status === 'AFASTADO')) {
-        // Check fim_periodo only
         if (fim && sd <= fim) return null;
         if (!fim) return null;
       }
@@ -108,16 +116,32 @@ function getDisplayName(collab: Collaborator, scheduleDate: Date, scheduledVacat
     if (fimAviso && sd > fimAviso) return null;
   }
 
-  // STEP 2 — FOLGAS SEMANAIS
-  if (collab.folgas_semanais.includes(dayKey)) return null;
+  // STEP 2 — DAY-OFF OVERRIDE: addDays takes priority (new day off this week)
+  if (dayOffOverride?.addDays.includes(dayKey)) return null;
 
-  // STEP 3 — DOMINGO DO MÊS
-  if (dayKey === 'DOMINGO') {
-    const sundayNum = getSundayNumber(sd);
-    if (collab.sunday_n === sundayNum) return null;
+  // STEP 3 — FOLGAS SEMANAIS (with override removeDays)
+  if (collab.folgas_semanais.includes(dayKey)) {
+    // If override removes this day-off, collaborator works today
+    if (dayOffOverride?.removeDays.includes(dayKey)) {
+      // Continue — don't return null, they work today
+    } else {
+      return null;
+    }
   }
 
-  // STEP 4 — ALERTAS
+  // STEP 4 — DOMINGO DO MÊS (with override removeDays)
+  if (dayKey === 'DOMINGO') {
+    const sundayNum = getSundayNumber(sd);
+    if (collab.sunday_n === sundayNum) {
+      if (dayOffOverride?.removeDays.includes('DOMINGO')) {
+        // Override removes this Sunday off, collaborator works
+      } else {
+        return null;
+      }
+    }
+  }
+
+  // STEP 5 — ALERTAS
   let name = collab.collaborator_name;
 
   if (collab.status === 'EXPERIENCIA') {
@@ -143,11 +167,16 @@ function getDisplayName(collab: Collaborator, scheduleDate: Date, scheduledVacat
   return name;
 }
 
+function formatDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export function generateSchedule(
   collaborators: Collaborator[],
   year: number,
   month: number,
-  scheduledVacations: ScheduledVacation[] = []
+  scheduledVacations: ScheduledVacation[] = [],
+  dayOffOverrides?: DayOffOverridesMap
 ): ScheduleWeek[] {
   const firstMonday = getFirstMondayOfMonthGrid(year, month);
   const totalWeeks = getWeekCount(year, month);
@@ -156,6 +185,7 @@ export function generateSchedule(
   for (let w = 0; w < totalWeeks; w++) {
     const weekStart = new Date(firstMonday);
     weekStart.setDate(firstMonday.getDate() + w * 7);
+    const weekStartKey = formatDateKey(weekStart);
     const days: ScheduleDay[] = [];
 
     for (let d = 0; d < 7; d++) {
@@ -163,7 +193,6 @@ export function generateSchedule(
       date.setDate(weekStart.getDate() + d);
       const dayKey = JS_DAY_TO_KEY[date.getDay()];
 
-      // Label: Segunda gets "Segunda: DD/MM", others just short name
       const label = dayKey === 'SEGUNDA'
         ? `Segunda: ${formatDateBR(date)}`
         : SHORT_LABELS[dayKey];
@@ -171,7 +200,11 @@ export function generateSchedule(
       const collaboratorsBySector: Record<string, string[]> = {};
 
       for (const collab of collaborators) {
-        const displayName = getDisplayName(collab, date, scheduledVacations);
+        // Look up override for this collaborator in this week
+        const overrideKey = `${weekStartKey}|${collab.id}`;
+        const override = dayOffOverrides?.get(overrideKey);
+
+        const displayName = getDisplayName(collab, date, scheduledVacations, override);
         if (!displayName) continue;
 
         if (!collaboratorsBySector[collab.sector]) {
@@ -196,7 +229,6 @@ export function getMonthLabel(year: number, month: number): string {
 
 /**
  * Check if a collaborator is scheduled to work on a given date.
- * Returns true if they would appear on the schedule (i.e., not on day off, not on leave, etc.)
  */
 export function isCollaboratorScheduledOnDate(
   collab: Collaborator,
