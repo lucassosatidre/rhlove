@@ -255,6 +255,10 @@ const FIELD_LABELS: Record<string, string> = {
   exame: 'Exame demissional',
   pago: 'Pagamento de verbas rescisórias',
   assinatura: 'Assinatura da rescisão',
+  aviso_ferias_assinado: 'Assinatura do aviso de férias',
+  contabilidade_solicitada: 'Solicitação de docs à contabilidade',
+  pagamento_efetuado: 'Pagamento das férias',
+  recibo_assinado: 'Assinatura do recibo de pagamento',
 };
 
 // Draggable aviso event types
