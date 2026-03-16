@@ -69,6 +69,9 @@ export default function Produtividade() {
   const [histExistingDates, setHistExistingDates] = useState<string[]>([]);
   const [tmpSectorFilter, setTmpSectorFilter] = useState<string>('ALL');
   const [pcsSectorFilter, setPcsSectorFilter] = useState<string>('ALL');
+  const [importStores, setImportStores] = useState<{ name: string; row: any[] }[]>([]);
+  const [importColMap, setImportColMap] = useState<Record<string, number>>({});
+  const [importValidationWarning, setImportValidationWarning] = useState('');
   const { toast } = useToast();
 
   const { data: collaborators = [] } = useCollaborators();
@@ -223,12 +226,69 @@ export default function Produtividade() {
     }
   };
 
+  // ====== Helper: build preview row from a data row + column map ======
+  const buildPreviewFromRow = (dataRow: any[], colMap: Record<string, number>): ImportPreviewRow => {
+    const errors: string[] = [];
+    const getNum = (key: string): number => {
+      const idx = colMap[key];
+      if (idx === undefined) return 0;
+      const val = dataRow[idx];
+      if (val === '' || val === null || val === undefined) return 0;
+      const n = Number(val);
+      if (isNaN(n)) {
+        errors.push(`Coluna "${key}": valor "${val}" não é numérico`);
+        return 0;
+      }
+      return n;
+    };
+
+    const totalQtd = getNum('TOTAL QTD');
+    const totalVal = getNum('TOTAL');
+    const deliveryQtd = getNum('DELIVERY QTD');
+    const deliveryVal = getNum('DELIVERY');
+    const telefoneQtd = getNum('TELEFONE QTD');
+    const telefoneVal = getNum('TELEFONE');
+    const lojaQtd = getNum('LOJA FÍSICA QTD') || getNum('LOJA FISICA QTD');
+    const lojaVal = getNum('LOJA FÍSICA') || getNum('LOJA FISICA');
+
+    const pedidos_tele = deliveryQtd + telefoneQtd;
+    const faturamento_tele = deliveryVal + telefoneVal;
+    const pedidos_salao = lojaQtd;
+    const faturamento_salao = lojaVal;
+
+    // Validation: salao + tele should equal total
+    const pedidosDiff = Math.abs((pedidos_salao + pedidos_tele) - totalQtd);
+    const fatDiff = Math.abs((faturamento_salao + faturamento_tele) - totalVal);
+    let validationWarning = '';
+    if (pedidosDiff > 0.01 || fatDiff > 0.01) {
+      const parts: string[] = [];
+      if (pedidosDiff > 0.01) parts.push(`Pedidos: Salão(${pedidos_salao}) + Tele(${pedidos_tele}) = ${pedidos_salao + pedidos_tele} ≠ Total(${totalQtd})`);
+      if (fatDiff > 0.01) parts.push(`Faturamento: Salão(${faturamento_salao.toFixed(2)}) + Tele(${faturamento_tele.toFixed(2)}) = ${(faturamento_salao + faturamento_tele).toFixed(2)} ≠ Total(${totalVal.toFixed(2)})`);
+      validationWarning = parts.join(' | ');
+    }
+
+    return {
+      date: '',
+      pedidos_totais: totalQtd,
+      faturamento_total: totalVal,
+      pedidos_tele,
+      faturamento_tele,
+      pedidos_salao,
+      faturamento_salao,
+      errors,
+      _validationWarning: validationWarning,
+    } as ImportPreviewRow & { _validationWarning?: string };
+  };
+
   // ====== IMPORT LOGIC: Saipos "Relatório canais de venda" ======
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImportError('');
     setImportPreview([]);
+    setImportStores([]);
+    setImportColMap({});
+    setImportValidationWarning('');
 
     try {
       const buffer = await file.arrayBuffer();
@@ -260,78 +320,50 @@ export default function Produtividade() {
       }
 
       if (headerIdx === -1) {
-        // Fallback: try old column-position logic
         setImportError('Cabeçalho não encontrado. Esperado colunas como "TOTAL QTD", "TOTAL", "DELIVERY QTD", etc.');
         setImportDialogOpen(true);
         return;
       }
 
-      // Find the row for "ESTRELA DA ILHA"
-      let dataRow: any[] | null = null;
+      setImportColMap(colMap);
+
+      // Collect all data rows (potential stores)
+      const allStores: { name: string; row: any[] }[] = [];
       for (let i = headerIdx + 1; i < raw.length; i++) {
         const row = raw[i];
         if (!row) continue;
         const firstCol = normalizeHeader(row[0]);
-        if (firstCol.includes('ESTRELA DA ILHA') || firstCol.includes('ESTRELA')) {
-          dataRow = row;
-          break;
-        }
+        if (!firstCol || firstCol === 'TOTAL' || firstCol === '') continue;
+        allStores.push({ name: String(row[0]).trim(), row });
       }
 
-      if (!dataRow) {
-        // If no "ESTRELA DA ILHA", try first non-header, non-TOTAL row
-        for (let i = headerIdx + 1; i < raw.length; i++) {
-          const row = raw[i];
-          if (!row) continue;
-          const firstCol = normalizeHeader(row[0]);
-          if (firstCol && firstCol !== 'TOTAL' && firstCol !== '') {
-            dataRow = row;
-            break;
-          }
-        }
-      }
-
-      if (!dataRow) {
-        setImportError('Nenhuma linha de dados encontrada (busca por "ESTRELA DA ILHA").');
+      if (allStores.length === 0) {
+        setImportError('Nenhuma linha de dados encontrada após o cabeçalho.');
         setImportDialogOpen(true);
         return;
       }
 
-      const errors: string[] = [];
-      const getNum = (key: string): number => {
-        const idx = colMap[key];
-        if (idx === undefined) return 0;
-        const val = dataRow![idx];
-        if (val === '' || val === null || val === undefined) return 0;
-        const n = Number(val);
-        if (isNaN(n)) {
-          errors.push(`Coluna "${key}": valor "${val}" não é numérico`);
-          return 0;
+      // If multiple stores, let user choose
+      if (allStores.length > 1) {
+        // Auto-select "ESTRELA" if found
+        const estrela = allStores.find(s => normalizeHeader(s.name).includes('ESTRELA'));
+        if (estrela) {
+          const preview = buildPreviewFromRow(estrela.row, colMap);
+          setImportValidationWarning((preview as any)._validationWarning || '');
+          setImportPreview([preview]);
+          setImportStores(allStores);
+        } else {
+          setImportStores(allStores);
+          setImportPreview([]);
         }
-        return n;
-      };
+        setImportDialogOpen(true);
+        return;
+      }
 
-      const totalQtd = getNum('TOTAL QTD');
-      const totalVal = getNum('TOTAL');
-      const deliveryQtd = getNum('DELIVERY QTD');
-      const deliveryVal = getNum('DELIVERY');
-      const telefoneQtd = getNum('TELEFONE QTD');
-      const telefoneVal = getNum('TELEFONE');
-      const lojaQtd = getNum('LOJA FÍSICA QTD') || getNum('LOJA FISICA QTD');
-      const lojaVal = getNum('LOJA FÍSICA') || getNum('LOJA FISICA');
-
-      const preview: ImportPreviewRow[] = [{
-        date: '',
-        pedidos_totais: totalQtd,
-        faturamento_total: totalVal,
-        pedidos_tele: deliveryQtd + telefoneQtd,
-        faturamento_tele: deliveryVal + telefoneVal,
-        pedidos_salao: lojaQtd,
-        faturamento_salao: lojaVal,
-        errors,
-      }];
-
-      setImportPreview(preview);
+      // Single store
+      const preview = buildPreviewFromRow(allStores[0].row, colMap);
+      setImportValidationWarning((preview as any)._validationWarning || '');
+      setImportPreview([preview]);
       setImportDialogOpen(true);
     } catch {
       setImportError('Erro ao ler a planilha. Verifique se o arquivo é um Excel válido.');
@@ -339,6 +371,14 @@ export default function Produtividade() {
     }
 
     e.target.value = '';
+  };
+
+  const handleSelectStore = (storeName: string) => {
+    const store = importStores.find(s => s.name === storeName);
+    if (!store) return;
+    const preview = buildPreviewFromRow(store.row, importColMap);
+    setImportValidationWarning((preview as any)._validationWarning || '');
+    setImportPreview([preview]);
   };
 
   const handleConfirmImport = async () => {
@@ -631,16 +671,16 @@ export default function Produtividade() {
             <div className="flex items-start gap-2">
               <FileSpreadsheet className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
               <div className="text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">Mapeamento de colunas da planilha</p>
+                <p className="font-medium text-foreground">Relatório canais de venda — mapeamento automático</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-0.5">
-                  <span><strong>B</strong> = Total de pedidos</span>
-                  <span><strong>C</strong> = Total de vendas</span>
-                  <span><strong>D</strong> = Pedidos tele-entrega</span>
-                  <span><strong>E</strong> = Vendas tele-entrega</span>
-                  <span><strong>H</strong> = Pedidos salão</span>
-                  <span><strong>I</strong> = Vendas salão</span>
+                  <span><strong>TOTAL QTD</strong> → Ped. Totais</span>
+                  <span><strong>TOTAL</strong> → Fat. Total</span>
+                  <span><strong>LOJA FÍSICA QTD</strong> → Ped. Salão</span>
+                  <span><strong>LOJA FÍSICA</strong> → Fat. Salão</span>
+                  <span><strong>DELIVERY + TELEFONE QTD</strong> → Ped. Tele</span>
+                  <span><strong>DELIVERY + TELEFONE</strong> → Fat. Tele</span>
                 </div>
-                <p className="text-muted-foreground/70">As demais colunas são ignoradas. Linha 1 = cabeçalho.</p>
+                <p className="text-muted-foreground/70">Regra: TELE = DELIVERY + TELEFONE. As demais colunas são ignoradas.</p>
               </div>
             </div>
           </div>
@@ -995,13 +1035,35 @@ export default function Produtividade() {
             </div>
           )}
 
+          {/* Store selector when multiple stores found */}
+          {importStores.length > 1 && (
+            <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+              <p className="text-xs font-medium text-foreground">
+                Múltiplas lojas encontradas. Selecione a loja para importar:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {importStores.map(store => (
+                  <Button
+                    key={store.name}
+                    variant={importPreview.length > 0 && importPreview[0].pedidos_totais === Number(store.row[importColMap['TOTAL QTD']] || 0) ? 'default' : 'outline'}
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => handleSelectStore(store.name)}
+                  >
+                    {store.name}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {importPreview.length > 0 && (
             <div className="space-y-4">
               {/* Date input when file has no dates */}
               {hasRowsWithoutDate && (
                 <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
                   <p className="text-xs text-muted-foreground">
-                    A planilha não contém data na coluna A. Informe a data referente a esses dados:
+                    Informe a data referente a esses dados:
                   </p>
                   <Input
                     type="date"
@@ -1012,64 +1074,50 @@ export default function Produtividade() {
                 </div>
               )}
 
-              {/* Column mapping reminder */}
-              <div className="text-xs text-muted-foreground grid grid-cols-3 gap-x-4 gap-y-0.5 px-1">
-                <span><strong>B</strong> → Ped. Total</span>
-                <span><strong>C</strong> → Fat. Total</span>
-                <span><strong>D</strong> → Ped. Tele</span>
-                <span><strong>E</strong> → Fat. Tele</span>
-                <span><strong>H</strong> → Ped. Salão</span>
-                <span><strong>I</strong> → Fat. Salão</span>
+              {/* Validation warning */}
+              {importValidationWarning && (
+                <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-yellow-600 mt-0.5 shrink-0" />
+                  <div className="text-sm text-yellow-700">
+                    <p className="font-medium">Atenção: os valores não conferem</p>
+                    <p className="text-xs mt-1">{importValidationWarning}</p>
+                    <p className="text-xs mt-1 text-muted-foreground">Revise os dados antes de confirmar. A importação ainda pode ser realizada.</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Interpreted data preview */}
+              <div className="rounded-lg border border-border p-3 space-y-2">
+                <p className="text-xs font-medium text-foreground">Dados interpretados:</p>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+                  <span className="text-muted-foreground">Pedidos totais:</span>
+                  <span className="font-medium tabular-nums">{importPreview[0].pedidos_totais}</span>
+                  <span className="text-muted-foreground">Faturamento total:</span>
+                  <span className="font-medium tabular-nums">R$ {formatCurrency(importPreview[0].faturamento_total)}</span>
+                  <span className="text-muted-foreground">Pedidos salão:</span>
+                  <span className="font-medium tabular-nums">{importPreview[0].pedidos_salao}</span>
+                  <span className="text-muted-foreground">Faturamento salão:</span>
+                  <span className="font-medium tabular-nums">R$ {formatCurrency(importPreview[0].faturamento_salao)}</span>
+                  <span className="text-muted-foreground">Pedidos tele:</span>
+                  <span className="font-medium tabular-nums">{importPreview[0].pedidos_tele}</span>
+                  <span className="text-muted-foreground">Faturamento tele:</span>
+                  <span className="font-medium tabular-nums">R$ {formatCurrency(importPreview[0].faturamento_tele)}</span>
+                </div>
               </div>
 
-              <div className="border rounded-lg overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs">Data</TableHead>
-                      <TableHead className="text-xs text-right">Ped. Total (B)</TableHead>
-                      <TableHead className="text-xs text-right">Fat. Total (C)</TableHead>
-                      <TableHead className="text-xs text-right">Ped. Tele (D)</TableHead>
-                      <TableHead className="text-xs text-right">Fat. Tele (E)</TableHead>
-                      <TableHead className="text-xs text-right">Ped. Salão (H)</TableHead>
-                      <TableHead className="text-xs text-right">Fat. Salão (I)</TableHead>
-                      <TableHead className="text-xs w-8"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {importPreview.map((row, idx) => (
-                      <TableRow key={idx} className={row.errors.length > 0 ? 'bg-destructive/5' : ''}>
-                        <TableCell className="text-xs font-medium">
-                          {row.date ? formatDateBR(row.date) : (
-                            <span className="text-muted-foreground italic">
-                              {hasRowsWithoutDate ? importDate.split('-').reverse().join('/').slice(0, 5) : '—'}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">{row.pedidos_totais}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">{formatCurrency(row.faturamento_total)}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">{row.pedidos_tele}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">{formatCurrency(row.faturamento_tele)}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">{row.pedidos_salao}</TableCell>
-                        <TableCell className="text-xs text-right tabular-nums">{formatCurrency(row.faturamento_salao)}</TableCell>
-                        <TableCell>
-                          {row.errors.length > 0 ? (
-                            <span title={row.errors.join('; ')}><AlertCircle className="w-3.5 h-3.5 text-destructive" /></span>
-                          ) : (
-                            <Check className="w-3.5 h-3.5 text-success" />
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+              {/* Column mapping reminder */}
+              <div className="text-xs text-muted-foreground grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-0.5 px-1">
+                <span><strong>TOTAL QTD</strong> → Ped. Total</span>
+                <span><strong>TOTAL</strong> → Fat. Total</span>
+                <span><strong>LOJA FÍSICA</strong> → Salão</span>
+                <span><strong>DELIVERY+TEL</strong> → Tele</span>
               </div>
 
               {importPreview.some(r => r.errors.length > 0) && (
                 <div className="text-xs text-destructive space-y-0.5">
                   {importPreview.flatMap((r, i) =>
                     r.errors.map((err, j) => (
-                      <p key={`${i}-${j}`}>Linha {i + 2}: {err}</p>
+                      <p key={`${i}-${j}`}>{err}</p>
                     ))
                   )}
                 </div>
@@ -1077,7 +1125,7 @@ export default function Produtividade() {
 
               <div className="flex justify-between items-center pt-2">
                 <span className="text-xs text-muted-foreground">
-                  {importPreview.filter(r => r.errors.length === 0).length} de {importPreview.length} linha(s) válida(s)
+                  {!importValidationWarning ? '✓ Conferência OK' : '⚠ Conferência com divergência'}
                 </span>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(false)}>
