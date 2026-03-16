@@ -1,81 +1,10 @@
-import type { Collaborator, DayOfWeek } from '@/types/collaborator';
+import type { Collaborator } from '@/types/collaborator';
 import type { DailySales } from '@/hooks/useDailySales';
 import type { Freelancer } from '@/hooks/useFreelancers';
 import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
-import { isOnScheduledVacation } from '@/hooks/useScheduledVacations';
-
-const JS_DAY_TO_KEY: DayOfWeek[] = [
-  'DOMINGO', 'SEGUNDA', 'TERCA', 'QUARTA', 'QUINTA', 'SEXTA', 'SABADO',
-];
-
-function dateOnly(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
-
-function parseDate(s: string | null): Date | null {
-  if (!s) return null;
-  const d = new Date(s + 'T00:00:00');
-  return isNaN(d.getTime()) ? null : d;
-}
-
-function getSundayNumber(date: Date): number {
-  return Math.ceil(date.getDate() / 7);
-}
-
-/** Count how many collaborators are scheduled for a given sector on a given date */
-export function countPeopleBySectorOnDate(
-  collaborators: Collaborator[],
-  sector: string,
-  date: Date,
-  scheduledVacations: ScheduledVacation[] = []
-): number {
-  const sd = dateOnly(date);
-  const dayKey = JS_DAY_TO_KEY[sd.getDay()];
-  let count = 0;
-
-  for (const c of collaborators) {
-    if (c.sector !== sector) continue;
-
-    // Empresa period
-    const inicioEmpresa = parseDate(c.inicio_na_empresa);
-    if (inicioEmpresa && sd < inicioEmpresa) continue;
-
-    // Desligado
-    if (c.status === 'DESLIGADO') {
-      const deslig = parseDate(c.data_desligamento);
-      if (!deslig || sd > deslig) continue;
-    }
-
-    // Scheduled vacations
-    if (isOnScheduledVacation(scheduledVacations, c.id, sd)) continue;
-
-    // Status check with periodo
-    if (c.status === 'FERIAS' || c.status === 'AFASTADO') {
-      const inicio = parseDate(c.inicio_periodo);
-      const fim = parseDate(c.fim_periodo);
-      if (inicio && fim) {
-        if (sd >= inicio && sd <= fim) continue;
-      } else {
-        const retorno = parseDate(c.data_retorno);
-        if (!retorno || sd < retorno) continue;
-      }
-    }
-    if (c.status === 'AVISO_PREVIO') {
-      const fim = parseDate(c.fim_periodo) || parseDate(c.data_fim_aviso);
-      if (fim && sd > fim) continue;
-    }
-
-    // Weekly day off
-    if (c.folgas_semanais.includes(dayKey)) continue;
-
-    // Sunday off
-    if (dayKey === 'DOMINGO' && c.sunday_n === getSundayNumber(sd)) continue;
-
-    count++;
-  }
-
-  return count;
-}
+import type { Afastamento } from '@/hooks/useAfastamentos';
+import type { DayOffOverridesMap } from '@/lib/scheduleEngine';
+import { generateSchedule } from '@/lib/scheduleEngine';
 
 export interface ProductivityRow {
   date: string;
@@ -83,33 +12,94 @@ export interface ProductivityRow {
   vendas: number;
   pedidos: number;
   numero_pessoas: number;
-  tcs: number; // Ticket por Colaborador - Setor (was tmp)
-  pcs: number; // Pedidos por Colaborador - Setor (was ppp)
+  tcs: number;
+  pcs: number;
 }
 
 const SECTOR_ORDER = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO', 'TIME', 'TCT', 'PCT'];
 
-/** Get freelancer quantity for a given date and sector */
+function formatDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function getFreelancerCount(freelancers: Freelancer[], date: string, sector: string): number {
   const f = freelancers.find(fr => fr.date === date && fr.sector === sector);
   return f ? f.quantity : 0;
+}
+
+function buildMonthRange(start: Date, end: Date) {
+  const months: Array<{ year: number; month: number }> = [];
+  let year = start.getFullYear();
+  let month = start.getMonth();
+
+  while (year < end.getFullYear() || (year === end.getFullYear() && month <= end.getMonth())) {
+    months.push({ year, month });
+    month += 1;
+    if (month > 11) {
+      month = 0;
+      year += 1;
+    }
+  }
+
+  return months;
+}
+
+function buildScheduledCountMap(
+  collaborators: Collaborator[],
+  salesData: DailySales[],
+  scheduledVacations: ScheduledVacation[] = [],
+  dayOffOverrides?: DayOffOverridesMap,
+  afastamentos: Afastamento[] = []
+): Record<string, number> {
+  const map: Record<string, number> = {};
+  if (salesData.length === 0) return map;
+
+  const dates = salesData.map(sale => new Date(sale.date + 'T00:00:00'));
+  const minDate = new Date(Math.min(...dates.map(date => date.getTime())));
+  const maxDate = new Date(Math.max(...dates.map(date => date.getTime())));
+
+  for (const { year, month } of buildMonthRange(minDate, maxDate)) {
+    const weeks = generateSchedule(collaborators, year, month, scheduledVacations, dayOffOverrides, afastamentos);
+
+    for (const week of weeks) {
+      for (const day of week.days) {
+        const dayKey = formatDateKey(day.date);
+        if (day.date < minDate || day.date > maxDate) continue;
+
+        for (const [sector, names] of Object.entries(day.collaboratorsBySector)) {
+          map[`${dayKey}|${sector}`] = names.length;
+        }
+      }
+    }
+  }
+
+  return map;
 }
 
 export function generateProductivityData(
   salesData: DailySales[],
   collaborators: Collaborator[],
   freelancers: Freelancer[] = [],
-  scheduledVacations: ScheduledVacation[] = []
+  scheduledVacations: ScheduledVacation[] = [],
+  dayOffOverrides?: DayOffOverridesMap,
+  afastamentos: Afastamento[] = []
 ): ProductivityRow[] {
   const rows: ProductivityRow[] = [];
+  const scheduledCountMap = buildScheduledCountMap(
+    collaborators,
+    salesData,
+    scheduledVacations,
+    dayOffOverrides,
+    afastamentos
+  );
+
+  const getScheduledCount = (date: string, sector: string) => scheduledCountMap[`${date}|${sector}`] || 0;
 
   for (const sale of salesData) {
-    const d = new Date(sale.date + 'T00:00:00');
-
-    const pCozinha = countPeopleBySectorOnDate(collaborators, 'COZINHA', d, scheduledVacations) + getFreelancerCount(freelancers, sale.date, 'COZINHA');
-    const pDiurno = countPeopleBySectorOnDate(collaborators, 'DIURNO', d, scheduledVacations);
-    const pSalao = countPeopleBySectorOnDate(collaborators, 'SALÃO', d, scheduledVacations) + getFreelancerCount(freelancers, sale.date, 'SALÃO');
-    const pTele = countPeopleBySectorOnDate(collaborators, 'TELE - ENTREGA', d, scheduledVacations) + getFreelancerCount(freelancers, sale.date, 'TELE - ENTREGA');
+    const pCozinha = getScheduledCount(sale.date, 'COZINHA') + getFreelancerCount(freelancers, sale.date, 'COZINHA');
+    const pDiurno = getScheduledCount(sale.date, 'DIURNO');
+    const pSalao = getScheduledCount(sale.date, 'SALÃO') + getFreelancerCount(freelancers, sale.date, 'SALÃO');
+    const pTele = getScheduledCount(sale.date, 'TELE - ENTREGA') + getFreelancerCount(freelancers, sale.date, 'TELE - ENTREGA');
 
     const ft = Number(sale.faturamento_total) || 0;
     const pt = Number(sale.pedidos_totais) || 0;
@@ -118,7 +108,6 @@ export function generateProductivityData(
     const fte = Number(sale.faturamento_tele) || 0;
     const pte = Number(sale.pedidos_tele) || 0;
 
-    // COZINHA: uses total
     rows.push({
       date: sale.date,
       sector: 'COZINHA',
@@ -129,7 +118,6 @@ export function generateProductivityData(
       pcs: pCozinha > 0 ? pt / pCozinha : 0,
     });
 
-    // DIURNO: uses total
     rows.push({
       date: sale.date,
       sector: 'DIURNO',
@@ -140,7 +128,6 @@ export function generateProductivityData(
       pcs: pDiurno > 0 ? pt / pDiurno : 0,
     });
 
-    // SALÃO: uses salão data
     rows.push({
       date: sale.date,
       sector: 'SALÃO',
@@ -151,7 +138,6 @@ export function generateProductivityData(
       pcs: pSalao > 0 ? ps / pSalao : 0,
     });
 
-    // TELE - ENTREGA: uses tele data
     rows.push({
       date: sale.date,
       sector: 'TELE - ENTREGA',
@@ -162,7 +148,6 @@ export function generateProductivityData(
       pcs: pTele > 0 ? pte / pTele : 0,
     });
 
-    // TIME
     const totalPeople = pCozinha + pDiurno + pSalao + pTele;
     rows.push({
       date: sale.date,
@@ -174,7 +159,6 @@ export function generateProductivityData(
       pcs: 0,
     });
 
-    // TCT - Ticket por Colaborador - Time
     const tct = totalPeople > 0 ? ft / totalPeople : 0;
     rows.push({
       date: sale.date,
@@ -186,7 +170,6 @@ export function generateProductivityData(
       pcs: 0,
     });
 
-    // PCT - Pedidos por Colaborador - Time
     const pct = totalPeople > 0 ? pt / totalPeople : 0;
     rows.push({
       date: sale.date,
