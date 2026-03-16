@@ -7,6 +7,7 @@ import { Loader2, CalendarDays, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import TopKPICards from '@/components/dashboard/TopKPICards';
 import MetricBlock from '@/components/dashboard/MetricBlock';
+import MonthlyComparison from '@/components/dashboard/MonthlyComparison';
 import { computeBlockMetrics, type BlockMetrics } from '@/lib/dashboardEngine';
 
 function fmt(d: Date): string {
@@ -48,8 +49,10 @@ export default function Dashboard() {
   const prev30Start = new Date(prev30End);
   prev30Start.setDate(prev30Start.getDate() - 29);
 
-  // Fetch data - broad range to cover all periods
-  const broadStart = fmt(prev30Start);
+  // Broad range: cover previous month start (for monthly comparison) and prev30
+  const prevMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const earliestNeeded = prevMonthStart < prev30Start ? prevMonthStart : prev30Start;
+  const broadStart = fmt(earliestNeeded);
   const broadEnd = fmt(yesterday);
 
   const { data: allSales = [], isLoading: loadingSales } = useDailySales(broadStart, broadEnd);
@@ -148,6 +151,13 @@ export default function Dashboard() {
         comparisonLabel={`vs ${formatPeriodLabel(prev30Start, prev30End)}`}
         data={avg30Data}
         isAverage
+      />
+      {/* Comparativo Mensal */}
+      <MonthlyComparison
+        allSales={allSales}
+        collaborators={collaborators}
+        freelancers={freelancers}
+        scheduledVacations={scheduledVacations}
       />
     </div>
   );
