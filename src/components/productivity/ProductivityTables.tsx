@@ -164,20 +164,19 @@ export default function ProductivityTables({ currentRows, previousRows, startDat
                 <TableRow className="bg-muted/40">
                   <TableHead className="font-bold text-xs sticky left-0 bg-muted/40 z-10">Data</TableHead>
                   {SECTORS.map(s => (
-                    <TableHead key={s} className="text-center font-bold text-xs" colSpan={2}>
+                    <TableHead key={s} className="text-center font-bold text-xs">
                       {SECTOR_LABELS[s]}
                     </TableHead>
                   ))}
-                  <TableHead className="text-center font-bold text-xs" colSpan={2}>Time</TableHead>
+                  <TableHead className="text-center font-bold text-xs">Time</TableHead>
                 </TableRow>
                 <TableRow className="bg-muted/20">
                   <TableHead className="text-xs sticky left-0 bg-muted/20 z-10"></TableHead>
-                  {[...SECTORS, 'TIME' as const].map(s => (
-                    <TableHead key={`${s}-sub`} className="text-center text-[10px] text-muted-foreground" colSpan={1}>
+                  {[...SECTORS, 'TIME' as const].map((s) => (
+                    <TableHead key={`${s}-sub`} className="text-center text-[10px] text-muted-foreground">
                       {s === 'TIME' ? 'PCT' : 'PCS'}
                     </TableHead>
                   ))}
-                  {[...SECTORS, 'TIME' as const].map(s => null)}
                 </TableRow>
               </TableHeader>
               <TableBody>
