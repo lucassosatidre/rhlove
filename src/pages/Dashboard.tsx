@@ -126,13 +126,7 @@ export default function Dashboard() {
       {/* Block 6: Health */}
       <OperationHealth metrics={health} />
 
-      {/* Block 7: HR Calendar + Alerts below */}
-      <HRCalendar
-        collaborators={collaborators}
-        vacations={scheduledVacations}
-        avisos={avisosPrevios}
-        compensations={compensations}
-      />
+      {/* Block 7: Alerts */}
       <OperationalAlerts alerts={alerts} />
 
       {/* Block 9: AI Advisor */}
