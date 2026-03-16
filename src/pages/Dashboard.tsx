@@ -152,6 +152,13 @@ export default function Dashboard() {
         data={avg30Data}
         isAverage
       />
+      {/* Comparativo Mensal */}
+      <MonthlyComparison
+        allSales={allSales}
+        collaborators={collaborators}
+        freelancers={freelancers}
+        scheduledVacations={scheduledVacations}
+      />
     </div>
   );
 }
