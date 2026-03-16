@@ -93,12 +93,15 @@ export default function FreelancerImportReviewDialog({ open, onOpenChange, entri
           </DialogDescription>
         </DialogHeader>
 
-        {hasPendingSectors && (
+        {(hasPendingSectors || hasMissingDates || hasMissingNames) && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
-            <p className="text-sm text-destructive">
-              Existem free-lancers com <strong>setor pendente</strong>. Corrija antes de confirmar.
-            </p>
+            <div className="text-sm text-destructive space-y-1">
+              {hasPendingSectors && <p>Existem free-lancers com <strong>setor pendente</strong>.</p>}
+              {hasMissingDates && <p>Existem free-lancers com <strong>data em branco</strong>.</p>}
+              {hasMissingNames && <p>Existem free-lancers com <strong>nome em branco</strong>.</p>}
+              <p>Corrija antes de confirmar.</p>
+            </div>
           </div>
         )}
 
