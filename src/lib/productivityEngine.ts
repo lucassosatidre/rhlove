@@ -76,6 +76,27 @@ function buildScheduledCountMap(
   return map;
 }
 
+export function countPeopleBySectorOnDate(
+  collaborators: Collaborator[],
+  sector: string,
+  date: Date,
+  scheduledVacations: ScheduledVacation[] = [],
+  dayOffOverrides?: DayOffOverridesMap,
+  afastamentos: Afastamento[] = []
+): number {
+  const weeks = generateSchedule(
+    collaborators,
+    date.getFullYear(),
+    date.getMonth(),
+    scheduledVacations,
+    dayOffOverrides,
+    afastamentos
+  );
+  const dateKey = formatDateKey(date);
+  const day = weeks.flatMap(week => week.days).find(item => formatDateKey(item.date) === dateKey);
+  return day?.collaboratorsBySector[sector]?.length || 0;
+}
+
 export function generateProductivityData(
   salesData: DailySales[],
   collaborators: Collaborator[],
@@ -108,78 +129,19 @@ export function generateProductivityData(
     const fte = Number(sale.faturamento_tele) || 0;
     const pte = Number(sale.pedidos_tele) || 0;
 
-    rows.push({
-      date: sale.date,
-      sector: 'COZINHA',
-      vendas: ft,
-      pedidos: pt,
-      numero_pessoas: pCozinha,
-      tcs: pCozinha > 0 ? ft / pCozinha : 0,
-      pcs: pCozinha > 0 ? pt / pCozinha : 0,
-    });
-
-    rows.push({
-      date: sale.date,
-      sector: 'DIURNO',
-      vendas: ft,
-      pedidos: pt,
-      numero_pessoas: pDiurno,
-      tcs: pDiurno > 0 ? ft / pDiurno : 0,
-      pcs: pDiurno > 0 ? pt / pDiurno : 0,
-    });
-
-    rows.push({
-      date: sale.date,
-      sector: 'SALÃO',
-      vendas: fs,
-      pedidos: ps,
-      numero_pessoas: pSalao,
-      tcs: pSalao > 0 ? fs / pSalao : 0,
-      pcs: pSalao > 0 ? ps / pSalao : 0,
-    });
-
-    rows.push({
-      date: sale.date,
-      sector: 'TELE - ENTREGA',
-      vendas: fte,
-      pedidos: pte,
-      numero_pessoas: pTele,
-      tcs: pTele > 0 ? fte / pTele : 0,
-      pcs: pTele > 0 ? pte / pTele : 0,
-    });
+    rows.push({ date: sale.date, sector: 'COZINHA', vendas: ft, pedidos: pt, numero_pessoas: pCozinha, tcs: pCozinha > 0 ? ft / pCozinha : 0, pcs: pCozinha > 0 ? pt / pCozinha : 0 });
+    rows.push({ date: sale.date, sector: 'DIURNO', vendas: ft, pedidos: pt, numero_pessoas: pDiurno, tcs: pDiurno > 0 ? ft / pDiurno : 0, pcs: pDiurno > 0 ? pt / pDiurno : 0 });
+    rows.push({ date: sale.date, sector: 'SALÃO', vendas: fs, pedidos: ps, numero_pessoas: pSalao, tcs: pSalao > 0 ? fs / pSalao : 0, pcs: pSalao > 0 ? ps / pSalao : 0 });
+    rows.push({ date: sale.date, sector: 'TELE - ENTREGA', vendas: fte, pedidos: pte, numero_pessoas: pTele, tcs: pTele > 0 ? fte / pTele : 0, pcs: pTele > 0 ? pte / pTele : 0 });
 
     const totalPeople = pCozinha + pDiurno + pSalao + pTele;
-    rows.push({
-      date: sale.date,
-      sector: 'TIME',
-      vendas: 0,
-      pedidos: 0,
-      numero_pessoas: totalPeople,
-      tcs: 0,
-      pcs: 0,
-    });
+    rows.push({ date: sale.date, sector: 'TIME', vendas: 0, pedidos: 0, numero_pessoas: totalPeople, tcs: 0, pcs: 0 });
 
     const tct = totalPeople > 0 ? ft / totalPeople : 0;
-    rows.push({
-      date: sale.date,
-      sector: 'TCT',
-      vendas: ft,
-      pedidos: 0,
-      numero_pessoas: totalPeople,
-      tcs: tct,
-      pcs: 0,
-    });
+    rows.push({ date: sale.date, sector: 'TCT', vendas: ft, pedidos: 0, numero_pessoas: totalPeople, tcs: tct, pcs: 0 });
 
     const pct = totalPeople > 0 ? pt / totalPeople : 0;
-    rows.push({
-      date: sale.date,
-      sector: 'PCT',
-      vendas: 0,
-      pedidos: pt,
-      numero_pessoas: totalPeople,
-      tcs: 0,
-      pcs: pct,
-    });
+    rows.push({ date: sale.date, sector: 'PCT', vendas: 0, pedidos: pt, numero_pessoas: totalPeople, tcs: 0, pcs: pct });
   }
 
   return rows;
