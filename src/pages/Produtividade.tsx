@@ -861,7 +861,7 @@ export default function Produtividade() {
       // Save individual named entries for display in Escala
       const individualEntries = reviewed
         .filter(e => e.sector && e.name.trim() && e.date)
-        .map(e => ({ date: e.date, sector: e.sector!, name: e.name.trim() }));
+        .map(e => ({ date: e.date, sector: e.sector!, name: e.name.trim(), origin: e.origin || 'importação' }));
       if (individualEntries.length > 0) {
         await bulkFreeEntriesMut.mutateAsync(individualEntries);
       }
