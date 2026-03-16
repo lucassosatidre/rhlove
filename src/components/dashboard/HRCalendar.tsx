@@ -360,7 +360,15 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
   const deleteReminder = useDeleteReminder();
   const { data: completions = [] } = useEventCompletions();
   const upsertCompletion = useUpsertEventCompletion();
+  const { data: holidays = [] } = useHolidays();
   const { toast } = useToast();
+
+  // Build holiday set for payroll calculations
+  const holidaySet = useMemo(() => {
+    const set = new Set<string>();
+    for (const h of holidays) set.add(h.date);
+    return set;
+  }, [holidays]);
 
   const todayStr = toDateStr(today);
 
