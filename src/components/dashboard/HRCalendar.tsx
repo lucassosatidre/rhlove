@@ -117,10 +117,8 @@ function buildEvents(
 
   for (const v of vacations) {
     if (v.status === 'CANCELADA') continue;
-    const today = new Date(); today.setHours(0, 0, 0, 0);
     const inicioDate = new Date(v.data_inicio_ferias + 'T00:00:00');
     const fimDate = new Date(v.data_fim_ferias + 'T00:00:00');
-    const isPast = today > fimDate;
 
     events.push({ id: `fer-i-${v.id}`, date: v.data_inicio_ferias, type: 'ferias_inicio', label: 'Início férias', collaboratorName: v.collaborator_name, sector: v.sector });
     events.push({ id: `fer-f-${v.id}`, date: v.data_fim_ferias, type: 'ferias_fim', label: 'Fim férias', collaboratorName: v.collaborator_name, sector: v.sector, observacao: v.observacao });
