@@ -63,6 +63,7 @@ const EVENT_CATEGORIES = {
   experiencia: { label: 'Experiência', types: ['experiencia_inicio', 'experiencia_fim'] as string[], color: 'bg-blue-400', textColor: 'text-blue-900' },
   compensacao: { label: 'Compensações', types: ['compensacao'] as string[], color: 'bg-green-400', textColor: 'text-green-900' },
   admin: { label: 'Administrativo', types: ['exame', 'contabilidade'] as string[], color: 'bg-purple-400', textColor: 'text-purple-900' },
+  folha: { label: 'Folha de Pagamento', types: ['salario', 'adiantamento'] as string[], color: 'bg-emerald-500', textColor: 'text-white' },
   lembrete: { label: 'Lembretes', types: ['lembrete'] as string[], color: 'bg-teal-400', textColor: 'text-teal-900' },
 } as const;
 
