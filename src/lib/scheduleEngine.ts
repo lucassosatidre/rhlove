@@ -98,6 +98,8 @@ function getDisplayName(
   // STEP 0.5 — SCHEDULED VACATIONS
   if (isOnScheduledVacation(scheduledVacations, collab.id, sd)) return null;
 
+  // STEP 0.6 — AFASTAMENTOS
+  if (isOnAfastamento(afastamentos, collab.id, sd)) return null;
   // STEP 1 — STATUS with periodo
   if (collab.status === 'FERIAS' || collab.status === 'AFASTADO') {
     const inicio = parseDate(collab.inicio_periodo);
