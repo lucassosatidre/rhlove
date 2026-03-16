@@ -28,9 +28,9 @@ export default function Login() {
       <Card className="w-full max-w-sm shadow-lg">
         <CardHeader className="text-center space-y-3 pb-2">
           <div className="mx-auto w-16 h-16 rounded-2xl overflow-hidden shadow-md ring-2 ring-border">
-            <img src={logo} alt="Estrela RH" className="w-full h-full object-cover" />
+            <img src={logo} alt="RH Love" className="w-full h-full object-cover" />
           </div>
-          <CardTitle className="text-xl font-bold tracking-tight text-foreground">Estrela RH</CardTitle>
+          <CardTitle className="text-xl font-bold tracking-tight text-foreground">RH Love</CardTitle>
           <p className="text-xs text-muted-foreground">Pizzaria Estrela da Ilha</p>
         </CardHeader>
         <CardContent>
