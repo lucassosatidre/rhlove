@@ -508,7 +508,7 @@ export default function Escala() {
                       <tr>
                         {week.days.map((d, di) => {
                           const dateKey = formatDateKey(d.date);
-                          const scheduled = countPeopleBySectorOnDate(collaborators, sector, d.date, scheduledVacations);
+                          const scheduled = (d.collaboratorsBySector[sector] || []).length;
                           const frees = getTotalFrees(dateKey, sector);
                           const total = scheduled + frees;
                           return (
