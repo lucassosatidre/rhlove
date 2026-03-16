@@ -671,16 +671,16 @@ export default function Produtividade() {
             <div className="flex items-start gap-2">
               <FileSpreadsheet className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
               <div className="text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">Mapeamento de colunas da planilha</p>
+                <p className="font-medium text-foreground">Relatório canais de venda — mapeamento automático</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-0.5">
-                  <span><strong>B</strong> = Total de pedidos</span>
-                  <span><strong>C</strong> = Total de vendas</span>
-                  <span><strong>D</strong> = Pedidos tele-entrega</span>
-                  <span><strong>E</strong> = Vendas tele-entrega</span>
-                  <span><strong>H</strong> = Pedidos salão</span>
-                  <span><strong>I</strong> = Vendas salão</span>
+                  <span><strong>TOTAL QTD</strong> → Ped. Totais</span>
+                  <span><strong>TOTAL</strong> → Fat. Total</span>
+                  <span><strong>LOJA FÍSICA QTD</strong> → Ped. Salão</span>
+                  <span><strong>LOJA FÍSICA</strong> → Fat. Salão</span>
+                  <span><strong>DELIVERY + TELEFONE QTD</strong> → Ped. Tele</span>
+                  <span><strong>DELIVERY + TELEFONE</strong> → Fat. Tele</span>
                 </div>
-                <p className="text-muted-foreground/70">As demais colunas são ignoradas. Linha 1 = cabeçalho.</p>
+                <p className="text-muted-foreground/70">Regra: TELE = DELIVERY + TELEFONE. As demais colunas são ignoradas.</p>
               </div>
             </div>
           </div>
