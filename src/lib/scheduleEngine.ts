@@ -210,7 +210,7 @@ export function generateSchedule(
         const overrideKey = `${weekStartKey}|${collab.id}`;
         const override = dayOffOverrides?.get(overrideKey);
 
-        const displayName = getDisplayName(collab, date, scheduledVacations, override);
+        const displayName = getDisplayName(collab, date, scheduledVacations, override, afastamentos);
         if (!displayName) continue;
 
         if (!collaboratorsBySector[collab.sector]) {
