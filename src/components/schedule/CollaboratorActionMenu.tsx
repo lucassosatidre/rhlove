@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { useCreateScheduleEvent, type ScheduleEventInput } from '@/hooks/useScheduleEvents';
 import { useHolidayCompensations, useUpdateHolidayCompensation } from '@/hooks/useHolidayCompensations';
 import type { Collaborator } from '@/types/collaborator';
-import { AlertTriangle, Calendar, FileText, Gift, ArrowLeftRight, ArrowRight } from 'lucide-react';
+import { AlertTriangle, FileText, Gift, ArrowLeftRight, ArrowRight } from 'lucide-react';
 
 interface Props {
   collaboratorName: string;
@@ -62,6 +63,7 @@ export default function CollaboratorActionMenu({
   const [newDayOff, setNewDayOff] = useState('');
 
   const { toast } = useToast();
+  const { usuario } = useAuth();
   const createEvent = useCreateScheduleEvent();
   const { data: compensations = [] } = useHolidayCompensations();
   const updateCompensation = useUpdateHolidayCompensation();
@@ -125,11 +127,12 @@ export default function CollaboratorActionMenu({
             event_type: 'TROCA_FOLGA',
             event_date: weekStartKey,
             week_start: weekStartKey,
-            original_day: currentDayOff,       // A's day off being given away
-            swapped_day: swapCollabDayOff,     // B's day off that A receives
+            original_day: currentDayOff,
+            swapped_day: swapCollabDayOff,
             related_collaborator_id: swapCollaboratorId,
             related_collaborator_name: selectedSwapCollab?.collaborator_name || '',
             observation,
+            created_by: usuario?.nome || usuario?.email || null,
           };
 
           await createEvent.mutateAsync(input);
@@ -153,9 +156,10 @@ export default function CollaboratorActionMenu({
             event_type: 'MUDANCA_FOLGA',
             event_date: weekStartKey,
             week_start: weekStartKey,
-            original_day: currentDayOff,  // Current day off being removed
-            swapped_day: newDayOff,       // New day off for this week
+            original_day: currentDayOff,
+            swapped_day: newDayOff,
             observation,
+            created_by: usuario?.nome || usuario?.email || null,
           };
 
           await createEvent.mutateAsync(input);
@@ -174,6 +178,7 @@ export default function CollaboratorActionMenu({
         event_type: dialogType,
         event_date: dateKey,
         observation,
+        created_by: usuario?.nome || usuario?.email || null,
       };
 
       if (dialogType === 'ATESTADO' && atestadoEnd) {

@@ -15,11 +15,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, ChevronLeft, ChevronRight, Download, Printer, Users, X } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Download, History, Printer, Users, X } from 'lucide-react';
 import FreesDialog from '@/components/FreesDialog';
 import InlineFreelancerInput from '@/components/schedule/InlineFreelancerInput';
 import EditableSalesCell from '@/components/schedule/EditableSalesCell';
 import CollaboratorActionMenu from '@/components/schedule/CollaboratorActionMenu';
+import ScheduleAdjustmentsHistoryDialog from '@/components/schedule/ScheduleAdjustmentsHistoryDialog';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 
@@ -42,6 +43,7 @@ export default function Escala() {
   const [selectedWeek, setSelectedWeek] = useState(-1); // -1 = not yet initialized
   const [freesDialogOpen, setFreesDialogOpen] = useState(false);
   const [freesWeekIdx, setFreesWeekIdx] = useState(0);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -663,6 +665,9 @@ export default function Escala() {
             </Select>
           </div>
           <div className="flex items-center gap-2 ml-auto">
+            <Button variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
+              <History className="w-4 h-4 mr-1" /> Histórico de Trocas
+            </Button>
             <Button variant="outline" size="sm" onClick={handleExport}>
               <Download className="w-4 h-4 mr-1" /> Excel
             </Button>
@@ -897,6 +902,8 @@ export default function Escala() {
           weekEndDate={weeks[freesWeekIdx].days[weeks[freesWeekIdx].days.length - 1].date}
         />
       )}
+
+      <ScheduleAdjustmentsHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} />
     </div>
   );
 }

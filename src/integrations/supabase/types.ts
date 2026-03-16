@@ -487,6 +487,10 @@ export type Database = {
           original_day: string | null
           related_collaborator_id: string | null
           related_collaborator_name: string | null
+          reverted_at: string | null
+          reverted_by: string | null
+          reverted_reason: string | null
+          status: string
           swapped_day: string | null
           updated_at: string
           week_start: string | null
@@ -505,6 +509,10 @@ export type Database = {
           original_day?: string | null
           related_collaborator_id?: string | null
           related_collaborator_name?: string | null
+          reverted_at?: string | null
+          reverted_by?: string | null
+          reverted_reason?: string | null
+          status?: string
           swapped_day?: string | null
           updated_at?: string
           week_start?: string | null
@@ -523,6 +531,10 @@ export type Database = {
           original_day?: string | null
           related_collaborator_id?: string | null
           related_collaborator_name?: string | null
+          reverted_at?: string | null
+          reverted_by?: string | null
+          reverted_reason?: string | null
+          status?: string
           swapped_day?: string | null
           updated_at?: string
           week_start?: string | null
