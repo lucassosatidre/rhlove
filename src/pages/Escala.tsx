@@ -38,7 +38,7 @@ export default function Escala() {
   const [singleSectorMode, setSingleSectorMode] = useState(false);
   const [selectedSector, setSelectedSector] = useState('COZINHA');
   const [showPerformance, setShowPerformance] = useState(false);
-  const [selectedWeek, setSelectedWeek] = useState(0);
+  const [selectedWeek, setSelectedWeek] = useState(-1); // -1 = not yet initialized
   const [freesDialogOpen, setFreesDialogOpen] = useState(false);
   const [freesWeekIdx, setFreesWeekIdx] = useState(0);
   const printRef = useRef<HTMLDivElement>(null);
