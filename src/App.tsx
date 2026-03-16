@@ -13,6 +13,7 @@ import Produtividade from "@/pages/Produtividade";
 import FeriasProgramadas from "@/pages/FeriasProgramadas";
 import Compensacoes from "@/pages/Compensacoes";
 import AvisosPrevios from "@/pages/AvisosPrevios";
+import CalendarioRH from "@/pages/CalendarioRH";
 import GerenciarUsuarios from "@/pages/GerenciarUsuarios";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -77,6 +78,7 @@ function AppRoutes() {
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/escala" element={<ProtectedRoute><Escala /></ProtectedRoute>} />
+        <Route path="/calendario-rh" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><CalendarioRH /></ProtectedRoute>} />
         <Route path="/colaboradores" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Colaboradores /></ProtectedRoute>} />
         <Route path="/produtividade" element={<ProtectedRoute allowedRoles={['admin', 'gestor', 'lider']}><Produtividade /></ProtectedRoute>} />
         <Route path="/ferias" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><FeriasProgramadas /></ProtectedRoute>} />

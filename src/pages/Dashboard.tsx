@@ -3,7 +3,6 @@ import { useDailySales } from '@/hooks/useDailySales';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useFreelancers } from '@/hooks/useFreelancers';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
-import { useHolidayCompensations } from '@/hooks/useHolidayCompensations';
 import { useAvisosPrevios, computeAvisosAlerts } from '@/hooks/useAvisosPrevios';
 import { Loader2 } from 'lucide-react';
 import {
@@ -28,7 +27,6 @@ import OperationalAlerts from '@/components/dashboard/OperationalAlerts';
 import OperationHealth from '@/components/dashboard/OperationHealth';
 import AdvisorInsights from '@/components/dashboard/AdvisorInsights';
 import OperationalTrends from '@/components/dashboard/OperationalTrends';
-import HRCalendar from '@/components/dashboard/HRCalendar';
 import IndicatorLegend from '@/components/IndicatorLegend';
 
 export default function Dashboard() {
@@ -48,7 +46,6 @@ export default function Dashboard() {
   const { data: prevFreelancers = [] } = useFreelancers(prev.start, prev.end);
   const { data: allFreelancers = [] } = useFreelancers();
   const { data: scheduledVacations = [] } = useScheduledVacations();
-  const { data: compensations = [] } = useHolidayCompensations();
   const { data: avisosPrevios = [] } = useAvisosPrevios();
 
   const loading = loadingSales || loadingCollab;
@@ -77,8 +74,8 @@ export default function Dashboard() {
   const flSummary = useMemo(() => computeFreelancerSummary(allFreelancers), [allFreelancers]);
 
   const baseAlerts = useMemo(() =>
-    computeAlerts(collaborators, scheduledVacations, compensations, sales, freelancers),
-    [collaborators, scheduledVacations, compensations, sales, freelancers]
+    computeAlerts(collaborators, scheduledVacations, [], sales, freelancers),
+    [collaborators, scheduledVacations, sales, freelancers]
   );
 
   const avisosAlerts = useMemo(() => computeAvisosAlerts(avisosPrevios), [avisosPrevios]);
@@ -129,13 +126,7 @@ export default function Dashboard() {
       {/* Block 6: Health */}
       <OperationHealth metrics={health} />
 
-      {/* Block 7: HR Calendar + Alerts below */}
-      <HRCalendar
-        collaborators={collaborators}
-        vacations={scheduledVacations}
-        avisos={avisosPrevios}
-        compensations={compensations}
-      />
+      {/* Block 7: Alerts */}
       <OperationalAlerts alerts={alerts} />
 
       {/* Block 9: AI Advisor */}
