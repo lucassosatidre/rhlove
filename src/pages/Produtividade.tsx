@@ -69,6 +69,9 @@ export default function Produtividade() {
   const [histExistingDates, setHistExistingDates] = useState<string[]>([]);
   const [tmpSectorFilter, setTmpSectorFilter] = useState<string>('ALL');
   const [pcsSectorFilter, setPcsSectorFilter] = useState<string>('ALL');
+  const [importStores, setImportStores] = useState<{ name: string; row: any[] }[]>([]);
+  const [importColMap, setImportColMap] = useState<Record<string, number>>({});
+  const [importValidationWarning, setImportValidationWarning] = useState('');
   const { toast } = useToast();
 
   const { data: collaborators = [] } = useCollaborators();
