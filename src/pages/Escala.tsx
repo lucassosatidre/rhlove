@@ -43,6 +43,7 @@ export default function Escala() {
   const [selectedWeek, setSelectedWeek] = useState(-1); // -1 = not yet initialized
   const [freesDialogOpen, setFreesDialogOpen] = useState(false);
   const [freesWeekIdx, setFreesWeekIdx] = useState(0);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
