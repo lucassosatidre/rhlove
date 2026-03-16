@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock } from 'lucide-react';
+import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, UserMinus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 import rhLoveIcon from '@/assets/rh-love-icon.png';
