@@ -813,23 +813,20 @@ export default function Escala() {
 
           <TabsContent value="week">
             <div className="flex items-center gap-2 mb-3 no-print">
-              {weeks.map((_, i) => (
-                <Button
-                  key={i}
-                  variant={selectedWeek === i ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedWeek(i)}
-                >
-                  Semana {i + 1}
-                </Button>
-              ))}
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => { setFreesWeekIdx(selectedWeek); setFreesDialogOpen(true); }}
-              >
-                <Users className="w-4 h-4 mr-1" /> FREES
-              </Button>
+            {weeks.map((w, i) => {
+                const wStart = w.days[0].date;
+                const wEnd = w.days[w.days.length - 1].date;
+                return (
+                  <Button
+                    key={i}
+                    variant={selectedWeek === i ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedWeek(i)}
+                  >
+                    {formatDateBR(wStart)} - {formatDateBR(wEnd)}
+                  </Button>
+                );
+              })}
             </div>
             {weeks[selectedWeek] && (
               <Card>
