@@ -103,6 +103,7 @@ export default function Produtividade() {
   const upsertMut = useUpsertDailySales();
   const bulkMut = useBulkInsertDailySales();
   const deleteMut = useDeleteDailySales();
+  const bulkFreeMut = useBulkUpsertFreelancers();
 
   const productivityRows = useMemo(
     () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations),
