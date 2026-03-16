@@ -601,11 +601,9 @@ export default function Produtividade() {
     return null;
   };
 
-  /** Extract freelancer name from description like "FREE Gabriel | Caixa Salão" */
+  /** Extract freelancer name from description, removing only the FREE prefix */
   const extractFreeName = (desc: string): string => {
-    let name = desc.replace(/^free\s+/i, '').trim();
-    name = name.replace(/\|.*$/, '').trim();
-    name = name.replace(/\s*(COZINHA|COZ|COZI|SALAO|SALÃO|TELE|DOBRADO)\s*$/i, '').trim();
+    const name = desc.replace(/^free\b\s*/i, '').trim();
     return name || 'FREE';
   };
 
@@ -653,6 +651,21 @@ export default function Produtividade() {
       return '';
     };
 
+    const parseCurrencyValue = (rawValue: any): number | null => {
+      if (rawValue === '' || rawValue === null || rawValue === undefined) return null;
+      if (typeof rawValue === 'number') return rawValue;
+
+      const sanitized = String(rawValue)
+        .trim()
+        .replace(/\s/g, '')
+        .replace(/R\$/gi, '')
+        .replace(/\./g, '')
+        .replace(',', '.');
+
+      const parsed = Number(sanitized);
+      return Number.isNaN(parsed) ? null : parsed;
+    };
+
     const inferSectorFromCategory = (cat: string): string | null => {
       const u = cat.toUpperCase();
       if (/EXTRAS\s*-\s*SAL/i.test(u)) return 'SALÃO';
@@ -667,45 +680,30 @@ export default function Produtividade() {
     for (let i = headerIdx + 1; i < raw.length; i++) {
       const row = raw[i];
       if (!row) continue;
+
       const desc = String(row[descCol] || '').trim();
+      const upperDesc = desc.toUpperCase();
       const rowDate = parseExcelDate(row[vencCol]);
       if (rowDate) lastDate = rowDate;
-      if (!/free/i.test(desc)) continue;
 
-      // --- Filter: only principal entries ---
-      // If we have Categoria column, use it to filter
-      if (catCol !== -1) {
-        const cat = String(row[catCol] || '').trim().toUpperCase();
-        // Skip complementary lines (Frente de Caixa, etc.)
-        if (cat.includes('FRENTE DE CA') || cat.includes('FRENTE DE CAIXA')) continue;
-        // Only accept lines where Categoria starts with "Extras -"
-        if (!cat.startsWith('EXTRAS')) continue;
-      }
+      if (!/\bFREE\b/i.test(desc)) continue;
+      if (desc.includes('|') || /\|\s*CAIXA/i.test(desc) || /\bCAIXA\b/i.test(upperDesc)) continue;
 
-      // If we have Valor column, skip positive values (complementary lines)
-      if (valorCol !== -1) {
-        const rawVal = row[valorCol];
-        const numVal = typeof rawVal === 'number' ? rawVal : parseFloat(String(rawVal || '0').replace(/[^\d.,-]/g, '').replace(',', '.'));
-        if (!isNaN(numVal) && numVal > 0) continue;
-      }
+      const category = catCol !== -1 ? String(row[catCol] || '').trim() : '';
+      const upperCategory = category.toUpperCase();
+      if (!upperCategory.startsWith('EXTRAS -')) continue;
+      if (upperCategory.includes('FRENTE DE CA')) continue;
 
-      // Skip lines with pipe "|" in description (complementary)
-      if (desc.includes('|')) continue;
+      const parsedValue = valorCol !== -1 ? parseCurrencyValue(row[valorCol]) : null;
+      if (parsedValue === null || parsedValue >= 0) continue;
 
       const date = rowDate || lastDate;
       if (!date) continue;
 
-      // Infer sector from Categoria first, fallback to description
-      let sector: string | null = null;
-      if (catCol !== -1) {
-        sector = inferSectorFromCategory(String(row[catCol] || ''));
-      }
-      if (!sector) {
-        sector = inferSectorFromDesc(desc);
-      }
+      const sector = inferSectorFromCategory(category) || inferSectorFromDesc(desc);
 
       entries.push({
-        id: generateEntryId(),
+        id: `import-row-${i + 1}-${generateEntryId()}`,
         date,
         name: extractFreeName(desc).toUpperCase(),
         sector,
