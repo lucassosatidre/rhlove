@@ -694,8 +694,11 @@ export default function Produtividade() {
       if (!upperCategory.startsWith('EXTRAS -')) continue;
       if (upperCategory.includes('FRENTE DE CA')) continue;
 
-      const parsedValue = valorCol !== -1 ? parseCurrencyValue(row[valorCol]) : null;
-      if (parsedValue === null || parsedValue >= 0) continue;
+      if (valorCol !== -1) {
+        const parsedValue = parseCurrencyValue(row[valorCol]);
+        // Only skip if we got a valid positive number (complementary line)
+        if (parsedValue !== null && parsedValue >= 0) continue;
+      }
 
       const date = rowDate || lastDate;
       if (!date) continue;
