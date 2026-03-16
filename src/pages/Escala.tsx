@@ -6,7 +6,7 @@ import { useDailySales, useUpsertDailySales } from '@/hooks/useDailySales';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
 import { useScheduleEvents, buildEventsMap, buildSwapOverrides, type ScheduleEvent } from '@/hooks/useScheduleEvents';
 import { generateSchedule, getMonthLabel, getFirstMondayOfMonthGrid, getWeekCount, type ScheduleWeek } from '@/lib/scheduleEngine';
-import { countPeopleBySectorOnDate } from '@/lib/productivityEngine';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
