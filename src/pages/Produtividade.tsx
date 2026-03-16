@@ -1411,6 +1411,95 @@ export default function Produtividade() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Freelancer Import Dialog */}
+      <Dialog open={freeImportDialogOpen} onOpenChange={setFreeImportDialogOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Importar Free-lancers
+            </DialogTitle>
+            <DialogDescription>
+              Revise os dados de free-lancers antes de importar.
+            </DialogDescription>
+          </DialogHeader>
+
+          {freeImportError && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+              <p className="text-sm text-destructive">{freeImportError}</p>
+            </div>
+          )}
+
+          {freeImportPreview.length > 0 && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                <p><strong>{freeImportPreview.length}</strong> dia(s) detectado(s): <strong>{formatDateBR(freeImportPreview[0].date)}</strong> até <strong>{formatDateBR(freeImportPreview[freeImportPreview.length - 1].date)}</strong></p>
+                <p className="mt-1">Colunas: <strong>Data</strong>, <strong>Free Cozinha</strong>, <strong>Free Salão</strong>, <strong>Free Tele</strong></p>
+              </div>
+
+              <div className="border rounded-lg overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Data</TableHead>
+                      <TableHead className="text-xs text-right">Cozinha</TableHead>
+                      <TableHead className="text-xs text-right">Salão</TableHead>
+                      <TableHead className="text-xs text-right">Tele</TableHead>
+                      <TableHead className="text-xs text-right">Total</TableHead>
+                      <TableHead className="text-xs w-8"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {freeImportPreview.map((row, idx) => (
+                      <TableRow key={idx} className={!row.ok ? 'bg-amber-500/5' : ''}>
+                        <TableCell className="text-xs font-medium">{formatDateBR(row.date)}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{row.cozinha}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{row.salao}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{row.tele}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{row.total}</TableCell>
+                        <TableCell>
+                          {row.ok ? (
+                            <Check className="w-3.5 h-3.5 text-green-600" />
+                          ) : (
+                            <span title={`Total planilha: ${row.totalCheck} ≠ soma: ${row.total}`}>
+                              <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {freeImportPreview.some(r => !r.ok) && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                  <p className="text-xs text-amber-700">
+                    Alguns totais da planilha divergem da soma (Cozinha + Salão + Tele). O sistema usará os valores por setor.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center pt-2">
+                <span className="text-xs text-muted-foreground">
+                  {freeImportPreview.length} dia(s) · Total geral: {freeImportPreview.reduce((s, r) => s + r.total, 0)} free(s)
+                </span>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setFreeImportDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button size="sm" onClick={handleConfirmFreeImport} disabled={bulkFreeMut.isPending}>
+                    <Check className="w-4 h-4 mr-1" /> Confirmar Importação
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
