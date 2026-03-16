@@ -309,6 +309,83 @@ export type Database = {
         }
         Relationships: []
       }
+      hr_reminders: {
+        Row: {
+          collaborator_id: string | null
+          collaborator_name: string | null
+          concluded_at: string | null
+          concluded_by: string | null
+          conclusion_note: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          event_date: string
+          event_time: string | null
+          id: string
+          postponed_to: string | null
+          priority: string
+          recurrence: string
+          reminder_type: string
+          responsible: string | null
+          sector: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          collaborator_id?: string | null
+          collaborator_name?: string | null
+          concluded_at?: string | null
+          concluded_by?: string | null
+          conclusion_note?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_date: string
+          event_time?: string | null
+          id?: string
+          postponed_to?: string | null
+          priority?: string
+          recurrence?: string
+          reminder_type?: string
+          responsible?: string | null
+          sector?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          collaborator_id?: string | null
+          collaborator_name?: string | null
+          concluded_at?: string | null
+          concluded_by?: string | null
+          conclusion_note?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_date?: string
+          event_time?: string | null
+          id?: string
+          postponed_to?: string | null
+          priority?: string
+          recurrence?: string
+          reminder_type?: string
+          responsible?: string | null
+          sector?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_reminders_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scheduled_vacations: {
         Row: {
           aviso_ferias_assinado: boolean
