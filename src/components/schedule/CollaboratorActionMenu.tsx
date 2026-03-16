@@ -156,9 +156,10 @@ export default function CollaboratorActionMenu({
             event_type: 'MUDANCA_FOLGA',
             event_date: weekStartKey,
             week_start: weekStartKey,
-            original_day: currentDayOff,  // Current day off being removed
-            swapped_day: newDayOff,       // New day off for this week
+            original_day: currentDayOff,
+            swapped_day: newDayOff,
             observation,
+            created_by: usuario?.nome || usuario?.email || null,
           };
 
           await createEvent.mutateAsync(input);
