@@ -117,15 +117,60 @@ function buildEvents(
 
   for (const v of vacations) {
     if (v.status === 'CANCELADA') continue;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const inicioDate = new Date(v.data_inicio_ferias + 'T00:00:00');
+    const fimDate = new Date(v.data_fim_ferias + 'T00:00:00');
+    const isPast = today > fimDate;
+
     events.push({ id: `fer-i-${v.id}`, date: v.data_inicio_ferias, type: 'ferias_inicio', label: 'Início férias', collaboratorName: v.collaborator_name, sector: v.sector });
     events.push({ id: `fer-f-${v.id}`, date: v.data_fim_ferias, type: 'ferias_fim', label: 'Fim férias', collaboratorName: v.collaborator_name, sector: v.sector, observacao: v.observacao });
-    const payDateStr = v.data_pagamento_ferias || (() => {
-      const startDate = new Date(v.data_inicio_ferias + 'T00:00:00');
-      const payDate = new Date(startDate);
-      payDate.setDate(payDate.getDate() - 3);
-      return toDateStr(payDate);
-    })();
-    events.push({ id: `fer-p-${v.id}`, date: payDateStr, type: 'ferias_pagamento', label: `Pagamento das férias do colaborador ${v.collaborator_name}`, collaboratorName: v.collaborator_name, sector: v.sector, observacao: `Pagamento deve ser realizado até esta data (3 dias antes do início das férias em ${v.data_inicio_ferias.split('-').reverse().join('/')})` });
+
+    // Event 1: Assinar aviso de férias (D-30)
+    const avisoFerDate = new Date(inicioDate);
+    avisoFerDate.setDate(avisoFerDate.getDate() - 30);
+    events.push({
+      id: `fer-aviso-${v.id}`, date: toDateStr(avisoFerDate), type: 'ferias_aviso',
+      label: `Assinar aviso de férias — ${v.collaborator_name}`, collaboratorName: v.collaborator_name, sector: v.sector,
+      observacao: `O aviso de férias deve ser assinado 30 dias antes do início (${v.data_inicio_ferias.split('-').reverse().join('/')})`,
+      vacationId: v.id, vacationField: 'aviso_ferias_assinado', vacationFieldValue: v.aviso_ferias_assinado,
+    });
+
+    // Event 2: Solicitar docs à contabilidade (D-33)
+    const contabFerDate = new Date(avisoFerDate);
+    contabFerDate.setDate(contabFerDate.getDate() - 3);
+    events.push({
+      id: `fer-contab-${v.id}`, date: toDateStr(contabFerDate), type: 'ferias_contabilidade',
+      label: `Solicitar aviso e recibo à contabilidade — ${v.collaborator_name}`, collaboratorName: v.collaborator_name, sector: v.sector,
+      observacao: `Solicitar à contabilidade 3 dias antes da assinatura do aviso (${toDateStr(avisoFerDate).split('-').reverse().join('/')})`,
+      vacationId: v.id, vacationField: 'contabilidade_solicitada', vacationFieldValue: v.contabilidade_solicitada,
+    });
+
+    // Event 3: Efetuar pagamento (D-2)
+    const pagFerDate = new Date(inicioDate);
+    pagFerDate.setDate(pagFerDate.getDate() - 2);
+    events.push({
+      id: `fer-pgto-${v.id}`, date: toDateStr(pagFerDate), type: 'ferias_pagamento_exec',
+      label: `Efetuar pagamento das férias — ${v.collaborator_name}`, collaboratorName: v.collaborator_name, sector: v.sector,
+      observacao: `Pagamento deve ser efetuado 2 dias antes do início das férias (${v.data_inicio_ferias.split('-').reverse().join('/')})`,
+      vacationId: v.id, vacationField: 'pagamento_efetuado', vacationFieldValue: v.pagamento_efetuado,
+    });
+
+    // Event 4: Assinar recibo de pagamento (D-2, mesmo dia do pagamento)
+    events.push({
+      id: `fer-recibo-${v.id}`, date: toDateStr(pagFerDate), type: 'ferias_recibo',
+      label: `Assinar recibo de pagamento — ${v.collaborator_name}`, collaboratorName: v.collaborator_name, sector: v.sector,
+      observacao: `Assinar recibo de pagamento no mesmo dia do pagamento das férias`,
+      vacationId: v.id, vacationField: 'recibo_assinado', vacationFieldValue: v.recibo_assinado,
+    });
+
+    // Event 5: Retorno de férias (data_fim + 1)
+    const retornoDate = new Date(fimDate);
+    retornoDate.setDate(retornoDate.getDate() + 1);
+    events.push({
+      id: `fer-retorno-${v.id}`, date: toDateStr(retornoDate), type: 'ferias_retorno',
+      label: `Retorno de férias — ${v.collaborator_name}`, collaboratorName: v.collaborator_name, sector: v.sector,
+      observacao: `Retorno previsto do colaborador após as férias`,
+    });
   }
 
   for (const a of avisos) {
