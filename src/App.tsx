@@ -13,6 +13,7 @@ import Produtividade from "@/pages/Produtividade";
 import FeriasProgramadas from "@/pages/FeriasProgramadas";
 import Compensacoes from "@/pages/Compensacoes";
 import AvisosPrevios from "@/pages/AvisosPrevios";
+import Afastamentos from "@/pages/Afastamentos";
 import CalendarioRH from "@/pages/CalendarioRH";
 import GerenciarUsuarios from "@/pages/GerenciarUsuarios";
 import NotFound from "./pages/NotFound";
