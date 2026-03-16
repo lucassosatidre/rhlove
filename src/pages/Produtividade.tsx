@@ -699,71 +699,12 @@ export default function Produtividade() {
           </TabsList>
 
           <TabsContent value="table">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4" />
-                   Produtividade por Colaborador
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="font-bold">Data</TableHead>
-                        <TableHead className="font-bold">Setor</TableHead>
-                        <TableHead className="text-right font-bold">Vendas</TableHead>
-                        <TableHead className="text-right font-bold">Pedidos</TableHead>
-                        <TableHead className="text-right font-bold">Nº Colaboradores</TableHead>
-                        <TableHead className="text-right font-bold">Ticket p/ colab. do setor</TableHead>
-                        <TableHead className="text-right font-bold">Pedidos p/ colab. do setor</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {groupedByDate.map(([date, rows], dateIdx) => (
-                        rows.map((row, rowIdx) => (
-                          <TableRow
-                            key={`${date}-${row.sector}`}
-                            className={`${
-                              isSummaryRow(row.sector)
-                                ? 'bg-muted/60 font-semibold border-t-2 border-border'
-                                : ''
-                            } ${
-                              row.sector === 'PCT' && dateIdx < groupedByDate.length - 1
-                                ? 'border-b-4 border-border'
-                                : ''
-                            }`}
-                          >
-                            <TableCell className="font-medium">
-                              {rowIdx === 0 ? formatDateBR(row.date) : ''}
-                            </TableCell>
-                            <TableCell className={`${isSummaryRow(row.sector) ? 'font-bold' : ''}`}>
-                              {row.sector === 'TCT' ? 'Ticket p/ colab. do time' : row.sector === 'PCT' ? 'Pedidos p/ colab. do time' : row.sector}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                              {row.vendas ? formatCurrency(row.vendas) : '-'}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                              {row.pedidos ? row.pedidos : '-'}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums font-medium">
-                              {row.numero_pessoas || '-'}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                              {row.tcs ? formatCurrency(row.tcs) : '-'}
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                              {row.pcs ? formatDecimal(row.pcs) : '-'}
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+            <ProductivityTables
+              currentRows={productivityRows}
+              previousRows={prevProductivityRows}
+              startDate={startDate}
+              endDate={endDate}
+            />
           </TabsContent>
 
           <TabsContent value="charts" className="space-y-6">
