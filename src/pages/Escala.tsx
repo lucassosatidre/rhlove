@@ -609,6 +609,10 @@ export default function Escala() {
 
   return (
     <div className="space-y-4 animate-fade-in" ref={printRef}>
+      <PrintHeader
+        title="ESCALA SEMANAL"
+        subtitle={weeks[effectiveSelectedWeek] ? `Semana: ${formatDateBR(weeks[effectiveSelectedWeek].days[0].date)} a ${formatDateBR(weeks[effectiveSelectedWeek].days[6].date)}` : getMonthLabel(year, month)}
+      />
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 no-print">
         <div>
           <h1 className="text-2xl font-bold">Escala de Trabalho</h1>
