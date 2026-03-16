@@ -421,8 +421,18 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
       }
     }
 
-    return [...autoEvents, ...manualEvents];
-  }, [collaborators, vacations, avisos, compensations, reminders, year, month, completionsMap]);
+    // Add payroll events (salary + advance) for visible range
+    const payrollEvents = buildPayrollEvents(year, month > 0 ? month - 1 : 11, 4, holidaySet);
+    for (const ev of payrollEvents) {
+      const comp = completionsMap.get(ev.id);
+      if (comp) {
+        ev.completionStatus = comp.status;
+        if (comp.override_date) ev.date = comp.override_date;
+      }
+    }
+
+    return [...autoEvents, ...manualEvents, ...payrollEvents];
+  }, [collaborators, vacations, avisos, compensations, reminders, year, month, completionsMap, holidaySet]);
 
   // Apply filters
   const filteredEvents = useMemo(() => {
