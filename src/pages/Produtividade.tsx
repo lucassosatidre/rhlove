@@ -588,6 +588,146 @@ export default function Produtividade() {
     PCT: { label: 'Pedidos por colaborador do time', color: 'hsl(var(--chart-2, 160 60% 45%))' },
   };
 
+  // ====== FREELANCER IMPORT LOGIC ======
+  const handleFreeFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setFreeImportError('');
+    setFreeImportPreview([]);
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      if (raw.length < 2) {
+        setFreeImportError('Planilha vazia ou sem dados.');
+        setFreeImportDialogOpen(true);
+        return;
+      }
+
+      // Find header row
+      const normalize = (v: any) => String(v || '').trim().toUpperCase();
+      let headerIdx = -1;
+      let colMap: Record<string, number> = {};
+      for (let i = 0; i < Math.min(raw.length, 10); i++) {
+        const row = raw[i];
+        if (!row) continue;
+        const headers = row.map(normalize);
+        if (headers.some(h => h.includes('DATA')) && headers.some(h => h.includes('FREE') || h.includes('COZINHA'))) {
+          headerIdx = i;
+          headers.forEach((h, idx) => { colMap[h] = idx; });
+          break;
+        }
+      }
+
+      if (headerIdx === -1) {
+        setFreeImportError('Cabeçalho não encontrado. Esperado colunas: Data, Free Cozinha, Free Salão, Free Tele.');
+        setFreeImportDialogOpen(true);
+        return;
+      }
+
+      // Find column indices with flexible matching
+      const findCol = (keywords: string[]): number => {
+        for (const key of Object.keys(colMap)) {
+          if (keywords.every(k => key.includes(k))) return colMap[key];
+        }
+        return -1;
+      };
+
+      const dateCol = findCol(['DATA']);
+      const cozinhaCol = findCol(['COZINHA']);
+      const salaoCol = findCol(['SAL']);
+      const teleCol = findCol(['TELE']);
+      const totalCol = findCol(['TOTAL']);
+
+      if (dateCol === -1 || cozinhaCol === -1 || salaoCol === -1 || teleCol === -1) {
+        setFreeImportError('Colunas obrigatórias não encontradas: Data, Free Cozinha, Free Salão, Free Tele.');
+        setFreeImportDialogOpen(true);
+        return;
+      }
+
+      const preview: typeof freeImportPreview = [];
+      for (let i = headerIdx + 1; i < raw.length; i++) {
+        const row = raw[i];
+        if (!row || !row[dateCol]) continue;
+
+        // Parse date (supports dd/mm/yyyy or yyyy-mm-dd)
+        let dateStr = '';
+        const rawDate = row[dateCol];
+        if (typeof rawDate === 'number') {
+          // Excel serial date
+          const excelDate = XLSX.SSF.parse_date_code(rawDate);
+          dateStr = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`;
+        } else {
+          const ds = String(rawDate).trim();
+          const brMatch = ds.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+          if (brMatch) {
+            dateStr = `${brMatch[3]}-${brMatch[2]}-${brMatch[1]}`;
+          } else if (/^\d{4}-\d{2}-\d{2}$/.test(ds)) {
+            dateStr = ds;
+          }
+        }
+
+        if (!dateStr) continue;
+
+        const cozinha = Number(row[cozinhaCol]) || 0;
+        const salao = Number(row[salaoCol]) || 0;
+        const tele = Number(row[teleCol]) || 0;
+        const total = cozinha + salao + tele;
+        const totalFile = totalCol >= 0 ? (Number(row[totalCol]) || 0) : total;
+
+        preview.push({
+          date: dateStr,
+          cozinha,
+          salao,
+          tele,
+          total,
+          totalCheck: totalFile,
+          ok: Math.abs(total - totalFile) < 0.01 || totalCol === -1,
+        });
+      }
+
+      if (preview.length === 0) {
+        setFreeImportError('Nenhuma linha de dados válida encontrada na planilha.');
+        setFreeImportDialogOpen(true);
+        return;
+      }
+
+      setFreeImportPreview(preview);
+      setFreeImportDialogOpen(true);
+    } catch (err: any) {
+      setFreeImportError(`Erro ao ler arquivo: ${err.message}`);
+      setFreeImportDialogOpen(true);
+    }
+  };
+
+  const handleConfirmFreeImport = async () => {
+    const rows = freeImportPreview.flatMap(p => {
+      const entries: { date: string; sector: string; quantity: number }[] = [];
+      if (p.cozinha > 0) entries.push({ date: p.date, sector: 'COZINHA', quantity: p.cozinha });
+      if (p.salao > 0) entries.push({ date: p.date, sector: 'SALÃO', quantity: p.salao });
+      if (p.tele > 0) entries.push({ date: p.date, sector: 'TELE - ENTREGA', quantity: p.tele });
+      return entries;
+    });
+
+    if (rows.length === 0) {
+      toast({ title: 'Nenhum free-lancer para importar', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      await bulkFreeMut.mutateAsync(rows);
+      toast({ title: 'Free-lancers importados com sucesso', description: `${freeImportPreview.length} dia(s) processado(s)` });
+      setFreeImportDialogOpen(false);
+      setFreeImportPreview([]);
+    } catch (err: any) {
+      toast({ title: 'Erro ao importar free-lancers', description: err.message, variant: 'destructive' });
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in" ref={printRef}>
       {/* Header */}
