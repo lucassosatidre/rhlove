@@ -79,6 +79,7 @@ export default function Produtividade() {
   const freeFileInputRef = useRef<HTMLInputElement>(null);
   const [freeReviewOpen, setFreeReviewOpen] = useState(false);
   const [freeReviewEntries, setFreeReviewEntries] = useState<FreeReviewEntry[]>([]);
+  const [freeHistoryOpen, setFreeHistoryOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: collaborators = [] } = useCollaborators();
