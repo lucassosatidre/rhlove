@@ -15,6 +15,7 @@ import {
   AlertCircle, CalendarCheck, List, Trash2, Ban
 } from 'lucide-react';
 import { useUpdateAvisoPrevio } from '@/hooks/useAvisosPrevios';
+import { useHolidays } from '@/hooks/useHolidayCompensations';
 import { useUpdateScheduledVacation } from '@/hooks/useScheduledVacations';
 import { useUpdateCollaborator } from '@/hooks/useCollaborators';
 import { useReminders, useUpdateReminder, useDeleteReminder, generateRecurringInstances, PRIORITIES, REMINDER_TYPES, REMINDER_STATUSES } from '@/hooks/useReminders';
@@ -62,6 +63,7 @@ const EVENT_CATEGORIES = {
   experiencia: { label: 'Experiência', types: ['experiencia_inicio', 'experiencia_fim'] as string[], color: 'bg-blue-400', textColor: 'text-blue-900' },
   compensacao: { label: 'Compensações', types: ['compensacao'] as string[], color: 'bg-green-400', textColor: 'text-green-900' },
   admin: { label: 'Administrativo', types: ['exame', 'contabilidade'] as string[], color: 'bg-purple-400', textColor: 'text-purple-900' },
+  folha: { label: 'Folha de Pagamento', types: ['salario', 'adiantamento'] as string[], color: 'bg-emerald-500', textColor: 'text-white' },
   lembrete: { label: 'Lembretes', types: ['lembrete'] as string[], color: 'bg-teal-400', textColor: 'text-teal-900' },
 } as const;
 
@@ -87,7 +89,80 @@ const EVENT_TYPE_META: Record<string, { emoji: string; label: string; shortLabel
   rescisao_pagamento: { emoji: '💵', label: 'Pgto. verbas rescisórias', shortLabel: 'Pgto Resc.', category: 'aviso' },
   rescisao_assinatura: { emoji: '✍️', label: 'Assinatura rescisão', shortLabel: 'Assinatura', category: 'aviso' },
   lembrete: { emoji: '🔔', label: 'Lembrete', shortLabel: 'Lembrete', category: 'lembrete' },
+  salario: { emoji: '💰', label: 'Pagamento de salário', shortLabel: 'Salário', category: 'folha' },
+  adiantamento: { emoji: '💵', label: 'Adiantamento salarial', shortLabel: 'Adiantamento', category: 'folha' },
 };
+
+/* ───── Payroll date helpers ───── */
+
+/** Check if a date is a non-business day (sunday or holiday). Saturday IS a business day per CLT. */
+function isNonBusinessDay(d: Date, holidaySet: Set<string>): boolean {
+  if (d.getDay() === 0) return true; // domingo
+  if (holidaySet.has(toDateStr(d))) return true;
+  return false;
+}
+
+/** Get the 5th business day of a given month/year (CLT Art. 459). Sat counts as business day. */
+function get5thBusinessDay(year: number, month: number, holidaySet: Set<string>): Date {
+  let count = 0;
+  const d = new Date(year, month, 1);
+  while (count < 5) {
+    if (!isNonBusinessDay(d, holidaySet)) {
+      count++;
+      if (count === 5) return new Date(d);
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return d;
+}
+
+/** Get day 15 of a month, or next business day if it falls on sunday/holiday. */
+function getAdjusted15th(year: number, month: number, holidaySet: Set<string>): Date {
+  const d = new Date(year, month, 15);
+  while (isNonBusinessDay(d, holidaySet)) {
+    d.setDate(d.getDate() + 1);
+  }
+  return d;
+}
+
+/** Build payroll events for a range of months */
+function buildPayrollEvents(startYear: number, startMonth: number, months: number, holidaySet: Set<string>): HREvent[] {
+  const events: HREvent[] = [];
+  for (let i = 0; i < months; i++) {
+    let y = startYear;
+    let m = startMonth + i;
+    if (m > 11) { y += Math.floor(m / 12); m = m % 12; }
+
+    // Salário: 5º dia útil do mês (paga o mês anterior)
+    const salDate = get5thBusinessDay(y, m, holidaySet);
+    const salStr = toDateStr(salDate);
+    const prevMonth = m === 0 ? 12 : m;
+    const prevMonthName = MONTH_NAMES[prevMonth - 1];
+    events.push({
+      id: `salario-${y}-${m}`,
+      date: salStr,
+      originalDate: salStr,
+      type: 'salario',
+      label: `Pagamento salário (ref. ${prevMonthName})`,
+      collaboratorName: 'EQUIPE',
+      sector: '',
+    });
+
+    // Adiantamento: dia 15 ou próximo dia útil
+    const advDate = getAdjusted15th(y, m, holidaySet);
+    const advStr = toDateStr(advDate);
+    events.push({
+      id: `adiantamento-${y}-${m}`,
+      date: advStr,
+      originalDate: advStr,
+      type: 'adiantamento',
+      label: `Adiantamento salarial (${MONTH_NAMES[m]})`,
+      collaboratorName: 'EQUIPE',
+      sector: '',
+    });
+  }
+  return events;
+}
 
 function getEventColor(type: string, priority?: string): string {
   if (type === 'lembrete' && priority) {
@@ -138,6 +213,7 @@ function getEventOrigin(ev: HREvent): string {
   if (ev.type.startsWith('experiencia')) return 'Experiência';
   if (ev.type === 'compensacao') return 'Compensação';
   if (ev.type === 'desligamento') return 'Desligamento';
+  if (ev.type === 'salario' || ev.type === 'adiantamento') return 'Folha de pagamento';
   if (ev.type === 'exame' || ev.type === 'contabilidade') return 'Aviso prévio';
   return 'Automático';
 }
@@ -284,7 +360,15 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
   const deleteReminder = useDeleteReminder();
   const { data: completions = [] } = useEventCompletions();
   const upsertCompletion = useUpsertEventCompletion();
+  const { data: holidays = [] } = useHolidays();
   const { toast } = useToast();
+
+  // Build holiday set for payroll calculations
+  const holidaySet = useMemo(() => {
+    const set = new Set<string>();
+    for (const h of holidays) set.add(h.date);
+    return set;
+  }, [holidays]);
 
   const todayStr = toDateStr(today);
 
@@ -337,8 +421,18 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
       }
     }
 
-    return [...autoEvents, ...manualEvents];
-  }, [collaborators, vacations, avisos, compensations, reminders, year, month, completionsMap]);
+    // Add payroll events (salary + advance) for visible range
+    const payrollEvents = buildPayrollEvents(year, month > 0 ? month - 1 : 11, 4, holidaySet);
+    for (const ev of payrollEvents) {
+      const comp = completionsMap.get(ev.id);
+      if (comp) {
+        ev.completionStatus = comp.status;
+        if (comp.override_date) ev.date = comp.override_date;
+      }
+    }
+
+    return [...autoEvents, ...manualEvents, ...payrollEvents];
+  }, [collaborators, vacations, avisos, compensations, reminders, year, month, completionsMap, holidaySet]);
 
   // Apply filters
   const filteredEvents = useMemo(() => {
