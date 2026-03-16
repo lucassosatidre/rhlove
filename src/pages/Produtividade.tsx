@@ -67,6 +67,7 @@ export default function Produtividade() {
   const [histError, setHistError] = useState('');
   const [histExistingDates, setHistExistingDates] = useState<string[]>([]);
   const [tmpSectorFilter, setTmpSectorFilter] = useState<string>('ALL');
+  const [pcsSectorFilter, setPcsSectorFilter] = useState<string>('ALL');
   const { toast } = useToast();
 
   const { data: collaborators = [] } = useCollaborators();
