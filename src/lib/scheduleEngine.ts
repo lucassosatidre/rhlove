@@ -181,7 +181,8 @@ export function generateSchedule(
   year: number,
   month: number,
   scheduledVacations: ScheduledVacation[] = [],
-  dayOffOverrides?: DayOffOverridesMap
+  dayOffOverrides?: DayOffOverridesMap,
+  afastamentos: Afastamento[] = []
 ): ScheduleWeek[] {
   const firstMonday = getFirstMondayOfMonthGrid(year, month);
   const totalWeeks = getWeekCount(year, month);
