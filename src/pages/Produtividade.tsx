@@ -557,6 +557,20 @@ export default function Produtividade() {
       <Card className="no-print">
         <CardContent className="py-4">
           <div className="flex flex-wrap items-end gap-4">
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { label: 'Hoje', fn: () => { const t = new Date().toISOString().split('T')[0]; setStartDate(t); setEndDate(t); } },
+                { label: 'Ontem', fn: () => { const d = new Date(); d.setDate(d.getDate() - 1); const t = d.toISOString().split('T')[0]; setStartDate(t); setEndDate(t); } },
+                { label: '7 dias', fn: () => { const e = new Date(); const s = new Date(); s.setDate(s.getDate() - 6); setStartDate(s.toISOString().split('T')[0]); setEndDate(e.toISOString().split('T')[0]); } },
+                { label: '15 dias', fn: () => { const e = new Date(); const s = new Date(); s.setDate(s.getDate() - 14); setStartDate(s.toISOString().split('T')[0]); setEndDate(e.toISOString().split('T')[0]); } },
+                { label: '30 dias', fn: () => { const e = new Date(); const s = new Date(); s.setDate(s.getDate() - 29); setStartDate(s.toISOString().split('T')[0]); setEndDate(e.toISOString().split('T')[0]); } },
+                { label: 'Mês atual', fn: () => { setStartDate(firstOfMonth); setEndDate(lastOfMonth); } },
+              ].map(p => (
+                <Button key={p.label} variant="outline" size="sm" className="h-7 text-xs px-3" onClick={p.fn}>
+                  {p.label}
+                </Button>
+              ))}
+            </div>
             <div className="space-y-1">
               <Label className="text-xs">Data Inicial</Label>
               <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-40" />
