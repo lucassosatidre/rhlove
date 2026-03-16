@@ -733,22 +733,57 @@ export default function Produtividade() {
             {/* 1. Pedidos por colaborador do setor */}
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Pedidos por colaborador do setor</CardTitle>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <CardTitle className="text-sm">Pedidos por colaborador do setor</CardTitle>
+                  <ToggleGroup
+                    type="single"
+                    value={pcsSectorFilter}
+                    onValueChange={v => v && setPcsSectorFilter(v)}
+                    size="sm"
+                    className="flex-wrap"
+                  >
+                    <ToggleGroupItem value="ALL" className="text-xs px-2 h-7">Todos</ToggleGroupItem>
+                    <ToggleGroupItem value="COZINHA" className="text-xs px-2 h-7">Cozinha</ToggleGroupItem>
+                    <ToggleGroupItem value="SALÃO" className="text-xs px-2 h-7">Salão</ToggleGroupItem>
+                    <ToggleGroupItem value="TELE - ENTREGA" className="text-xs px-2 h-7">Tele</ToggleGroupItem>
+                    <ToggleGroupItem value="DIURNO" className="text-xs px-2 h-7">Diurno</ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
               </CardHeader>
               <CardContent>
-                <ChartContainer config={tcsChartConfig} className="h-[300px] w-full">
-                  <BarChart data={chartPCS}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Legend />
-                    <Bar dataKey="COZINHA" fill={SECTOR_COLORS['COZINHA']} name="Cozinha" radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="DIURNO" fill={SECTOR_COLORS['DIURNO']} name="Diurno" radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="SALÃO" fill={SECTOR_COLORS['SALÃO']} name="Salão" radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="TELE - ENTREGA" fill={SECTOR_COLORS['TELE - ENTREGA']} name="Tele-Entrega" radius={[2, 2, 0, 0]} />
-                  </BarChart>
-                </ChartContainer>
+                {pcsSectorFilter === 'ALL' ? (
+                  <ChartContainer config={tcsChartConfig} className="h-[300px] w-full">
+                    <BarChart data={chartPCS}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Legend />
+                      <Bar dataKey="COZINHA" fill={SECTOR_COLORS['COZINHA']} name="Cozinha" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="DIURNO" fill={SECTOR_COLORS['DIURNO']} name="Diurno" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="SALÃO" fill={SECTOR_COLORS['SALÃO']} name="Salão" radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="TELE - ENTREGA" fill={SECTOR_COLORS['TELE - ENTREGA']} name="Tele-Entrega" radius={[2, 2, 0, 0]} />
+                    </BarChart>
+                  </ChartContainer>
+                ) : (
+                  <ChartContainer config={{ [pcsSectorFilter]: { label: pcsSectorFilter, color: SECTOR_COLORS[pcsSectorFilter] || 'hsl(220, 15%, 25%)' } }} className="h-[320px] w-full">
+                    <LineChart data={chartPCS} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Line type="monotone" dataKey={pcsSectorFilter} stroke={SECTOR_COLORS[pcsSectorFilter] || 'hsl(220, 15%, 25%)'} strokeWidth={2} dot={{ r: 4, fill: SECTOR_COLORS[pcsSectorFilter] || 'hsl(220, 15%, 25%)' }} name={pcsSectorFilter}>
+                        <LabelList
+                          dataKey={pcsSectorFilter}
+                          position="top"
+                          offset={10}
+                          formatter={(v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          style={{ fontSize: 10, fontWeight: 600, fill: SECTOR_COLORS[pcsSectorFilter] || 'hsl(220, 15%, 25%)' }}
+                        />
+                      </Line>
+                    </LineChart>
+                  </ChartContainer>
+                )}
               </CardContent>
             </Card>
 
