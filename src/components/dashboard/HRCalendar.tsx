@@ -15,6 +15,7 @@ import {
   AlertCircle, CalendarCheck, List, Trash2, Ban
 } from 'lucide-react';
 import { useUpdateAvisoPrevio } from '@/hooks/useAvisosPrevios';
+import { useHolidays } from '@/hooks/useHolidayCompensations';
 import { useUpdateScheduledVacation } from '@/hooks/useScheduledVacations';
 import { useUpdateCollaborator } from '@/hooks/useCollaborators';
 import { useReminders, useUpdateReminder, useDeleteReminder, generateRecurringInstances, PRIORITIES, REMINDER_TYPES, REMINDER_STATUSES } from '@/hooks/useReminders';
