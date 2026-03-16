@@ -75,6 +75,23 @@ export default function Produtividade() {
   const { data: salesData = [], isLoading } = useDailySales(startDate, endDate);
   const { data: freelancersData = [] } = useFreelancers(startDate, endDate);
   const { data: scheduledVacations = [] } = useScheduledVacations();
+
+  // Previous period for comparison
+  const prevPeriod = useMemo(() => {
+    const s = new Date(startDate + 'T00:00:00');
+    const e = new Date(endDate + 'T00:00:00');
+    const days = Math.round((e.getTime() - s.getTime()) / 86400000) + 1;
+    const prevEnd = new Date(s);
+    prevEnd.setDate(prevEnd.getDate() - 1);
+    const prevStart = new Date(prevEnd);
+    prevStart.setDate(prevStart.getDate() - days + 1);
+    const toStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return { start: toStr(prevStart), end: toStr(prevEnd) };
+  }, [startDate, endDate]);
+
+  const { data: prevSalesData = [] } = useDailySales(prevPeriod.start, prevPeriod.end);
+  const { data: prevFreelancersData = [] } = useFreelancers(prevPeriod.start, prevPeriod.end);
+
   const upsertMut = useUpsertDailySales();
   const bulkMut = useBulkInsertDailySales();
   const deleteMut = useDeleteDailySales();
@@ -82,6 +99,11 @@ export default function Produtividade() {
   const productivityRows = useMemo(
     () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations),
     [salesData, collaborators, freelancersData, scheduledVacations]
+  );
+
+  const prevProductivityRows = useMemo(
+    () => generateProductivityData(prevSalesData, collaborators, prevFreelancersData, scheduledVacations),
+    [prevSalesData, collaborators, prevFreelancersData, scheduledVacations]
   );
 
   const groupedByDate = useMemo(() => {
