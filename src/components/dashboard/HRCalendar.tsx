@@ -89,7 +89,80 @@ const EVENT_TYPE_META: Record<string, { emoji: string; label: string; shortLabel
   rescisao_pagamento: { emoji: '💵', label: 'Pgto. verbas rescisórias', shortLabel: 'Pgto Resc.', category: 'aviso' },
   rescisao_assinatura: { emoji: '✍️', label: 'Assinatura rescisão', shortLabel: 'Assinatura', category: 'aviso' },
   lembrete: { emoji: '🔔', label: 'Lembrete', shortLabel: 'Lembrete', category: 'lembrete' },
+  salario: { emoji: '💰', label: 'Pagamento de salário', shortLabel: 'Salário', category: 'folha' },
+  adiantamento: { emoji: '💵', label: 'Adiantamento salarial', shortLabel: 'Adiantamento', category: 'folha' },
 };
+
+/* ───── Payroll date helpers ───── */
+
+/** Check if a date is a non-business day (sunday or holiday). Saturday IS a business day per CLT. */
+function isNonBusinessDay(d: Date, holidaySet: Set<string>): boolean {
+  if (d.getDay() === 0) return true; // domingo
+  if (holidaySet.has(toDateStr(d))) return true;
+  return false;
+}
+
+/** Get the 5th business day of a given month/year (CLT Art. 459). Sat counts as business day. */
+function get5thBusinessDay(year: number, month: number, holidaySet: Set<string>): Date {
+  let count = 0;
+  const d = new Date(year, month, 1);
+  while (count < 5) {
+    if (!isNonBusinessDay(d, holidaySet)) {
+      count++;
+      if (count === 5) return new Date(d);
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return d;
+}
+
+/** Get day 15 of a month, or next business day if it falls on sunday/holiday. */
+function getAdjusted15th(year: number, month: number, holidaySet: Set<string>): Date {
+  const d = new Date(year, month, 15);
+  while (isNonBusinessDay(d, holidaySet)) {
+    d.setDate(d.getDate() + 1);
+  }
+  return d;
+}
+
+/** Build payroll events for a range of months */
+function buildPayrollEvents(startYear: number, startMonth: number, months: number, holidaySet: Set<string>): HREvent[] {
+  const events: HREvent[] = [];
+  for (let i = 0; i < months; i++) {
+    let y = startYear;
+    let m = startMonth + i;
+    if (m > 11) { y += Math.floor(m / 12); m = m % 12; }
+
+    // Salário: 5º dia útil do mês (paga o mês anterior)
+    const salDate = get5thBusinessDay(y, m, holidaySet);
+    const salStr = toDateStr(salDate);
+    const prevMonth = m === 0 ? 12 : m;
+    const prevMonthName = MONTH_NAMES[prevMonth - 1];
+    events.push({
+      id: `salario-${y}-${m}`,
+      date: salStr,
+      originalDate: salStr,
+      type: 'salario',
+      label: `Pagamento salário (ref. ${prevMonthName})`,
+      collaboratorName: 'EQUIPE',
+      sector: '',
+    });
+
+    // Adiantamento: dia 15 ou próximo dia útil
+    const advDate = getAdjusted15th(y, m, holidaySet);
+    const advStr = toDateStr(advDate);
+    events.push({
+      id: `adiantamento-${y}-${m}`,
+      date: advStr,
+      originalDate: advStr,
+      type: 'adiantamento',
+      label: `Adiantamento salarial (${MONTH_NAMES[m]})`,
+      collaboratorName: 'EQUIPE',
+      sector: '',
+    });
+  }
+  return events;
+}
 
 function getEventColor(type: string, priority?: string): string {
   if (type === 'lembrete' && priority) {
