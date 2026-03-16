@@ -66,7 +66,7 @@ export default function Escala() {
     return 0;
   }, [weeks, selectedWeek]);
 
-
+  const dateRange = useMemo(() => {
     if (weeks.length === 0) return { start: '', end: '' };
     const first = weeks[0].days[0].date;
     const last = weeks[weeks.length - 1].days[6].date;
