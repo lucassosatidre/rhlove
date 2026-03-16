@@ -111,7 +111,165 @@
   }
 }
 
+/* ============================================
+   PRINT STYLES — A4 optimized
+   ============================================ */
 @media print {
-  .no-print { display: none !important; }
-  body { background: white; }
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  /* Hide interactive / non-content elements */
+  .no-print,
+  button,
+  [role="tablist"],
+  nav,
+  aside,
+  header,
+  .print-hide {
+    display: none !important;
+  }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Reset layout */
+  body {
+    background: white !important;
+    color: black !important;
+    font-family: 'DM Sans', sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  #root {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Remove shadows, borders, card styling */
+  .shadow, .shadow-md, .shadow-lg, .shadow-xl {
+    box-shadow: none !important;
+  }
+
+  [class*="rounded"] {
+    border-radius: 0 !important;
+  }
+
+  /* Full width for main content */
+  main {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Table print optimization */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 10px !important;
+    page-break-inside: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  th {
+    font-size: 11px !important;
+    padding: 3px 4px !important;
+    border: 1px solid #333 !important;
+    background-color: inherit !important;
+  }
+
+  td {
+    padding: 2px 4px !important;
+    border: 1px solid #999 !important;
+    font-size: 10px !important;
+  }
+
+  /* Keep sector tables together */
+  .overflow-x-auto {
+    overflow: visible !important;
+    page-break-inside: avoid;
+  }
+
+  /* Card reset for print */
+  [class*="card"] {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+  }
+
+  /* Sector header colors preserved */
+  .bg-sector-cozinha { background-color: hsl(0, 0%, 10%) !important; color: white !important; }
+  .bg-sector-salao { background-color: hsl(0, 70%, 45%) !important; color: white !important; }
+  .bg-sector-tele { background-color: hsl(152, 55%, 38%) !important; color: white !important; }
+  .bg-sector-diurno { background-color: hsl(220, 65%, 50%) !important; color: white !important; }
+
+  /* Print header/footer styling */
+  .print-header {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2px solid #333;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+
+  .print-header h1 {
+    font-size: 14px !important;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .print-header p {
+    font-size: 10px !important;
+    color: #555;
+    margin: 0;
+  }
+
+  .print-footer {
+    display: block !important;
+    text-align: center;
+    font-size: 9px;
+    color: #777;
+    margin-top: 12px;
+    padding-top: 6px;
+    border-top: 1px solid #ccc;
+  }
+
+  /* Badge print styling */
+  [class*="badge"] {
+    border: 1px solid #999 !important;
+    font-size: 8px !important;
+    padding: 0 3px !important;
+  }
+
+  /* Flex layout reset for print container */
+  .flex.h-screen {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .flex-1.overflow-y-auto {
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Ensure space-y works in print */
+  .space-y-4 > * + * {
+    margin-top: 8px;
+  }
 }
