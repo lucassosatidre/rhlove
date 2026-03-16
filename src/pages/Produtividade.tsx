@@ -593,9 +593,9 @@ export default function Produtividade() {
   /** Detect sector from a description string (Modelo B) */
   const inferSectorFromDesc = (desc: string): string | null => {
     const upper = desc.toUpperCase();
-    if (upper.includes('CAIXA TELE') || upper.includes('TELE')) return 'TELE - ENTREGA';
-    if (upper.includes('CAIXA SAL') || upper.includes('SALAO') || upper.includes('SALÃO')) return 'SALÃO';
-    if (/COZINHA|COZIN|COZI(?!NHA)|(?<!\w)COZ(?!\w)/.test(upper)) return 'COZINHA';
+    if (upper.includes('CAIXA TELE') || /\bTELE\b/.test(upper)) return 'TELE - ENTREGA';
+    if (upper.includes('CAIXA SAL') || /\bSALA[OÃ]\b/.test(upper) || upper.includes('SALAO') || upper.includes('SALÃO')) return 'SALÃO';
+    if (/COZINHA|COZIN|\bCOZI\b|\bCOZ\b/.test(upper)) return 'COZINHA';
     return null;
   };
 
