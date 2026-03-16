@@ -226,12 +226,69 @@ export default function Produtividade() {
     }
   };
 
+  // ====== Helper: build preview row from a data row + column map ======
+  const buildPreviewFromRow = (dataRow: any[], colMap: Record<string, number>): ImportPreviewRow => {
+    const errors: string[] = [];
+    const getNum = (key: string): number => {
+      const idx = colMap[key];
+      if (idx === undefined) return 0;
+      const val = dataRow[idx];
+      if (val === '' || val === null || val === undefined) return 0;
+      const n = Number(val);
+      if (isNaN(n)) {
+        errors.push(`Coluna "${key}": valor "${val}" não é numérico`);
+        return 0;
+      }
+      return n;
+    };
+
+    const totalQtd = getNum('TOTAL QTD');
+    const totalVal = getNum('TOTAL');
+    const deliveryQtd = getNum('DELIVERY QTD');
+    const deliveryVal = getNum('DELIVERY');
+    const telefoneQtd = getNum('TELEFONE QTD');
+    const telefoneVal = getNum('TELEFONE');
+    const lojaQtd = getNum('LOJA FÍSICA QTD') || getNum('LOJA FISICA QTD');
+    const lojaVal = getNum('LOJA FÍSICA') || getNum('LOJA FISICA');
+
+    const pedidos_tele = deliveryQtd + telefoneQtd;
+    const faturamento_tele = deliveryVal + telefoneVal;
+    const pedidos_salao = lojaQtd;
+    const faturamento_salao = lojaVal;
+
+    // Validation: salao + tele should equal total
+    const pedidosDiff = Math.abs((pedidos_salao + pedidos_tele) - totalQtd);
+    const fatDiff = Math.abs((faturamento_salao + faturamento_tele) - totalVal);
+    let validationWarning = '';
+    if (pedidosDiff > 0.01 || fatDiff > 0.01) {
+      const parts: string[] = [];
+      if (pedidosDiff > 0.01) parts.push(`Pedidos: Salão(${pedidos_salao}) + Tele(${pedidos_tele}) = ${pedidos_salao + pedidos_tele} ≠ Total(${totalQtd})`);
+      if (fatDiff > 0.01) parts.push(`Faturamento: Salão(${faturamento_salao.toFixed(2)}) + Tele(${faturamento_tele.toFixed(2)}) = ${(faturamento_salao + faturamento_tele).toFixed(2)} ≠ Total(${totalVal.toFixed(2)})`);
+      validationWarning = parts.join(' | ');
+    }
+
+    return {
+      date: '',
+      pedidos_totais: totalQtd,
+      faturamento_total: totalVal,
+      pedidos_tele,
+      faturamento_tele,
+      pedidos_salao,
+      faturamento_salao,
+      errors,
+      _validationWarning: validationWarning,
+    } as ImportPreviewRow & { _validationWarning?: string };
+  };
+
   // ====== IMPORT LOGIC: Saipos "Relatório canais de venda" ======
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setImportError('');
     setImportPreview([]);
+    setImportStores([]);
+    setImportColMap({});
+    setImportValidationWarning('');
 
     try {
       const buffer = await file.arrayBuffer();
@@ -263,78 +320,50 @@ export default function Produtividade() {
       }
 
       if (headerIdx === -1) {
-        // Fallback: try old column-position logic
         setImportError('Cabeçalho não encontrado. Esperado colunas como "TOTAL QTD", "TOTAL", "DELIVERY QTD", etc.');
         setImportDialogOpen(true);
         return;
       }
 
-      // Find the row for "ESTRELA DA ILHA"
-      let dataRow: any[] | null = null;
+      setImportColMap(colMap);
+
+      // Collect all data rows (potential stores)
+      const allStores: { name: string; row: any[] }[] = [];
       for (let i = headerIdx + 1; i < raw.length; i++) {
         const row = raw[i];
         if (!row) continue;
         const firstCol = normalizeHeader(row[0]);
-        if (firstCol.includes('ESTRELA DA ILHA') || firstCol.includes('ESTRELA')) {
-          dataRow = row;
-          break;
-        }
+        if (!firstCol || firstCol === 'TOTAL' || firstCol === '') continue;
+        allStores.push({ name: String(row[0]).trim(), row });
       }
 
-      if (!dataRow) {
-        // If no "ESTRELA DA ILHA", try first non-header, non-TOTAL row
-        for (let i = headerIdx + 1; i < raw.length; i++) {
-          const row = raw[i];
-          if (!row) continue;
-          const firstCol = normalizeHeader(row[0]);
-          if (firstCol && firstCol !== 'TOTAL' && firstCol !== '') {
-            dataRow = row;
-            break;
-          }
-        }
-      }
-
-      if (!dataRow) {
-        setImportError('Nenhuma linha de dados encontrada (busca por "ESTRELA DA ILHA").');
+      if (allStores.length === 0) {
+        setImportError('Nenhuma linha de dados encontrada após o cabeçalho.');
         setImportDialogOpen(true);
         return;
       }
 
-      const errors: string[] = [];
-      const getNum = (key: string): number => {
-        const idx = colMap[key];
-        if (idx === undefined) return 0;
-        const val = dataRow![idx];
-        if (val === '' || val === null || val === undefined) return 0;
-        const n = Number(val);
-        if (isNaN(n)) {
-          errors.push(`Coluna "${key}": valor "${val}" não é numérico`);
-          return 0;
+      // If multiple stores, let user choose
+      if (allStores.length > 1) {
+        // Auto-select "ESTRELA" if found
+        const estrela = allStores.find(s => normalizeHeader(s.name).includes('ESTRELA'));
+        if (estrela) {
+          const preview = buildPreviewFromRow(estrela.row, colMap);
+          setImportValidationWarning((preview as any)._validationWarning || '');
+          setImportPreview([preview]);
+          setImportStores(allStores);
+        } else {
+          setImportStores(allStores);
+          setImportPreview([]);
         }
-        return n;
-      };
+        setImportDialogOpen(true);
+        return;
+      }
 
-      const totalQtd = getNum('TOTAL QTD');
-      const totalVal = getNum('TOTAL');
-      const deliveryQtd = getNum('DELIVERY QTD');
-      const deliveryVal = getNum('DELIVERY');
-      const telefoneQtd = getNum('TELEFONE QTD');
-      const telefoneVal = getNum('TELEFONE');
-      const lojaQtd = getNum('LOJA FÍSICA QTD') || getNum('LOJA FISICA QTD');
-      const lojaVal = getNum('LOJA FÍSICA') || getNum('LOJA FISICA');
-
-      const preview: ImportPreviewRow[] = [{
-        date: '',
-        pedidos_totais: totalQtd,
-        faturamento_total: totalVal,
-        pedidos_tele: deliveryQtd + telefoneQtd,
-        faturamento_tele: deliveryVal + telefoneVal,
-        pedidos_salao: lojaQtd,
-        faturamento_salao: lojaVal,
-        errors,
-      }];
-
-      setImportPreview(preview);
+      // Single store
+      const preview = buildPreviewFromRow(allStores[0].row, colMap);
+      setImportValidationWarning((preview as any)._validationWarning || '');
+      setImportPreview([preview]);
       setImportDialogOpen(true);
     } catch {
       setImportError('Erro ao ler a planilha. Verifique se o arquivo é um Excel válido.');
@@ -342,6 +371,14 @@ export default function Produtividade() {
     }
 
     e.target.value = '';
+  };
+
+  const handleSelectStore = (storeName: string) => {
+    const store = importStores.find(s => s.name === storeName);
+    if (!store) return;
+    const preview = buildPreviewFromRow(store.row, importColMap);
+    setImportValidationWarning((preview as any)._validationWarning || '');
+    setImportPreview([preview]);
   };
 
   const handleConfirmImport = async () => {
