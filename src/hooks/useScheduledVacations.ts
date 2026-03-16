@@ -11,6 +11,10 @@ export interface ScheduledVacation {
   data_pagamento_ferias: string | null;
   status: 'PROGRAMADA' | 'EM_ANDAMENTO' | 'CONCLUIDA' | 'CANCELADA';
   observacao: string;
+  aviso_ferias_assinado: boolean;
+  contabilidade_solicitada: boolean;
+  pagamento_efetuado: boolean;
+  recibo_assinado: boolean;
   created_at: string;
   updated_at: string;
 }

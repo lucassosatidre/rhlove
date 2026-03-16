@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ChevronLeft, ChevronRight, CalendarDays, UserX, Palmtree, AlertTriangle, Briefcase, Check, X, Clock, GripVertical } from 'lucide-react';
 import { useUpdateAvisoPrevio } from '@/hooks/useAvisosPrevios';
+import { useUpdateScheduledVacation } from '@/hooks/useScheduledVacations';
 import { useUpdateCollaborator, useCollaborators } from '@/hooks/useCollaborators';
 import { useToast } from '@/hooks/use-toast';
 import type { Collaborator } from '@/types/collaborator';
