@@ -230,27 +230,45 @@ export type Database = {
       }
       freelancer_entries: {
         Row: {
+          cancelled_at: string | null
+          cancelled_by: string | null
           created_at: string
+          created_by: string | null
           date: string
           id: string
           name: string
+          observation: string | null
+          origin: string
           sector: string
+          status: string
           updated_at: string
         }
         Insert: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
+          created_by?: string | null
           date: string
           id?: string
           name: string
+          observation?: string | null
+          origin?: string
           sector: string
+          status?: string
           updated_at?: string
         }
         Update: {
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
+          created_by?: string | null
           date?: string
           id?: string
           name?: string
+          observation?: string | null
+          origin?: string
           sector?: string
+          status?: string
           updated_at?: string
         }
         Relationships: []
