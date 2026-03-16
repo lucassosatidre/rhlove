@@ -76,11 +76,11 @@ function AppRoutes() {
     <AppLayout>
       <Routes>
         <Route path="/login" element={<Navigate to="/" replace />} />
-        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/" element={<ProtectedRoute allowedRoles={['admin', 'gestor', 'visualizador']}><Dashboard /></ProtectedRoute>} />
         <Route path="/escala" element={<ProtectedRoute><Escala /></ProtectedRoute>} />
         <Route path="/calendario-rh" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><CalendarioRH /></ProtectedRoute>} />
         <Route path="/colaboradores" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Colaboradores /></ProtectedRoute>} />
-        <Route path="/produtividade" element={<ProtectedRoute allowedRoles={['admin', 'gestor', 'lider']}><Produtividade /></ProtectedRoute>} />
+        <Route path="/produtividade" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Produtividade /></ProtectedRoute>} />
         <Route path="/ferias" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><FeriasProgramadas /></ProtectedRoute>} />
         <Route path="/compensacoes" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Compensacoes /></ProtectedRoute>} />
         <Route path="/avisos-previos" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><AvisosPrevios /></ProtectedRoute>} />
