@@ -112,17 +112,20 @@ export default function Produtividade() {
   }, [productivityRows, tmpSectorFilter]);
 
   const chartPCS = useMemo(() => {
+    const sectors = pcsSectorFilter === 'ALL'
+      ? ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO']
+      : [pcsSectorFilter];
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
     return dates.map(date => {
       const row: Record<string, any> = { date: formatDateBR(date) };
       for (const r of productivityRows.filter(r => r.date === date)) {
-        if (['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'].includes(r.sector)) {
+        if (sectors.includes(r.sector)) {
           row[r.sector] = Math.round(r.pcs * 100) / 100;
         }
       }
       return row;
     });
-  }, [productivityRows]);
+  }, [productivityRows, pcsSectorFilter]);
 
   const chartTCT = useMemo(() => {
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
