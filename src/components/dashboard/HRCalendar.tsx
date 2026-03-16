@@ -7,17 +7,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   ChevronLeft, ChevronRight, CalendarDays, UserX, Palmtree, AlertTriangle,
   Briefcase, Check, X, Clock, GripVertical, Plus, Bell, Filter,
-  AlertCircle, CalendarCheck, List, Trash2
+  AlertCircle, CalendarCheck, List, Trash2, Ban
 } from 'lucide-react';
 import { useUpdateAvisoPrevio } from '@/hooks/useAvisosPrevios';
 import { useUpdateScheduledVacation } from '@/hooks/useScheduledVacations';
 import { useUpdateCollaborator } from '@/hooks/useCollaborators';
 import { useReminders, useUpdateReminder, useDeleteReminder, generateRecurringInstances, PRIORITIES, REMINDER_TYPES, REMINDER_STATUSES } from '@/hooks/useReminders';
+import { useEventCompletions, useUpsertEventCompletion } from '@/hooks/useEventCompletions';
 import { useToast } from '@/hooks/use-toast';
 import NewReminderDialog from '@/components/NewReminderDialog';
 import type { Collaborator } from '@/types/collaborator';
@@ -30,7 +31,8 @@ import type { HRReminder } from '@/hooks/useReminders';
 
 export interface HREvent {
   id: string;
-  date: string;
+  date: string;           // effective date (may be overridden)
+  originalDate: string;    // computed/original date
   type: string;
   label: string;
   collaboratorName: string;
@@ -43,11 +45,12 @@ export interface HREvent {
   vacationId?: string;
   vacationField?: 'aviso_ferias_assinado' | 'contabilidade_solicitada' | 'pagamento_efetuado' | 'recibo_assinado';
   vacationFieldValue?: boolean;
-  // Manual reminder fields
   reminderId?: string;
   reminder?: HRReminder;
   priority?: string;
   isManual?: boolean;
+  // Generic completion status from hr_event_completions
+  completionStatus?: string; // pendente | concluido | nao_executado
 }
 
 /* ───── Categories & Meta ───── */
@@ -86,13 +89,6 @@ const EVENT_TYPE_META: Record<string, { emoji: string; label: string; shortLabel
   lembrete: { emoji: '🔔', label: 'Lembrete', shortLabel: 'Lembrete', category: 'lembrete' },
 };
 
-type TaskStatus = 'PENDENTE' | 'CONCLUÍDO' | 'NÃO EXECUTADO';
-
-function getTaskStatus(fieldValue: boolean | undefined): TaskStatus {
-  if (fieldValue === true) return 'CONCLUÍDO';
-  return 'PENDENTE';
-}
-
 function getEventColor(type: string, priority?: string): string {
   if (type === 'lembrete' && priority) {
     const p = PRIORITIES.find(x => x.value === priority);
@@ -111,20 +107,39 @@ function getEventTextColor(type: string): string {
 }
 
 function getStatusIndicator(ev: HREvent): { icon: React.ReactNode; className: string } | null {
+  // Manual reminders use their own status
   if (ev.isManual) {
     if (ev.reminder?.status === 'concluido') return { icon: <Check className="w-2.5 h-2.5" />, className: 'text-emerald-600' };
     if (ev.reminder?.status === 'cancelado') return { icon: <X className="w-2.5 h-2.5" />, className: 'text-red-500' };
     if (ev.reminder?.status === 'adiado') return { icon: <Clock className="w-2.5 h-2.5" />, className: 'text-blue-500' };
     return { icon: <Clock className="w-2.5 h-2.5" />, className: 'text-amber-500' };
   }
+  // Events with native field (aviso/vacation)
   const fieldVal = ev.avisoField != null ? ev.avisoFieldValue : ev.vacationField != null ? ev.vacationFieldValue : undefined;
-  if (fieldVal === undefined) return null;
-  if (fieldVal === true) return { icon: <Check className="w-2.5 h-2.5" />, className: 'text-emerald-600' };
+  if (fieldVal !== undefined) {
+    if (fieldVal === true) return { icon: <Check className="w-2.5 h-2.5" />, className: 'text-emerald-600' };
+    return { icon: <Clock className="w-2.5 h-2.5" />, className: 'text-amber-500' };
+  }
+  // Generic completion status
+  if (ev.completionStatus === 'concluido') return { icon: <Check className="w-2.5 h-2.5" />, className: 'text-emerald-600' };
+  if (ev.completionStatus === 'nao_executado') return { icon: <Ban className="w-2.5 h-2.5" />, className: 'text-red-500' };
+  // Default: pendente (show clock for all auto events)
   return { icon: <Clock className="w-2.5 h-2.5" />, className: 'text-amber-500' };
 }
 
 function toDateStr(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function getEventOrigin(ev: HREvent): string {
+  if (ev.isManual) return 'Lembrete manual';
+  if (ev.vacationId || ev.type.startsWith('ferias')) return 'Férias';
+  if (ev.avisoId || ev.type.startsWith('aviso') || ev.type.startsWith('rescisao')) return 'Aviso prévio';
+  if (ev.type.startsWith('experiencia')) return 'Experiência';
+  if (ev.type === 'compensacao') return 'Compensação';
+  if (ev.type === 'desligamento') return 'Desligamento';
+  if (ev.type === 'exame' || ev.type === 'contabilidade') return 'Aviso prévio';
+  return 'Automático';
 }
 
 /* ───── Build automatic events ───── */
@@ -137,13 +152,15 @@ function buildAutoEvents(
 ): HREvent[] {
   const events: HREvent[] = [];
 
+  const mkEv = (base: Omit<HREvent, 'originalDate'>): HREvent => ({ ...base, originalDate: base.date });
+
   for (const c of collaborators) {
     if (c.data_desligamento) {
-      events.push({ id: `desl-${c.id}`, date: c.data_desligamento, type: 'desligamento', label: 'Desligamento', collaboratorName: c.collaborator_name, sector: c.sector });
+      events.push(mkEv({ id: `desl-${c.id}`, date: c.data_desligamento, type: 'desligamento', label: 'Desligamento', collaboratorName: c.collaborator_name, sector: c.sector }));
     }
     if (c.status === 'EXPERIENCIA') {
-      if (c.inicio_periodo) events.push({ id: `exp-i-${c.id}`, date: c.inicio_periodo, type: 'experiencia_inicio', label: 'Início experiência', collaboratorName: c.collaborator_name, sector: c.sector });
-      if (c.fim_periodo) events.push({ id: `exp-f-${c.id}`, date: c.fim_periodo, type: 'experiencia_fim', label: 'Fim experiência', collaboratorName: c.collaborator_name, sector: c.sector });
+      if (c.inicio_periodo) events.push(mkEv({ id: `exp-i-${c.id}`, date: c.inicio_periodo, type: 'experiencia_inicio', label: 'Início experiência', collaboratorName: c.collaborator_name, sector: c.sector }));
+      if (c.fim_periodo) events.push(mkEv({ id: `exp-f-${c.id}`, date: c.fim_periodo, type: 'experiencia_fim', label: 'Fim experiência', collaboratorName: c.collaborator_name, sector: c.sector }));
     }
   }
 
@@ -151,44 +168,44 @@ function buildAutoEvents(
     if (v.status === 'CANCELADA') continue;
     const inicioDate = new Date(v.data_inicio_ferias + 'T00:00:00');
     const fimDate = new Date(v.data_fim_ferias + 'T00:00:00');
-    events.push({ id: `fer-i-${v.id}`, date: v.data_inicio_ferias, type: 'ferias_inicio', label: 'Início férias', collaboratorName: v.collaborator_name, sector: v.sector });
-    events.push({ id: `fer-f-${v.id}`, date: v.data_fim_ferias, type: 'ferias_fim', label: 'Fim férias', collaboratorName: v.collaborator_name, sector: v.sector, observacao: v.observacao });
+    events.push(mkEv({ id: `fer-i-${v.id}`, date: v.data_inicio_ferias, type: 'ferias_inicio', label: 'Início férias', collaboratorName: v.collaborator_name, sector: v.sector }));
+    events.push(mkEv({ id: `fer-f-${v.id}`, date: v.data_fim_ferias, type: 'ferias_fim', label: 'Fim férias', collaboratorName: v.collaborator_name, sector: v.sector, observacao: v.observacao }));
 
     const avisoFerDate = new Date(inicioDate); avisoFerDate.setDate(avisoFerDate.getDate() - 30);
-    events.push({ id: `fer-aviso-${v.id}`, date: toDateStr(avisoFerDate), type: 'ferias_aviso', label: `Assinar aviso de férias`, collaboratorName: v.collaborator_name, sector: v.sector, vacationId: v.id, vacationField: 'aviso_ferias_assinado', vacationFieldValue: v.aviso_ferias_assinado });
+    events.push(mkEv({ id: `fer-aviso-${v.id}`, date: toDateStr(avisoFerDate), type: 'ferias_aviso', label: 'Assinar aviso de férias', collaboratorName: v.collaborator_name, sector: v.sector, vacationId: v.id, vacationField: 'aviso_ferias_assinado', vacationFieldValue: v.aviso_ferias_assinado }));
 
     const contabFerDate = new Date(avisoFerDate); contabFerDate.setDate(contabFerDate.getDate() - 3);
-    events.push({ id: `fer-contab-${v.id}`, date: toDateStr(contabFerDate), type: 'ferias_contabilidade', label: `Solicitar docs à contabilidade`, collaboratorName: v.collaborator_name, sector: v.sector, vacationId: v.id, vacationField: 'contabilidade_solicitada', vacationFieldValue: v.contabilidade_solicitada });
+    events.push(mkEv({ id: `fer-contab-${v.id}`, date: toDateStr(contabFerDate), type: 'ferias_contabilidade', label: 'Solicitar docs à contabilidade', collaboratorName: v.collaborator_name, sector: v.sector, vacationId: v.id, vacationField: 'contabilidade_solicitada', vacationFieldValue: v.contabilidade_solicitada }));
 
     const pagFerDate = new Date(inicioDate); pagFerDate.setDate(pagFerDate.getDate() - 2);
-    events.push({ id: `fer-pgto-${v.id}`, date: toDateStr(pagFerDate), type: 'ferias_pagamento_exec', label: `Efetuar pagamento das férias`, collaboratorName: v.collaborator_name, sector: v.sector, vacationId: v.id, vacationField: 'pagamento_efetuado', vacationFieldValue: v.pagamento_efetuado });
-    events.push({ id: `fer-recibo-${v.id}`, date: toDateStr(pagFerDate), type: 'ferias_recibo', label: `Assinar recibo de pagamento`, collaboratorName: v.collaborator_name, sector: v.sector, vacationId: v.id, vacationField: 'recibo_assinado', vacationFieldValue: v.recibo_assinado });
+    events.push(mkEv({ id: `fer-pgto-${v.id}`, date: toDateStr(pagFerDate), type: 'ferias_pagamento_exec', label: 'Efetuar pagamento das férias', collaboratorName: v.collaborator_name, sector: v.sector, vacationId: v.id, vacationField: 'pagamento_efetuado', vacationFieldValue: v.pagamento_efetuado }));
+    events.push(mkEv({ id: `fer-recibo-${v.id}`, date: toDateStr(pagFerDate), type: 'ferias_recibo', label: 'Assinar recibo de pagamento', collaboratorName: v.collaborator_name, sector: v.sector, vacationId: v.id, vacationField: 'recibo_assinado', vacationFieldValue: v.recibo_assinado }));
 
     const retornoDate = new Date(fimDate); retornoDate.setDate(retornoDate.getDate() + 1);
-    events.push({ id: `fer-retorno-${v.id}`, date: toDateStr(retornoDate), type: 'ferias_retorno', label: `Retorno de férias`, collaboratorName: v.collaborator_name, sector: v.sector });
+    events.push(mkEv({ id: `fer-retorno-${v.id}`, date: toDateStr(retornoDate), type: 'ferias_retorno', label: 'Retorno de férias', collaboratorName: v.collaborator_name, sector: v.sector }));
   }
 
   for (const a of avisos) {
-    events.push({ id: `av-i-${a.id}`, date: a.data_inicio, type: 'aviso_inicio', label: 'Início aviso prévio', collaboratorName: a.collaborator_name, sector: a.sector, observacao: a.observacoes || undefined, avisoId: a.id, avisoDateField: 'data_inicio' });
-    events.push({ id: `av-f-${a.id}`, date: a.data_fim, type: 'aviso_fim', label: 'Fim aviso prévio', collaboratorName: a.collaborator_name, sector: a.sector, avisoId: a.id, avisoDateField: 'data_fim' });
+    events.push(mkEv({ id: `av-i-${a.id}`, date: a.data_inicio, type: 'aviso_inicio', label: 'Início aviso prévio', collaboratorName: a.collaborator_name, sector: a.sector, observacao: a.observacoes || undefined, avisoId: a.id, avisoDateField: 'data_inicio' }));
+    events.push(mkEv({ id: `av-f-${a.id}`, date: a.data_fim, type: 'aviso_fim', label: 'Fim aviso prévio', collaboratorName: a.collaborator_name, sector: a.sector, avisoId: a.id, avisoDateField: 'data_fim' }));
 
     const fimDate = new Date(a.data_fim + 'T00:00:00');
     const contabDate = new Date(fimDate); contabDate.setDate(contabDate.getDate() + 1);
-    events.push({ id: `cont-auto-${a.id}`, date: toDateStr(contabDate), type: 'contabilidade', label: `Info contabilidade`, collaboratorName: a.collaborator_name, sector: a.sector, avisoId: a.id, avisoField: 'enviado_contabilidade', avisoFieldValue: a.enviado_contabilidade });
+    events.push(mkEv({ id: `cont-auto-${a.id}`, date: toDateStr(contabDate), type: 'contabilidade', label: 'Info contabilidade', collaboratorName: a.collaborator_name, sector: a.sector, avisoId: a.id, avisoField: 'enviado_contabilidade', avisoFieldValue: a.enviado_contabilidade }));
 
     const exameDate = new Date(fimDate); exameDate.setDate(exameDate.getDate() - 7);
-    events.push({ id: `ex-auto-${a.id}`, date: toDateStr(exameDate), type: 'exame', label: `Exame demissional`, collaboratorName: a.collaborator_name, sector: a.sector, avisoId: a.id, avisoField: 'exame', avisoFieldValue: a.exame });
+    events.push(mkEv({ id: `ex-auto-${a.id}`, date: toDateStr(exameDate), type: 'exame', label: 'Exame demissional', collaboratorName: a.collaborator_name, sector: a.sector, avisoId: a.id, avisoField: 'exame', avisoFieldValue: a.exame }));
 
     const pagDate = new Date(fimDate); pagDate.setDate(pagDate.getDate() + 7);
-    events.push({ id: `pag-auto-${a.id}`, date: toDateStr(pagDate), type: 'rescisao_pagamento', label: `Pagamento verbas rescisórias`, collaboratorName: a.collaborator_name, sector: a.sector, avisoId: a.id, avisoField: 'pago', avisoFieldValue: a.pago });
+    events.push(mkEv({ id: `pag-auto-${a.id}`, date: toDateStr(pagDate), type: 'rescisao_pagamento', label: 'Pagamento verbas rescisórias', collaboratorName: a.collaborator_name, sector: a.sector, avisoId: a.id, avisoField: 'pago', avisoFieldValue: a.pago }));
 
     const assDate = new Date(fimDate); assDate.setDate(assDate.getDate() + 8);
-    events.push({ id: `ass-auto-${a.id}`, date: toDateStr(assDate), type: 'rescisao_assinatura', label: `Assinatura rescisão`, collaboratorName: a.collaborator_name, sector: a.sector, avisoId: a.id, avisoField: 'assinatura', avisoFieldValue: a.assinatura });
+    events.push(mkEv({ id: `ass-auto-${a.id}`, date: toDateStr(assDate), type: 'rescisao_assinatura', label: 'Assinatura rescisão', collaboratorName: a.collaborator_name, sector: a.sector, avisoId: a.id, avisoField: 'assinatura', avisoFieldValue: a.assinatura }));
   }
 
   for (const c of compensations) {
     if (c.compensation_date && c.status === 'COMPENSADO') {
-      events.push({ id: `comp-${c.id}`, date: c.compensation_date, type: 'compensacao', label: `Compensação — ${c.holiday_name}`, collaboratorName: c.collaborator_name, sector: c.sector });
+      events.push(mkEv({ id: `comp-${c.id}`, date: c.compensation_date, type: 'compensacao', label: `Compensação — ${c.holiday_name}`, collaboratorName: c.collaborator_name, sector: c.sector }));
     }
   }
 
@@ -225,8 +242,6 @@ const FIELD_LABELS: Record<string, string> = {
   recibo_assinado: 'Assinatura do recibo de pagamento',
 };
 
-const DRAGGABLE_TYPES = new Set(['exame', 'contabilidade', 'rescisao_pagamento', 'rescisao_assinatura', 'aviso_inicio', 'aviso_fim']);
-
 /* ───── Component ───── */
 
 interface Props {
@@ -257,7 +272,7 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
   const [filterSource, setFilterSource] = useState<'all' | 'auto' | 'manual'>('all');
   const [showFilters, setShowFilters] = useState(false);
 
-  // Postpone
+  // Postpone / conclusion
   const [postponeDate, setPostponeDate] = useState('');
   const [conclusionNote, setConclusionNote] = useState('');
 
@@ -267,13 +282,35 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
   const { data: reminders = [] } = useReminders();
   const updateReminder = useUpdateReminder();
   const deleteReminder = useDeleteReminder();
+  const { data: completions = [] } = useEventCompletions();
+  const upsertCompletion = useUpsertEventCompletion();
   const { toast } = useToast();
 
   const todayStr = toDateStr(today);
 
-  // Build all events
+  // Build completions map
+  const completionsMap = useMemo(() => {
+    const map = new Map<string, { status: string; override_date: string | null }>();
+    for (const c of completions) {
+      map.set(c.event_key, { status: c.status, override_date: c.override_date });
+    }
+    return map;
+  }, [completions]);
+
+  // Build all events with completions applied
   const allEvents = useMemo(() => {
     const autoEvents = buildAutoEvents(collaborators, vacations, avisos, compensations);
+
+    // Apply completions (override dates + statuses) to auto events
+    for (const ev of autoEvents) {
+      const comp = completionsMap.get(ev.id);
+      if (comp) {
+        ev.completionStatus = comp.status;
+        if (comp.override_date) {
+          ev.date = comp.override_date;
+        }
+      }
+    }
 
     // Add manual reminders with recurrence expansion for visible range
     const rangeStart = new Date(year, month - 1, 1);
@@ -286,6 +323,7 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
         manualEvents.push({
           id: `rem-${r.id}-${inst.date}`,
           date: inst.date,
+          originalDate: inst.date,
           type: 'lembrete',
           label: r.title,
           collaboratorName: r.collaborator_name || 'RH',
@@ -300,7 +338,7 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
     }
 
     return [...autoEvents, ...manualEvents];
-  }, [collaborators, vacations, avisos, compensations, reminders, year, month]);
+  }, [collaborators, vacations, avisos, compensations, reminders, year, month, completionsMap]);
 
   // Apply filters
   const filteredEvents = useMemo(() => {
@@ -313,7 +351,6 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
     }
     result = result.filter(e => activeTypes.has(e.type));
 
-    // Additional filters
     if (filterCollaborator) result = result.filter(e => e.collaboratorName.toLowerCase().includes(filterCollaborator.toLowerCase()));
     if (filterSector) result = result.filter(e => e.sector === filterSector);
     if (filterType) result = result.filter(e => {
@@ -325,10 +362,16 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
     if (filterStatus) {
       result = result.filter(e => {
         if (e.isManual) return e.reminder?.status === filterStatus;
+        // Check native field first
         const fv = e.avisoField != null ? e.avisoFieldValue : e.vacationField != null ? e.vacationFieldValue : undefined;
-        if (filterStatus === 'concluido') return fv === true;
-        if (filterStatus === 'pendente') return fv === false || fv === undefined;
-        return true;
+        if (fv !== undefined) {
+          if (filterStatus === 'concluido') return fv === true;
+          if (filterStatus === 'pendente') return fv === false;
+          return true;
+        }
+        // Use generic completion status
+        const cs = e.completionStatus || 'pendente';
+        return cs === filterStatus;
       });
     }
     if (filterSource === 'auto') result = result.filter(e => !e.isManual);
@@ -352,7 +395,7 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
     return map;
   }, [monthEvents]);
 
-  // Pending list
+  // Pending list - check effective status
   const pendingEvents = useMemo(() => {
     const now = toDateStr(today);
     const in3 = new Date(today); in3.setDate(in3.getDate() + 3);
@@ -362,8 +405,11 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
 
     const isPending = (e: HREvent) => {
       if (e.isManual) return e.reminder?.status === 'pendente';
+      // Native field
       const fv = e.avisoField != null ? e.avisoFieldValue : e.vacationField != null ? e.vacationFieldValue : undefined;
-      return fv === false || fv === undefined;
+      if (fv !== undefined) return fv === false;
+      // Generic completion
+      return (e.completionStatus || 'pendente') === 'pendente';
     };
 
     const pending = filteredEvents.filter(isPending);
@@ -399,54 +445,61 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
     return d >= today && d <= in7Days;
   }
 
-  // Drag & Drop (same as before for avisos)
+  // ── Drag & Drop for ALL events ──
   const handleDragStart = useCallback((ev: HREvent, e: React.DragEvent) => {
-    if (!ev.avisoId || !DRAGGABLE_TYPES.has(ev.type)) { e.preventDefault(); return; }
     draggedEventRef.current = ev;
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', ev.id);
   }, []);
-  const handleDragOver = useCallback((dateStr: string, e: React.DragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverDate(dateStr); }, []);
+
+  const handleDragOver = useCallback((dateStr: string, e: React.DragEvent) => {
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverDate(dateStr);
+  }, []);
+
   const handleDragLeave = useCallback(() => { setDragOverDate(null); }, []);
 
   const handleDrop = useCallback(async (newDateStr: string, e: React.DragEvent) => {
     e.preventDefault(); setDragOverDate(null);
     const ev = draggedEventRef.current; draggedEventRef.current = null;
-    if (!ev || !ev.avisoId) return;
+    if (!ev) return;
     if (ev.date === newDateStr) return;
-    const aviso = avisos.find(a => a.id === ev.avisoId);
-    if (!aviso) return;
-    if (ev.type !== 'aviso_inicio') {
-      const inicio = new Date(aviso.data_inicio + 'T00:00:00');
-      if (new Date(newDateStr + 'T00:00:00') < inicio) { toast({ title: 'Não é possível mover para antes do início do aviso prévio', variant: 'destructive' }); return; }
-    }
-    const updateData: any = { id: ev.avisoId };
-    let fieldLabel = '';
-    switch (ev.type) {
-      case 'aviso_inicio': updateData.data_inicio = newDateStr; fieldLabel = 'Início do aviso'; break;
-      case 'aviso_fim': updateData.data_fim = newDateStr; fieldLabel = 'Fim do aviso'; break;
-      case 'exame': { const d = new Date(newDateStr + 'T00:00:00'); d.setDate(d.getDate() + 7); updateData.data_fim = toDateStr(d); fieldLabel = 'Exame demissional'; break; }
-      case 'contabilidade': { const d = new Date(newDateStr + 'T00:00:00'); d.setDate(d.getDate() - 1); updateData.data_fim = toDateStr(d); fieldLabel = 'Contabilidade'; break; }
-      case 'rescisao_pagamento': { const d = new Date(newDateStr + 'T00:00:00'); d.setDate(d.getDate() - 7); updateData.data_fim = toDateStr(d); fieldLabel = 'Pagamento rescisório'; break; }
-      case 'rescisao_assinatura': { const d = new Date(newDateStr + 'T00:00:00'); d.setDate(d.getDate() - 8); updateData.data_fim = toDateStr(d); fieldLabel = 'Assinatura rescisão'; break; }
-      default: return;
-    }
-    try {
-      await updateAviso.mutateAsync(updateData);
-      toast({ title: 'Evento reagendado', description: `${ev.collaboratorName} — ${fieldLabel}: ${newDateStr.split('-').reverse().join('/')}` });
-    } catch { toast({ title: 'Erro ao reagendar', variant: 'destructive' }); }
-  }, [avisos, updateAviso, toast]);
 
-  // Status actions for auto events
-  async function handleSetAutoStatus(ev: HREvent, status: TaskStatus) {
-    const newVal = status === 'CONCLUÍDO';
+    const oldDate = ev.date;
+    const meta = EVENT_TYPE_META[ev.type];
+    const evLabel = ev.isManual ? ev.label : (meta?.label || ev.label);
+
+    try {
+      // Manual reminders: update event_date directly
+      if (ev.isManual && ev.reminderId) {
+        await updateReminder.mutateAsync({ id: ev.reminderId, event_date: newDateStr });
+        toast({ title: 'Evento reagendado', description: `${ev.collaboratorName} — ${evLabel}: ${newDateStr.split('-').reverse().join('/')}` });
+        return;
+      }
+
+      // For ALL auto events: store override in hr_event_completions
+      await upsertCompletion.mutateAsync({
+        event_key: ev.id,
+        status: ev.completionStatus || 'pendente',
+        override_date: newDateStr,
+        original_date: ev.originalDate,
+      });
+
+      toast({ title: 'Evento reagendado', description: `${ev.collaboratorName} — ${evLabel}: ${oldDate.split('-').reverse().join('/')} → ${newDateStr.split('-').reverse().join('/')}` });
+    } catch {
+      toast({ title: 'Erro ao reagendar', variant: 'destructive' });
+    }
+  }, [updateReminder, upsertCompletion, toast]);
+
+  // ── Status actions for events with native fields (aviso/vacation) ──
+  async function handleSetNativeStatus(ev: HREvent, newVal: boolean) {
     if (ev.avisoId && ev.avisoField) {
       const updates: any = { id: ev.avisoId, [ev.avisoField]: newVal };
       if (ev.avisoField === 'enviado_contabilidade' && newVal) updates.data_envio_contabilidade = new Date().toISOString().slice(0, 10);
       try {
         await updateAviso.mutateAsync(updates);
+        // Check if aviso is fully complete
         const aviso = avisos.find(a => a.id === ev.avisoId);
-        if (aviso) {
+        if (aviso && newVal) {
           const updated = { ...aviso, [ev.avisoField!]: newVal };
           const now = new Date(); now.setHours(0, 0, 0, 0);
           const fim = new Date(updated.data_fim + 'T00:00:00');
@@ -459,7 +512,7 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
             }
           }
         }
-        toast({ title: status === 'CONCLUÍDO' ? 'Marcado como concluído' : 'Marcado como pendente' });
+        toast({ title: newVal ? 'Marcado como concluído' : 'Marcado como pendente' });
         setSelectedEvent(null);
       } catch { toast({ title: 'Erro ao atualizar', variant: 'destructive' }); }
       return;
@@ -469,10 +522,28 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
       if (!vac) return;
       try {
         await updateVacation.mutateAsync({ id: vac.id, collaborator_id: vac.collaborator_id, collaborator_name: vac.collaborator_name, sector: vac.sector, data_inicio_ferias: vac.data_inicio_ferias, data_fim_ferias: vac.data_fim_ferias, [ev.vacationField]: newVal });
-        toast({ title: status === 'CONCLUÍDO' ? 'Marcado como concluído' : 'Marcado como pendente' });
+        toast({ title: newVal ? 'Marcado como concluído' : 'Marcado como pendente' });
         setSelectedEvent(null);
       } catch { toast({ title: 'Erro ao atualizar', variant: 'destructive' }); }
     }
+  }
+
+  // ── Generic status for events WITHOUT native fields ──
+  async function handleSetGenericStatus(ev: HREvent, status: 'concluido' | 'pendente' | 'nao_executado', note?: string) {
+    try {
+      await upsertCompletion.mutateAsync({
+        event_key: ev.id,
+        status,
+        original_date: ev.originalDate,
+        override_date: ev.date !== ev.originalDate ? ev.date : null,
+        concluded_at: status === 'concluido' ? new Date().toISOString() : null,
+        concluded_by: status === 'concluido' ? '' : undefined,
+        conclusion_note: note || '',
+      });
+      toast({ title: status === 'concluido' ? 'Marcado como concluído' : status === 'nao_executado' ? 'Marcado como não executado' : 'Marcado como pendente' });
+      setSelectedEvent(null);
+      setConclusionNote('');
+    } catch { toast({ title: 'Erro ao atualizar status', variant: 'destructive' }); }
   }
 
   // Reminder status actions
@@ -503,11 +574,17 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
     } catch { toast({ title: 'Erro ao excluir', variant: 'destructive' }); }
   }
 
-  const hasActionableField = selectedEvent?.avisoField != null || selectedEvent?.vacationField != null;
-  const actionableFieldValue = selectedEvent?.avisoField != null ? selectedEvent.avisoFieldValue : selectedEvent?.vacationFieldValue;
-  const currentStatus: TaskStatus | null = hasActionableField ? getTaskStatus(actionableFieldValue) : null;
-  const actionableFieldKey = selectedEvent?.avisoField || selectedEvent?.vacationField || '';
-  const isDraggable = (ev: HREvent) => !!ev.avisoId && DRAGGABLE_TYPES.has(ev.type);
+  // Determine selected event's effective status
+  const getEffectiveStatus = (ev: HREvent | null): 'concluido' | 'pendente' | 'nao_executado' => {
+    if (!ev) return 'pendente';
+    if (ev.isManual) return (ev.reminder?.status as any) || 'pendente';
+    const fv = ev.avisoField != null ? ev.avisoFieldValue : ev.vacationField != null ? ev.vacationFieldValue : undefined;
+    if (fv !== undefined) return fv ? 'concluido' : 'pendente';
+    return (ev.completionStatus as any) || 'pendente';
+  };
+
+  const hasNativeField = selectedEvent?.avisoField != null || selectedEvent?.vacationField != null;
+  const effectiveStatus = getEffectiveStatus(selectedEvent);
 
   // Day/Week views
   const weekDates = useMemo(() => {
@@ -523,14 +600,13 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
   function renderEventChip(ev: HREvent) {
     const statusInd = getStatusIndicator(ev);
     const meta = EVENT_TYPE_META[ev.type];
-    const canDrag = isDraggable(ev);
     return (
       <button
         key={ev.id}
-        draggable={canDrag}
-        onDragStart={canDrag ? (e) => handleDragStart(ev, e) : undefined}
+        draggable
+        onDragStart={(e) => handleDragStart(ev, e)}
         onClick={() => { setSelectedEvent(ev); setConclusionNote(''); setPostponeDate(''); }}
-        className={`w-full text-left text-[9px] sm:text-[10px] leading-tight px-1 py-0.5 rounded truncate flex items-center gap-0.5 ${getEventColor(ev.type, ev.priority)} ${getEventTextColor(ev.type)} hover:opacity-80 transition-opacity ${canDrag ? 'cursor-grab active:cursor-grabbing' : ''}`}
+        className={`w-full text-left text-[9px] sm:text-[10px] leading-tight px-1 py-0.5 rounded truncate flex items-center gap-0.5 ${getEventColor(ev.type, ev.priority)} ${getEventTextColor(ev.type)} hover:opacity-80 transition-opacity cursor-grab active:cursor-grabbing`}
         title={`${ev.collaboratorName} — ${meta?.label || ev.label}`}
       >
         {statusInd && <span className={statusInd.className}>{statusInd.icon}</span>}
@@ -629,7 +705,9 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
                     <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__all__">Todos</SelectItem>
-                      {REMINDER_STATUSES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                      <SelectItem value="pendente">Pendente</SelectItem>
+                      <SelectItem value="concluido">Concluído</SelectItem>
+                      <SelectItem value="nao_executado">Não executado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -695,7 +773,7 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
                 {viewMode === 'month' && (
                   <>
                     <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                      <GripVertical className="w-3 h-3" /> Arraste eventos de aviso prévio para reagendar
+                      <GripVertical className="w-3 h-3" /> Arraste qualquer evento para reagendar
                     </p>
                     <div className="grid grid-cols-7 text-center text-[11px] font-medium text-muted-foreground">
                       {WEEKDAY_LABELS.map(d => <div key={d} className="py-1">{d}</div>)}
@@ -707,7 +785,13 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
                         const isToday = dateStr === todayStr;
                         const hasNearEvent = dayEvents.some(e => isNear(e.date));
                         const isDropTarget = dragOverDate === dateStr;
-                        const hasOverdue = dayEvents.some(e => e.date < todayStr && ((e.isManual && e.reminder?.status === 'pendente') || (!e.isManual && (e.avisoFieldValue === false || e.vacationFieldValue === false))));
+                        const hasOverdue = dayEvents.some(e => {
+                          if (e.date >= todayStr) return false;
+                          if (e.isManual) return e.reminder?.status === 'pendente';
+                          const fv = e.avisoField != null ? e.avisoFieldValue : e.vacationField != null ? e.vacationFieldValue : undefined;
+                          if (fv !== undefined) return fv === false;
+                          return (e.completionStatus || 'pendente') === 'pendente';
+                        });
 
                         return (
                           <div
@@ -845,11 +929,13 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
           </DialogHeader>
           {selectedEvent && (
             <div className="space-y-4 text-sm">
+              {/* Info grid */}
               <div className="grid grid-cols-2 gap-2">
                 <div><span className="text-muted-foreground text-xs">Colaborador</span><p className="font-medium">{selectedEvent.collaboratorName}</p></div>
                 <div><span className="text-muted-foreground text-xs">Setor</span><p className="font-medium">{selectedEvent.sector || '—'}</p></div>
                 <div><span className="text-muted-foreground text-xs">Tipo</span><p className="font-medium">{selectedEvent.isManual ? REMINDER_TYPES.find(t => t.value === selectedEvent.reminder?.reminder_type)?.label || 'Lembrete' : EVENT_TYPE_META[selectedEvent.type]?.label}</p></div>
                 <div><span className="text-muted-foreground text-xs">Data</span><p className="font-medium">{selectedEvent.date.split('-').reverse().join('/')}</p></div>
+                <div><span className="text-muted-foreground text-xs">Origem</span><p className="font-medium">{getEventOrigin(selectedEvent)}</p></div>
                 {selectedEvent.isManual && selectedEvent.reminder?.responsible && (
                   <div><span className="text-muted-foreground text-xs">Responsável</span><p className="font-medium">{selectedEvent.reminder.responsible}</p></div>
                 )}
@@ -862,31 +948,37 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
                 <div><span className="text-muted-foreground text-xs">Observações</span><p className="mt-1 text-xs">{selectedEvent.observacao}</p></div>
               )}
 
-              {/* Auto event status */}
-              {hasActionableField && currentStatus && (
+              {selectedEvent.date !== selectedEvent.originalDate && (
+                <p className="text-[10px] text-muted-foreground">📅 Data original: {selectedEvent.originalDate.split('-').reverse().join('/')} — reagendado para {selectedEvent.date.split('-').reverse().join('/')}</p>
+              )}
+
+              {/* ══════ STATUS CONTROLS ══════ */}
+
+              {/* A) Events with native field (aviso prévio / férias sub-tasks) */}
+              {hasNativeField && (
                 <div className="border border-border rounded-lg p-3 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-xs">Status da etapa</span>
-                    <StatusBadge status={currentStatus} />
+                    <StatusBadge status={effectiveStatus} />
                   </div>
-                  <p className="text-xs text-muted-foreground">{FIELD_LABELS[actionableFieldKey]}</p>
+                  <p className="text-xs text-muted-foreground">{FIELD_LABELS[selectedEvent.avisoField || selectedEvent.vacationField || '']}</p>
                   <div className="flex gap-2">
-                    <Button size="sm" variant={currentStatus === 'CONCLUÍDO' ? 'default' : 'outline'} className="flex-1 gap-1" onClick={() => handleSetAutoStatus(selectedEvent, 'CONCLUÍDO')} disabled={updateAviso.isPending || updateVacation.isPending}>
+                    <Button size="sm" variant={effectiveStatus === 'concluido' ? 'default' : 'outline'} className="flex-1 gap-1" onClick={() => handleSetNativeStatus(selectedEvent, true)} disabled={updateAviso.isPending || updateVacation.isPending}>
                       <Check className="w-3.5 h-3.5" /> Concluído
                     </Button>
-                    <Button size="sm" variant={currentStatus === 'PENDENTE' ? 'secondary' : 'outline'} className="flex-1 gap-1" onClick={() => handleSetAutoStatus(selectedEvent, 'PENDENTE')} disabled={updateAviso.isPending || updateVacation.isPending}>
+                    <Button size="sm" variant={effectiveStatus === 'pendente' ? 'secondary' : 'outline'} className="flex-1 gap-1" onClick={() => handleSetNativeStatus(selectedEvent, false)} disabled={updateAviso.isPending || updateVacation.isPending}>
                       <Clock className="w-3.5 h-3.5" /> Pendente
                     </Button>
                   </div>
                 </div>
               )}
 
-              {/* Manual reminder status */}
+              {/* B) Manual reminders */}
               {selectedEvent.isManual && selectedEvent.reminder && (
                 <div className="border border-border rounded-lg p-3 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-xs">Status</span>
-                    <Badge variant="outline" className="text-[10px]">{REMINDER_STATUSES.find(s => s.value === selectedEvent.reminder?.status)?.label || selectedEvent.reminder?.status}</Badge>
+                    <StatusBadge status={effectiveStatus} />
                   </div>
 
                   {selectedEvent.reminder.recurrence !== 'none' && (
@@ -935,17 +1027,71 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
                 </div>
               )}
 
-              {isDraggable(selectedEvent) && (
-                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                  <GripVertical className="w-3 h-3" /> Arraste este evento no calendário para reagendar
-                </p>
+              {/* C) Generic auto events WITHOUT native field (desligamento, experiencia, ferias_inicio/fim/retorno, compensacao, etc.) */}
+              {!hasNativeField && !selectedEvent.isManual && (
+                <div className="border border-border rounded-lg p-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-xs">Status do evento</span>
+                    <StatusBadge status={effectiveStatus} />
+                  </div>
+
+                  {effectiveStatus !== 'concluido' && (
+                    <div className="space-y-2">
+                      <div className="space-y-1">
+                        <Label className="text-[10px]">Observação (opcional)</Label>
+                        <Textarea value={conclusionNote} onChange={e => setConclusionNote(e.target.value)} rows={2} className="text-xs" placeholder="O que foi feito..." />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" className="flex-1 gap-1" onClick={() => handleSetGenericStatus(selectedEvent, 'concluido', conclusionNote)} disabled={upsertCompletion.isPending}>
+                          <Check className="w-3.5 h-3.5" /> Concluir
+                        </Button>
+                        <Button size="sm" variant="outline" className="flex-1 gap-1" onClick={() => handleSetGenericStatus(selectedEvent, 'nao_executado')} disabled={upsertCompletion.isPending}>
+                          <Ban className="w-3.5 h-3.5" /> Não executado
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {effectiveStatus === 'concluido' && (
+                    <Button size="sm" variant="outline" className="w-full gap-1" onClick={() => handleSetGenericStatus(selectedEvent, 'pendente')} disabled={upsertCompletion.isPending}>
+                      <Clock className="w-3.5 h-3.5" /> Voltar para pendente
+                    </Button>
+                  )}
+
+                  {effectiveStatus === 'nao_executado' && (
+                    <Button size="sm" variant="outline" className="w-full gap-1" onClick={() => handleSetGenericStatus(selectedEvent, 'pendente')} disabled={upsertCompletion.isPending}>
+                      <Clock className="w-3.5 h-3.5" /> Voltar para pendente
+                    </Button>
+                  )}
+
+                  {/* Reschedule */}
+                  <div className="space-y-1">
+                    <Label className="text-[10px]">Reagendar para</Label>
+                    <div className="flex gap-2">
+                      <Input type="date" value={postponeDate} onChange={e => setPostponeDate(e.target.value)} className="h-8 text-xs flex-1" />
+                      <Button size="sm" variant="secondary" disabled={!postponeDate || upsertCompletion.isPending} onClick={async () => {
+                        try {
+                          await upsertCompletion.mutateAsync({
+                            event_key: selectedEvent.id,
+                            status: effectiveStatus,
+                            override_date: postponeDate,
+                            original_date: selectedEvent.originalDate,
+                          });
+                          toast({ title: 'Evento reagendado', description: `${selectedEvent.collaboratorName} → ${postponeDate.split('-').reverse().join('/')}` });
+                          setSelectedEvent(null);
+                          setPostponeDate('');
+                        } catch { toast({ title: 'Erro ao reagendar', variant: 'destructive' }); }
+                      }}>
+                        Reagendar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               )}
 
-              {!hasActionableField && !selectedEvent.isManual && (
-                <Badge variant="outline" className={`${getEventColor(selectedEvent.type)} ${getEventTextColor(selectedEvent.type)} border-0`}>
-                  {EVENT_TYPE_META[selectedEvent.type]?.label}
-                </Badge>
-              )}
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <GripVertical className="w-3 h-3" /> Você pode arrastar este evento no calendário para reagendar
+              </p>
             </div>
           )}
         </DialogContent>
@@ -956,10 +1102,12 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
 
 /* ───── Sub-components ───── */
 
-function StatusBadge({ status }: { status: TaskStatus }) {
-  if (status === 'CONCLUÍDO') return <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 gap-1"><Check className="w-3 h-3" /> Concluído</Badge>;
-  if (status === 'NÃO EXECUTADO') return <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-0 gap-1"><X className="w-3 h-3" /> Não executado</Badge>;
-  return <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-0 gap-1"><Clock className="w-3 h-3" /> Pendente</Badge>;
+function StatusBadge({ status }: { status: string }) {
+  if (status === 'concluido') return <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 gap-1 text-[10px]"><Check className="w-3 h-3" /> Concluído</Badge>;
+  if (status === 'nao_executado') return <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-0 gap-1 text-[10px]"><Ban className="w-3 h-3" /> Não executado</Badge>;
+  if (status === 'cancelado') return <Badge className="bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border-0 gap-1 text-[10px]"><X className="w-3 h-3" /> Cancelado</Badge>;
+  if (status === 'adiado') return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border-0 gap-1 text-[10px]"><Clock className="w-3 h-3" /> Adiado</Badge>;
+  return <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-0 gap-1 text-[10px]"><Clock className="w-3 h-3" /> Pendente</Badge>;
 }
 
 function SummaryCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number; color: string }) {
