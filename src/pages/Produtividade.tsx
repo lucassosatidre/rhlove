@@ -15,12 +15,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Printer, Upload, Plus, Pencil, Trash2, BarChart3, FileSpreadsheet, AlertCircle, Check, History, Users } from 'lucide-react';
+import { Download, Printer, Upload, Plus, Pencil, Trash2, BarChart3, FileSpreadsheet, AlertCircle, Check, History, Users, ClipboardList } from 'lucide-react';
 import IndicatorLegend, { IndicatorTooltip } from '@/components/IndicatorLegend';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, Legend, LabelList } from 'recharts';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import ProductivityTables from '@/components/productivity/ProductivityTables';
 import FreelancerImportReviewDialog, { type FreeReviewEntry, generateEntryId } from '@/components/FreelancerImportReviewDialog';
+import FreelancerHistoryDialog from '@/components/productivity/FreelancerHistoryDialog';
 import * as XLSX from 'xlsx';
 
 const SECTOR_COLORS: Record<string, string> = {
@@ -78,6 +79,7 @@ export default function Produtividade() {
   const freeFileInputRef = useRef<HTMLInputElement>(null);
   const [freeReviewOpen, setFreeReviewOpen] = useState(false);
   const [freeReviewEntries, setFreeReviewEntries] = useState<FreeReviewEntry[]>([]);
+  const [freeHistoryOpen, setFreeHistoryOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: collaborators = [] } = useCollaborators();
@@ -859,7 +861,7 @@ export default function Produtividade() {
       // Save individual named entries for display in Escala
       const individualEntries = reviewed
         .filter(e => e.sector && e.name.trim() && e.date)
-        .map(e => ({ date: e.date, sector: e.sector!, name: e.name.trim() }));
+        .map(e => ({ date: e.date, sector: e.sector!, name: e.name.trim(), origin: e.origin || 'importação' }));
       if (individualEntries.length > 0) {
         await bulkFreeEntriesMut.mutateAsync(individualEntries);
       }
@@ -956,6 +958,9 @@ export default function Produtividade() {
             </Button>
             <Button variant="outline" size="sm" onClick={() => freeFileInputRef.current?.click()}>
               <Users className="w-4 h-4 mr-1" /> Importar Free-lancers
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setFreeHistoryOpen(true)}>
+              <ClipboardList className="w-4 h-4 mr-1" /> Histórico Free-lancers
             </Button>
             <Button variant="outline" size="sm" onClick={() => histFileInputRef.current?.click()}>
               <History className="w-4 h-4 mr-1" /> Carga Histórica
@@ -1563,6 +1568,12 @@ export default function Produtividade() {
         entries={freeReviewEntries}
         onConfirm={handleConfirmFreeReview}
         isPending={bulkFreeMut.isPending}
+      />
+
+      {/* Freelancer History Dialog */}
+      <FreelancerHistoryDialog
+        open={freeHistoryOpen}
+        onOpenChange={setFreeHistoryOpen}
       />
     </div>
   );
