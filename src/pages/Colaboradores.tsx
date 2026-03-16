@@ -12,8 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Upload, Download } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Download, Eye } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import CollaboratorProfileDialog from '@/components/collaborator/CollaboratorProfileDialog';
 
 interface FormData {
   collaborator_name: string;
@@ -52,6 +53,7 @@ export default function Colaboradores() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
+  const [profileCollaborator, setProfileCollaborator] = useState<Collaborator | null>(null);
 
   const openNew = () => {
     setEditingId(null);
@@ -290,7 +292,9 @@ export default function Colaboradores() {
                   {members.map(c => (
                     <TableRow key={c.id}>
                       <TableCell className="font-medium">
-                        {c.collaborator_name}
+                        <button onClick={() => setProfileCollaborator(c)} className="hover:text-primary hover:underline transition-colors text-left">
+                          {c.collaborator_name}
+                        </button>
                         <span className="sm:hidden block text-xs text-muted-foreground">
                           {c.tipo_escala} · {c.folgas_semanais.map(d => DAY_LABELS[d]?.slice(0, 3)).join(', ')} · Dom {c.sunday_n}º
                         </span>
@@ -312,6 +316,9 @@ export default function Colaboradores() {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
+                          <button onClick={() => setProfileCollaborator(c)} className="p-1.5 rounded hover:bg-muted transition-colors" title="Ver perfil">
+                            <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                          </button>
                           <button onClick={() => openEdit(c)} className="p-1.5 rounded hover:bg-muted transition-colors">
                             <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                           </button>
@@ -448,6 +455,12 @@ export default function Colaboradores() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <CollaboratorProfileDialog
+        collaborator={profileCollaborator}
+        open={!!profileCollaborator}
+        onOpenChange={open => { if (!open) setProfileCollaborator(null); }}
+      />
     </div>
   );
 }
