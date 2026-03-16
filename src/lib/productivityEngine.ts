@@ -118,7 +118,7 @@ export function generateProductivityData(
 
   for (const sale of salesData) {
     const pCozinha = getScheduledCount(sale.date, 'COZINHA') + getFreelancerCount(freelancers, sale.date, 'COZINHA');
-    const pDiurno = getScheduledCount(sale.date, 'DIURNO');
+    const pDiurno = getScheduledCount(sale.date, 'DIURNO') + getFreelancerCount(freelancers, sale.date, 'DIURNO');
     const pSalao = getScheduledCount(sale.date, 'SALÃO') + getFreelancerCount(freelancers, sale.date, 'SALÃO');
     const pTele = getScheduledCount(sale.date, 'TELE - ENTREGA') + getFreelancerCount(freelancers, sale.date, 'TELE - ENTREGA');
 
