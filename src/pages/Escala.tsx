@@ -74,6 +74,20 @@ export default function Escala() {
   );
 
   // Auto-select the week containing today when weeks change
+  const effectiveSelectedWeek = useMemo(() => {
+    if (selectedWeek >= 0 && selectedWeek < weeks.length) return selectedWeek;
+    if (weeks.length === 0) return 0;
+    const today = new Date();
+    const todayTime = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    for (let i = 0; i < weeks.length; i++) {
+      const start = new Date(weeks[i].days[0].date.getFullYear(), weeks[i].days[0].date.getMonth(), weeks[i].days[0].date.getDate()).getTime();
+      const end = new Date(weeks[i].days[6].date.getFullYear(), weeks[i].days[6].date.getMonth(), weeks[i].days[6].date.getDate()).getTime();
+      if (todayTime >= start && todayTime <= end) return i;
+    }
+    return 0;
+  }, [weeks, selectedWeek]);
+
+  // Auto-select the week containing today when weeks change
 
   // Lookup: collaborator name → collaborator object
   const collabByName = useMemo(() => {
