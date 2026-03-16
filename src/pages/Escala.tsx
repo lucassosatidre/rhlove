@@ -4,8 +4,8 @@ import { useFreelancers } from '@/hooks/useFreelancers';
 import { useFreelancerEntries, useAddFreelancerEntry, useDeleteFreelancerEntry } from '@/hooks/useFreelancerEntries';
 import { useDailySales, useUpsertDailySales } from '@/hooks/useDailySales';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
-import { useScheduleEvents, buildEventsMap, type ScheduleEvent } from '@/hooks/useScheduleEvents';
-import { generateSchedule, getMonthLabel, type ScheduleWeek } from '@/lib/scheduleEngine';
+import { useScheduleEvents, buildEventsMap, buildSwapOverrides, type ScheduleEvent } from '@/hooks/useScheduleEvents';
+import { generateSchedule, getMonthLabel, getFirstMondayOfMonthGrid, getWeekCount, type ScheduleWeek } from '@/lib/scheduleEngine';
 import { countPeopleBySectorOnDate } from '@/lib/productivityEngine';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,9 +47,30 @@ export default function Escala() {
   const { data: collaborators = [] } = useCollaborators();
   const { data: scheduledVacations = [] } = useScheduledVacations();
 
+  // Compute dateRange from year/month (independent of weeks)
+  const dateRange = useMemo(() => {
+    const firstMonday = getFirstMondayOfMonthGrid(year, month);
+    const totalWeeks = getWeekCount(year, month);
+    const last = new Date(firstMonday);
+    last.setDate(firstMonday.getDate() + totalWeeks * 7 - 1);
+    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return { start: fmt(firstMonday), end: fmt(last) };
+  }, [year, month]);
+
+  // Fetch data using dateRange
+  const { data: freelancers = [] } = useFreelancers(dateRange.start, dateRange.end);
+  const { data: freelancerEntries = [] } = useFreelancerEntries(dateRange.start, dateRange.end);
+  const { data: salesData = [] } = useDailySales(dateRange.start, dateRange.end);
+  const { data: scheduleEvents = [] } = useScheduleEvents(dateRange.start, dateRange.end);
+
+  // Build overrides from events BEFORE generating schedule
+  const swapOverrides = useMemo(() => buildSwapOverrides(scheduleEvents), [scheduleEvents]);
+  const eventsMap = useMemo(() => buildEventsMap(scheduleEvents), [scheduleEvents]);
+
+  // Generate schedule WITH day-off overrides applied
   const weeks = useMemo(
-    () => generateSchedule(collaborators, year, month, scheduledVacations),
-    [collaborators, year, month, scheduledVacations]
+    () => generateSchedule(collaborators, year, month, scheduledVacations, swapOverrides),
+    [collaborators, year, month, scheduledVacations, swapOverrides]
   );
 
   // Auto-select the week containing today when weeks change
@@ -66,20 +87,6 @@ export default function Escala() {
     return 0;
   }, [weeks, selectedWeek]);
 
-  const dateRange = useMemo(() => {
-    if (weeks.length === 0) return { start: '', end: '' };
-    const first = weeks[0].days[0].date;
-    const last = weeks[weeks.length - 1].days[6].date;
-    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    return { start: fmt(first), end: fmt(last) };
-  }, [weeks]);
-
-  const { data: freelancers = [] } = useFreelancers(dateRange.start, dateRange.end);
-  const { data: freelancerEntries = [] } = useFreelancerEntries(dateRange.start, dateRange.end);
-  const { data: salesData = [] } = useDailySales(dateRange.start, dateRange.end);
-  const { data: scheduleEvents = [] } = useScheduleEvents(dateRange.start, dateRange.end);
-
-  const eventsMap = useMemo(() => buildEventsMap(scheduleEvents), [scheduleEvents]);
 
   // Lookup: collaborator name → collaborator object
   const collabByName = useMemo(() => {
@@ -376,7 +383,7 @@ export default function Escala() {
                         const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
                         const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
                         const hasCompensacao = collabEvents.some(e => e.event_type === 'COMPENSACAO');
-                        const hasTroca = collabEvents.some(e => e.event_type === 'TROCA_FOLGA');
+                        const hasTroca = collabEvents.some(e => e.event_type === 'TROCA_FOLGA' || e.event_type === 'MUDANCA_FOLGA');
                         const hasEvent = hasFalta || hasAtestado || hasCompensacao || hasTroca;
 
                         const cellClasses = [
@@ -748,7 +755,7 @@ export default function Escala() {
                                 const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
                                 const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
                                 const hasCompensacao = collabEvents.some(e => e.event_type === 'COMPENSACAO');
-                                const hasTroca = collabEvents.some(e => e.event_type === 'TROCA_FOLGA');
+                                const hasTroca = collabEvents.some(e => e.event_type === 'TROCA_FOLGA' || e.event_type === 'MUDANCA_FOLGA');
 
                                 // Find the week containing today
                                 const todayWeek = weeks.find(w => w.days.some(dd => formatDateKey(dd.date) === todayKey));

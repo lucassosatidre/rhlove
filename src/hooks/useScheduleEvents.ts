@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { DayOffOverride, DayOffOverridesMap } from '@/lib/scheduleEngine';
 
-export type ScheduleEventType = 'FALTA' | 'ATESTADO' | 'COMPENSACAO' | 'TROCA_FOLGA';
+export type ScheduleEventType = 'FALTA' | 'ATESTADO' | 'COMPENSACAO' | 'TROCA_FOLGA' | 'MUDANCA_FOLGA';
 
 export interface ScheduleEvent {
   id: string;
@@ -93,7 +94,6 @@ export function useDeleteScheduleEvent() {
 export function buildEventsMap(events: ScheduleEvent[]): Record<string, Record<string, ScheduleEvent[]>> {
   const map: Record<string, Record<string, ScheduleEvent[]>> = {};
   for (const ev of events) {
-    // For ATESTADO with range, expand to all dates
     const start = new Date(ev.event_date + 'T00:00:00');
     const end = ev.event_date_end ? new Date(ev.event_date_end + 'T00:00:00') : start;
     
@@ -107,29 +107,45 @@ export function buildEventsMap(events: ScheduleEvent[]): Record<string, Record<s
   return map;
 }
 
-/** Build swap overrides: for a given week_start, returns which collaborators have swapped days */
-export function buildSwapOverrides(events: ScheduleEvent[]): Map<string, { removeDays: string[]; addDays: string[] }> {
-  const overrides = new Map<string, { removeDays: string[]; addDays: string[] }>();
-  
+/**
+ * Build day-off overrides from TROCA_FOLGA and MUDANCA_FOLGA events.
+ * Returns a map keyed by "weekStartKey|collaboratorId" → DayOffOverride.
+ *
+ * For TROCA_FOLGA (swap between two people):
+ *   - original_day = collaborator A's day off being given away
+ *   - swapped_day  = collaborator B's day off that A receives
+ *   Collaborator A: works on original_day, off on swapped_day
+ *   Collaborator B: works on swapped_day, off on original_day
+ *
+ * For MUDANCA_FOLGA (move own day off):
+ *   - original_day = collaborator's current day off being removed
+ *   - swapped_day  = new day off for this week
+ *   Collaborator: works on original_day, off on swapped_day
+ */
+export function buildSwapOverrides(events: ScheduleEvent[]): DayOffOverridesMap {
+  const overrides: DayOffOverridesMap = new Map();
+
+  const getOrCreate = (key: string): DayOffOverride => {
+    if (!overrides.has(key)) overrides.set(key, { removeDays: [], addDays: [] });
+    return overrides.get(key)!;
+  };
+
   for (const ev of events) {
-    if (ev.event_type !== 'TROCA_FOLGA' || !ev.week_start) continue;
-    
-    // Collaborator A: original_day is removed as day off, swapped_day is added as day off
-    const keyA = `${ev.week_start}|${ev.collaborator_id}`;
-    if (!overrides.has(keyA)) overrides.set(keyA, { removeDays: [], addDays: [] });
-    const a = overrides.get(keyA)!;
-    if (ev.original_day) a.removeDays.push(ev.original_day);
-    if (ev.swapped_day) a.addDays.push(ev.swapped_day);
-    
-    // Collaborator B: swapped_day is removed as day off, original_day is added as day off
-    if (ev.related_collaborator_id) {
-      const keyB = `${ev.week_start}|${ev.related_collaborator_id}`;
-      if (!overrides.has(keyB)) overrides.set(keyB, { removeDays: [], addDays: [] });
-      const b = overrides.get(keyB)!;
-      if (ev.swapped_day) b.removeDays.push(ev.swapped_day);
-      if (ev.original_day) b.addDays.push(ev.original_day);
+    if (ev.event_type !== 'TROCA_FOLGA' && ev.event_type !== 'MUDANCA_FOLGA') continue;
+    if (!ev.week_start) continue;
+
+    // Collaborator A
+    const a = getOrCreate(`${ev.week_start}|${ev.collaborator_id}`);
+    if (ev.original_day) a.removeDays.push(ev.original_day); // No longer off on original day
+    if (ev.swapped_day) a.addDays.push(ev.swapped_day);       // Now off on swapped day
+
+    // Collaborator B (only for TROCA_FOLGA)
+    if (ev.event_type === 'TROCA_FOLGA' && ev.related_collaborator_id) {
+      const b = getOrCreate(`${ev.week_start}|${ev.related_collaborator_id}`);
+      if (ev.swapped_day) b.removeDays.push(ev.swapped_day); // B no longer off on their day
+      if (ev.original_day) b.addDays.push(ev.original_day);   // B now off on A's original day
     }
   }
-  
+
   return overrides;
 }
