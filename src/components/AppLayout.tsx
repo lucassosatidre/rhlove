@@ -93,10 +93,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-lg overflow-hidden shadow ring-1 ring-primary/20">
-              <img src={logo} alt="Estrela RH" className="w-full h-full object-cover" />
+              <img src={logo} alt="RH Love" className="w-full h-full object-cover" />
             </div>
             <div>
-              <span className="font-bold text-sm block">Estrela RH</span>
+              <span className="font-bold text-sm block">RH Love</span>
               {usuario && <span className="text-[10px] text-muted-foreground">{usuario.nome}</span>}
             </div>
           </div>
