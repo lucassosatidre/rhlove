@@ -314,6 +314,9 @@ export default function Colaboradores() {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
+                          <button onClick={() => setProfileCollaborator(c)} className="p-1.5 rounded hover:bg-muted transition-colors" title="Ver perfil">
+                            <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                          </button>
                           <button onClick={() => openEdit(c)} className="p-1.5 rounded hover:bg-muted transition-colors">
                             <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                           </button>
