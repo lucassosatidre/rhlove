@@ -282,6 +282,7 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
   const draggedEventRef = useRef<HREvent | null>(null);
 
   const updateAviso = useUpdateAvisoPrevio();
+  const updateVacation = useUpdateScheduledVacation();
   const updateCollaborator = useUpdateCollaborator();
   const { toast } = useToast();
 
