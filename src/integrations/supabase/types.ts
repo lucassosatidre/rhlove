@@ -311,40 +311,52 @@ export type Database = {
       }
       scheduled_vacations: {
         Row: {
+          aviso_ferias_assinado: boolean
           collaborator_id: string
           collaborator_name: string
+          contabilidade_solicitada: boolean
           created_at: string
           data_fim_ferias: string
           data_inicio_ferias: string
           data_pagamento_ferias: string | null
           id: string
           observacao: string | null
+          pagamento_efetuado: boolean
+          recibo_assinado: boolean
           sector: string
           status: string
           updated_at: string
         }
         Insert: {
+          aviso_ferias_assinado?: boolean
           collaborator_id: string
           collaborator_name: string
+          contabilidade_solicitada?: boolean
           created_at?: string
           data_fim_ferias: string
           data_inicio_ferias: string
           data_pagamento_ferias?: string | null
           id?: string
           observacao?: string | null
+          pagamento_efetuado?: boolean
+          recibo_assinado?: boolean
           sector: string
           status?: string
           updated_at?: string
         }
         Update: {
+          aviso_ferias_assinado?: boolean
           collaborator_id?: string
           collaborator_name?: string
+          contabilidade_solicitada?: boolean
           created_at?: string
           data_fim_ferias?: string
           data_inicio_ferias?: string
           data_pagamento_ferias?: string | null
           id?: string
           observacao?: string | null
+          pagamento_efetuado?: boolean
+          recibo_assinado?: boolean
           sector?: string
           status?: string
           updated_at?: string
