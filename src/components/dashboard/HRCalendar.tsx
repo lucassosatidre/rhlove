@@ -611,7 +611,7 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
                               onDragStart={canDrag ? (e) => handleDragStart(ev, e) : undefined}
                               onClick={() => { setSelectedEvent(ev); setObs(''); }}
                               className={`w-full text-left text-[9px] sm:text-[10px] leading-tight px-1 py-0.5 rounded truncate flex items-center gap-0.5 ${getEventColor(ev.type)} ${meta?.category ? EVENT_CATEGORIES[meta.category].textColor : ''} hover:opacity-80 transition-opacity ${canDrag ? 'cursor-grab active:cursor-grabbing' : ''}`}
-                              title={`${ev.collaboratorName} — ${meta?.label || ev.label}${ev.avisoField ? ` [${getTaskStatus(ev.avisoFieldValue)}]` : ''}`}
+                              title={`${ev.collaboratorName} — ${meta?.label || ev.label}${ev.avisoField ? ` [${getTaskStatus(ev.avisoFieldValue)}]` : ev.vacationField ? ` [${getTaskStatus(ev.vacationFieldValue)}]` : ''}`}
                             >
                               {statusInd && <span className={statusInd.className}>{statusInd.icon}</span>}
                               <span className="truncate">
