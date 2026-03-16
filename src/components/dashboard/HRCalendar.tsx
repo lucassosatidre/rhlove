@@ -671,16 +671,16 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
                 </div>
               )}
 
-              {/* Actionable section for aviso prévio tasks */}
-              {selectedEvent.avisoField && (
+              {/* Actionable section for aviso prévio / férias tasks */}
+              {hasActionableField && currentStatus && (
                 <div className="border border-border rounded-lg p-3 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-xs">Status da etapa</span>
-                    <StatusBadge status={currentStatus!} />
+                    <StatusBadge status={currentStatus} />
                   </div>
 
                   <p className="text-xs text-muted-foreground">
-                    {FIELD_LABELS[selectedEvent.avisoField]}
+                    {FIELD_LABELS[actionableFieldKey]}
                   </p>
 
                   <div className="flex gap-2">
@@ -689,7 +689,7 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
                       variant={currentStatus === 'CONCLUÍDO' ? 'default' : 'outline'}
                       className="flex-1 gap-1"
                       onClick={() => handleSetStatus(selectedEvent, 'CONCLUÍDO')}
-                      disabled={updateAviso.isPending}
+                      disabled={updateAviso.isPending || updateVacation.isPending}
                     >
                       <Check className="w-3.5 h-3.5" />
                       Concluído
@@ -699,7 +699,7 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
                       variant={currentStatus === 'PENDENTE' ? 'secondary' : 'outline'}
                       className="flex-1 gap-1"
                       onClick={() => handleSetStatus(selectedEvent, 'PENDENTE')}
-                      disabled={updateAviso.isPending}
+                      disabled={updateAviso.isPending || updateVacation.isPending}
                     >
                       <Clock className="w-3.5 h-3.5" />
                       Pendente
@@ -715,7 +715,7 @@ export default function HRCalendar({ collaborators, vacations, avisos, compensat
                 </p>
               )}
 
-              {!selectedEvent.avisoField && (
+              {!hasActionableField && (
                 <Badge variant="outline" className={`${getEventColor(selectedEvent.type)} ${EVENT_TYPE_META[selectedEvent.type]?.category ? EVENT_CATEGORIES[EVENT_TYPE_META[selectedEvent.type].category].textColor : ''} border-0`}>
                   {EVENT_TYPE_META[selectedEvent.type]?.label}
                 </Badge>
