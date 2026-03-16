@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useDailySales, useUpsertDailySales, useBulkInsertDailySales, useDeleteDailySales, type DailySalesInput } from '@/hooks/useDailySales';
-import { useFreelancers } from '@/hooks/useFreelancers';
+import { useFreelancers, useBulkUpsertFreelancers } from '@/hooks/useFreelancers';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
 import { supabase } from '@/integrations/supabase/client';
 import { generateProductivityData, formatCurrency, formatDecimal, formatDateBR, getSectorOrder } from '@/lib/productivityEngine';
@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Printer, Upload, Plus, Pencil, Trash2, BarChart3, FileSpreadsheet, AlertCircle, Check, History } from 'lucide-react';
+import { Download, Printer, Upload, Plus, Pencil, Trash2, BarChart3, FileSpreadsheet, AlertCircle, Check, History, Users } from 'lucide-react';
 import IndicatorLegend, { IndicatorTooltip } from '@/components/IndicatorLegend';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, Legend, LabelList } from 'recharts';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -72,6 +72,11 @@ export default function Produtividade() {
   const [importStores, setImportStores] = useState<{ name: string; row: any[] }[]>([]);
   const [importColMap, setImportColMap] = useState<Record<string, number>>({});
   const [importValidationWarning, setImportValidationWarning] = useState('');
+  // Freelancer import state
+  const freeFileInputRef = useRef<HTMLInputElement>(null);
+  const [freeImportDialogOpen, setFreeImportDialogOpen] = useState(false);
+  const [freeImportPreview, setFreeImportPreview] = useState<{ date: string; cozinha: number; salao: number; tele: number; total: number; totalCheck: number; ok: boolean }[]>([]);
+  const [freeImportError, setFreeImportError] = useState('');
   const { toast } = useToast();
 
   const { data: collaborators = [] } = useCollaborators();
@@ -98,6 +103,7 @@ export default function Produtividade() {
   const upsertMut = useUpsertDailySales();
   const bulkMut = useBulkInsertDailySales();
   const deleteMut = useDeleteDailySales();
+  const bulkFreeMut = useBulkUpsertFreelancers();
 
   const productivityRows = useMemo(
     () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations),
@@ -582,6 +588,146 @@ export default function Produtividade() {
     PCT: { label: 'Pedidos por colaborador do time', color: 'hsl(var(--chart-2, 160 60% 45%))' },
   };
 
+  // ====== FREELANCER IMPORT LOGIC ======
+  const handleFreeFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setFreeImportError('');
+    setFreeImportPreview([]);
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      if (raw.length < 2) {
+        setFreeImportError('Planilha vazia ou sem dados.');
+        setFreeImportDialogOpen(true);
+        return;
+      }
+
+      // Find header row
+      const normalize = (v: any) => String(v || '').trim().toUpperCase();
+      let headerIdx = -1;
+      let colMap: Record<string, number> = {};
+      for (let i = 0; i < Math.min(raw.length, 10); i++) {
+        const row = raw[i];
+        if (!row) continue;
+        const headers = row.map(normalize);
+        if (headers.some(h => h.includes('DATA')) && headers.some(h => h.includes('FREE') || h.includes('COZINHA'))) {
+          headerIdx = i;
+          headers.forEach((h, idx) => { colMap[h] = idx; });
+          break;
+        }
+      }
+
+      if (headerIdx === -1) {
+        setFreeImportError('Cabeçalho não encontrado. Esperado colunas: Data, Free Cozinha, Free Salão, Free Tele.');
+        setFreeImportDialogOpen(true);
+        return;
+      }
+
+      // Find column indices with flexible matching
+      const findCol = (keywords: string[]): number => {
+        for (const key of Object.keys(colMap)) {
+          if (keywords.every(k => key.includes(k))) return colMap[key];
+        }
+        return -1;
+      };
+
+      const dateCol = findCol(['DATA']);
+      const cozinhaCol = findCol(['COZINHA']);
+      const salaoCol = findCol(['SAL']);
+      const teleCol = findCol(['TELE']);
+      const totalCol = findCol(['TOTAL']);
+
+      if (dateCol === -1 || cozinhaCol === -1 || salaoCol === -1 || teleCol === -1) {
+        setFreeImportError('Colunas obrigatórias não encontradas: Data, Free Cozinha, Free Salão, Free Tele.');
+        setFreeImportDialogOpen(true);
+        return;
+      }
+
+      const preview: typeof freeImportPreview = [];
+      for (let i = headerIdx + 1; i < raw.length; i++) {
+        const row = raw[i];
+        if (!row || !row[dateCol]) continue;
+
+        // Parse date (supports dd/mm/yyyy or yyyy-mm-dd)
+        let dateStr = '';
+        const rawDate = row[dateCol];
+        if (typeof rawDate === 'number') {
+          // Excel serial date
+          const excelDate = XLSX.SSF.parse_date_code(rawDate);
+          dateStr = `${excelDate.y}-${String(excelDate.m).padStart(2, '0')}-${String(excelDate.d).padStart(2, '0')}`;
+        } else {
+          const ds = String(rawDate).trim();
+          const brMatch = ds.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+          if (brMatch) {
+            dateStr = `${brMatch[3]}-${brMatch[2]}-${brMatch[1]}`;
+          } else if (/^\d{4}-\d{2}-\d{2}$/.test(ds)) {
+            dateStr = ds;
+          }
+        }
+
+        if (!dateStr) continue;
+
+        const cozinha = Number(row[cozinhaCol]) || 0;
+        const salao = Number(row[salaoCol]) || 0;
+        const tele = Number(row[teleCol]) || 0;
+        const total = cozinha + salao + tele;
+        const totalFile = totalCol >= 0 ? (Number(row[totalCol]) || 0) : total;
+
+        preview.push({
+          date: dateStr,
+          cozinha,
+          salao,
+          tele,
+          total,
+          totalCheck: totalFile,
+          ok: Math.abs(total - totalFile) < 0.01 || totalCol === -1,
+        });
+      }
+
+      if (preview.length === 0) {
+        setFreeImportError('Nenhuma linha de dados válida encontrada na planilha.');
+        setFreeImportDialogOpen(true);
+        return;
+      }
+
+      setFreeImportPreview(preview);
+      setFreeImportDialogOpen(true);
+    } catch (err: any) {
+      setFreeImportError(`Erro ao ler arquivo: ${err.message}`);
+      setFreeImportDialogOpen(true);
+    }
+  };
+
+  const handleConfirmFreeImport = async () => {
+    const rows = freeImportPreview.flatMap(p => {
+      const entries: { date: string; sector: string; quantity: number }[] = [];
+      if (p.cozinha > 0) entries.push({ date: p.date, sector: 'COZINHA', quantity: p.cozinha });
+      if (p.salao > 0) entries.push({ date: p.date, sector: 'SALÃO', quantity: p.salao });
+      if (p.tele > 0) entries.push({ date: p.date, sector: 'TELE - ENTREGA', quantity: p.tele });
+      return entries;
+    });
+
+    if (rows.length === 0) {
+      toast({ title: 'Nenhum free-lancer para importar', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      await bulkFreeMut.mutateAsync(rows);
+      toast({ title: 'Free-lancers importados com sucesso', description: `${freeImportPreview.length} dia(s) processado(s)` });
+      setFreeImportDialogOpen(false);
+      setFreeImportPreview([]);
+    } catch (err: any) {
+      toast({ title: 'Erro ao importar free-lancers', description: err.message, variant: 'destructive' });
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in" ref={printRef}>
       {/* Header */}
@@ -654,8 +800,18 @@ export default function Produtividade() {
               className="hidden"
               onChange={handleHistFileSelect}
             />
+            <input
+              ref={freeFileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={handleFreeFileSelect}
+            />
             <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-              <Upload className="w-4 h-4 mr-1" /> Importar Planilha
+              <Upload className="w-4 h-4 mr-1" /> Importar Vendas
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => freeFileInputRef.current?.click()}>
+              <Users className="w-4 h-4 mr-1" /> Importar Free-lancers
             </Button>
             <Button variant="outline" size="sm" onClick={() => histFileInputRef.current?.click()}>
               <History className="w-4 h-4 mr-1" /> Carga Histórica
@@ -1248,6 +1404,95 @@ export default function Produtividade() {
                     disabled={histPreview.filter(r => r.errors.length === 0).length === 0}
                   >
                     <Check className="w-4 h-4 mr-1" /> Confirmar Carga Histórica
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Freelancer Import Dialog */}
+      <Dialog open={freeImportDialogOpen} onOpenChange={setFreeImportDialogOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Importar Free-lancers
+            </DialogTitle>
+            <DialogDescription>
+              Revise os dados de free-lancers antes de importar.
+            </DialogDescription>
+          </DialogHeader>
+
+          {freeImportError && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+              <p className="text-sm text-destructive">{freeImportError}</p>
+            </div>
+          )}
+
+          {freeImportPreview.length > 0 && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                <p><strong>{freeImportPreview.length}</strong> dia(s) detectado(s): <strong>{formatDateBR(freeImportPreview[0].date)}</strong> até <strong>{formatDateBR(freeImportPreview[freeImportPreview.length - 1].date)}</strong></p>
+                <p className="mt-1">Colunas: <strong>Data</strong>, <strong>Free Cozinha</strong>, <strong>Free Salão</strong>, <strong>Free Tele</strong></p>
+              </div>
+
+              <div className="border rounded-lg overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Data</TableHead>
+                      <TableHead className="text-xs text-right">Cozinha</TableHead>
+                      <TableHead className="text-xs text-right">Salão</TableHead>
+                      <TableHead className="text-xs text-right">Tele</TableHead>
+                      <TableHead className="text-xs text-right">Total</TableHead>
+                      <TableHead className="text-xs w-8"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {freeImportPreview.map((row, idx) => (
+                      <TableRow key={idx} className={!row.ok ? 'bg-amber-500/5' : ''}>
+                        <TableCell className="text-xs font-medium">{formatDateBR(row.date)}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{row.cozinha}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{row.salao}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{row.tele}</TableCell>
+                        <TableCell className="text-xs text-right tabular-nums">{row.total}</TableCell>
+                        <TableCell>
+                          {row.ok ? (
+                            <Check className="w-3.5 h-3.5 text-green-600" />
+                          ) : (
+                            <span title={`Total planilha: ${row.totalCheck} ≠ soma: ${row.total}`}>
+                              <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {freeImportPreview.some(r => !r.ok) && (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                  <p className="text-xs text-amber-700">
+                    Alguns totais da planilha divergem da soma (Cozinha + Salão + Tele). O sistema usará os valores por setor.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center pt-2">
+                <span className="text-xs text-muted-foreground">
+                  {freeImportPreview.length} dia(s) · Total geral: {freeImportPreview.reduce((s, r) => s + r.total, 0)} free(s)
+                </span>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setFreeImportDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button size="sm" onClick={handleConfirmFreeImport} disabled={bulkFreeMut.isPending}>
+                    <Check className="w-4 h-4 mr-1" /> Confirmar Importação
                   </Button>
                 </div>
               </div>
