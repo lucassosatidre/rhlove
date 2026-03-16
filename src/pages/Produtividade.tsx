@@ -21,6 +21,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, Legend, La
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import ProductivityTables from '@/components/productivity/ProductivityTables';
 import FreelancerImportReviewDialog, { type FreeReviewEntry, generateEntryId } from '@/components/FreelancerImportReviewDialog';
+import FreelancerHistoryDialog from '@/components/productivity/FreelancerHistoryDialog';
 import * as XLSX from 'xlsx';
 
 const SECTOR_COLORS: Record<string, string> = {
