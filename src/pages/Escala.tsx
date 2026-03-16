@@ -843,16 +843,8 @@ export default function Escala() {
           <TabsContent value="4weeks" className="space-y-4">
             {weeks.map((week, i) => (
               <Card key={i}>
-                <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                  <CardTitle className="text-sm">Semana {i + 1}</CardTitle>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="no-print"
-                    onClick={() => { setFreesWeekIdx(i); setFreesDialogOpen(true); }}
-                  >
-                    <Users className="w-4 h-4 mr-1" /> FREES
-                  </Button>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">{formatDateBR(week.days[0].date)} - {formatDateBR(week.days[6].date)}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-2">{renderWeek(week)}</CardContent>
               </Card>
