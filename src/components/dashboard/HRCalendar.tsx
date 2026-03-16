@@ -81,8 +81,9 @@ function getEventColor(type: string): string {
 }
 
 function getStatusIndicator(ev: HREvent): { icon: React.ReactNode; className: string } | null {
-  if (!ev.avisoField) return null;
-  if (ev.avisoFieldValue === true) {
+  const fieldVal = ev.avisoField != null ? ev.avisoFieldValue : ev.vacationField != null ? ev.vacationFieldValue : undefined;
+  if (fieldVal === undefined) return null;
+  if (fieldVal === true) {
     return { icon: <Check className="w-2.5 h-2.5" />, className: 'text-emerald-600' };
   }
   return { icon: <Clock className="w-2.5 h-2.5" />, className: 'text-amber-500' };
