@@ -309,6 +309,45 @@ export type Database = {
         }
         Relationships: []
       }
+      hr_event_completions: {
+        Row: {
+          concluded_at: string | null
+          concluded_by: string | null
+          conclusion_note: string | null
+          created_at: string
+          event_key: string
+          id: string
+          original_date: string | null
+          override_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          concluded_at?: string | null
+          concluded_by?: string | null
+          conclusion_note?: string | null
+          created_at?: string
+          event_key: string
+          id?: string
+          original_date?: string | null
+          override_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          concluded_at?: string | null
+          concluded_by?: string | null
+          conclusion_note?: string | null
+          created_at?: string
+          event_key?: string
+          id?: string
+          original_date?: string | null
+          override_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       hr_reminders: {
         Row: {
           collaborator_id: string | null
