@@ -47,39 +47,33 @@ export default function Escala() {
   const { data: collaborators = [] } = useCollaborators();
   const { data: scheduledVacations = [] } = useScheduledVacations();
 
-  const weeks = useMemo(
-    () => generateSchedule(collaborators, year, month, scheduledVacations),
-    [collaborators, year, month, scheduledVacations]
-  );
-
-  // Auto-select the week containing today when weeks change
-  const effectiveSelectedWeek = useMemo(() => {
-    if (selectedWeek >= 0 && selectedWeek < weeks.length) return selectedWeek;
-    if (weeks.length === 0) return 0;
-    const today = new Date();
-    const todayTime = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-    for (let i = 0; i < weeks.length; i++) {
-      const start = new Date(weeks[i].days[0].date.getFullYear(), weeks[i].days[0].date.getMonth(), weeks[i].days[0].date.getDate()).getTime();
-      const end = new Date(weeks[i].days[6].date.getFullYear(), weeks[i].days[6].date.getMonth(), weeks[i].days[6].date.getDate()).getTime();
-      if (todayTime >= start && todayTime <= end) return i;
-    }
-    return 0;
-  }, [weeks, selectedWeek]);
-
+  // Compute dateRange from year/month (independent of weeks)
   const dateRange = useMemo(() => {
-    if (weeks.length === 0) return { start: '', end: '' };
-    const first = weeks[0].days[0].date;
-    const last = weeks[weeks.length - 1].days[6].date;
+    const firstMonday = getFirstMondayOfMonthGrid(year, month);
+    const totalWeeks = getWeekCount(year, month);
+    const last = new Date(firstMonday);
+    last.setDate(firstMonday.getDate() + totalWeeks * 7 - 1);
     const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    return { start: fmt(first), end: fmt(last) };
-  }, [weeks]);
+    return { start: fmt(firstMonday), end: fmt(last) };
+  }, [year, month]);
 
+  // Fetch data using dateRange
   const { data: freelancers = [] } = useFreelancers(dateRange.start, dateRange.end);
   const { data: freelancerEntries = [] } = useFreelancerEntries(dateRange.start, dateRange.end);
   const { data: salesData = [] } = useDailySales(dateRange.start, dateRange.end);
   const { data: scheduleEvents = [] } = useScheduleEvents(dateRange.start, dateRange.end);
 
+  // Build overrides from events BEFORE generating schedule
+  const swapOverrides = useMemo(() => buildSwapOverrides(scheduleEvents), [scheduleEvents]);
   const eventsMap = useMemo(() => buildEventsMap(scheduleEvents), [scheduleEvents]);
+
+  // Generate schedule WITH day-off overrides applied
+  const weeks = useMemo(
+    () => generateSchedule(collaborators, year, month, scheduledVacations, swapOverrides),
+    [collaborators, year, month, scheduledVacations, swapOverrides]
+  );
+
+  // Auto-select the week containing today when weeks change
 
   // Lookup: collaborator name → collaborator object
   const collabByName = useMemo(() => {
