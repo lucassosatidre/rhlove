@@ -87,7 +87,6 @@ export default function Escala() {
     return 0;
   }, [weeks, selectedWeek]);
 
-  // Auto-select the week containing today when weeks change
 
   // Lookup: collaborator name → collaborator object
   const collabByName = useMemo(() => {
