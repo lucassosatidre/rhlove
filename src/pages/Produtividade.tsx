@@ -314,7 +314,14 @@ export default function Produtividade() {
         const headers = row.map(normalizeHeader);
         if (headers.includes('TOTAL QTD') || headers.includes('TOTAL')) {
           headerIdx = i;
-          headers.forEach((h, idx) => { colMap[h] = idx; });
+          headers.forEach((h, idx) => {
+            // Ignore duplicate columns with suffixes like .1, .2 — keep only the first occurrence
+            if (/\.\d+$/.test(h)) return;
+            // Only keep the first occurrence of each header
+            if (!(h in colMap)) {
+              colMap[h] = idx;
+            }
+          });
           break;
         }
       }
