@@ -71,8 +71,8 @@ export default function Escala() {
 
   // Generate schedule WITH day-off overrides applied
   const weeks = useMemo(
-    () => generateSchedule(collaborators, year, month, scheduledVacations, swapOverrides),
-    [collaborators, year, month, scheduledVacations, swapOverrides]
+    () => generateSchedule(collaborators, year, month, scheduledVacations, swapOverrides, afastamentos),
+    [collaborators, year, month, scheduledVacations, swapOverrides, afastamentos]
   );
 
   // Auto-select the week containing today when weeks change
