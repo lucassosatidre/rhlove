@@ -74,8 +74,8 @@ export default function Dashboard() {
   const flSummary = useMemo(() => computeFreelancerSummary(allFreelancers), [allFreelancers]);
 
   const baseAlerts = useMemo(() =>
-    computeAlerts(collaborators, scheduledVacations, compensations, sales, freelancers),
-    [collaborators, scheduledVacations, compensations, sales, freelancers]
+    computeAlerts(collaborators, scheduledVacations, [], sales, freelancers),
+    [collaborators, scheduledVacations, sales, freelancers]
   );
 
   const avisosAlerts = useMemo(() => computeAvisosAlerts(avisosPrevios), [avisosPrevios]);
