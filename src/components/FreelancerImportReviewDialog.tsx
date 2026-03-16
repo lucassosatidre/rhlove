@@ -45,7 +45,7 @@ export default function FreelancerImportReviewDialog({ open, onOpenChange, entri
 
   const hasPendingSectors = entries.some(e => !e.sector);
 
-  const updateEntry = (id: string, field: 'name' | 'sector', value: string) => {
+  const updateEntry = (id: string, field: 'name' | 'sector' | 'date', value: string) => {
     setEntries(prev => prev.map(e => e.id === id ? { ...e, [field]: value || (field === 'sector' ? null : '') } : e));
   };
 
