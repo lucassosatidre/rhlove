@@ -213,6 +213,7 @@ function getEventOrigin(ev: HREvent): string {
   if (ev.type.startsWith('experiencia')) return 'Experiência';
   if (ev.type === 'compensacao') return 'Compensação';
   if (ev.type === 'desligamento') return 'Desligamento';
+  if (ev.type === 'salario' || ev.type === 'adiantamento') return 'Folha de pagamento';
   if (ev.type === 'exame' || ev.type === 'contabilidade') return 'Aviso prévio';
   return 'Automático';
 }
