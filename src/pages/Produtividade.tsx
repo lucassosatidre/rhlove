@@ -800,8 +800,18 @@ export default function Produtividade() {
               className="hidden"
               onChange={handleHistFileSelect}
             />
+            <input
+              ref={freeFileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={handleFreeFileSelect}
+            />
             <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-              <Upload className="w-4 h-4 mr-1" /> Importar Planilha
+              <Upload className="w-4 h-4 mr-1" /> Importar Vendas
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => freeFileInputRef.current?.click()}>
+              <Users className="w-4 h-4 mr-1" /> Importar Free-lancers
             </Button>
             <Button variant="outline" size="sm" onClick={() => histFileInputRef.current?.click()}>
               <History className="w-4 h-4 mr-1" /> Carga Histórica
