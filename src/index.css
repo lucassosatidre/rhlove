@@ -122,12 +122,16 @@
 
   /* Hide interactive / non-content elements */
   .no-print,
-  button,
+  .print-hide,
   [role="tablist"],
   nav,
   aside,
-  header,
-  .print-hide {
+  header {
+    display: none !important;
+  }
+
+  /* Hide only action buttons (not name-wrapper buttons inside tables) */
+  button:not([data-print-keep]) {
     display: none !important;
   }
 
@@ -139,7 +143,7 @@
   /* Reset layout */
   body {
     background: white !important;
-    color: black !important;
+    color: #1a1a1a !important;
     font-family: 'DM Sans', sans-serif;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
@@ -184,16 +188,25 @@
   }
 
   th {
-    font-size: 11px !important;
-    padding: 3px 4px !important;
-    border: 1px solid #333 !important;
-    background-color: inherit !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    padding: 3px 5px !important;
+    border: 1px solid #d0d0d0 !important;
+    background-color: #f5f5f5 !important;
+    color: #333 !important;
   }
 
   td {
-    padding: 2px 4px !important;
-    border: 1px solid #999 !important;
+    padding: 2px 5px !important;
+    border: 1px solid #e0e0e0 !important;
     font-size: 10px !important;
+    color: #222 !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Empty cells should collapse */
+  td:empty {
+    padding: 1px 5px !important;
   }
 
   /* Keep sector tables together */
@@ -211,31 +224,63 @@
     background: transparent !important;
   }
 
-  /* Sector header colors preserved */
-  .bg-sector-cozinha { background-color: hsl(0, 0%, 10%) !important; color: white !important; }
-  .bg-sector-salao { background-color: hsl(0, 70%, 45%) !important; color: white !important; }
-  .bg-sector-tele { background-color: hsl(152, 55%, 38%) !important; color: white !important; }
-  .bg-sector-diurno { background-color: hsl(220, 65%, 50%) !important; color: white !important; }
+  /* Sector header colors — elegant muted tones for print */
+  .bg-sector-cozinha {
+    background-color: #2d2d2d !important;
+    color: white !important;
+  }
+  .bg-sector-salao {
+    background-color: #b83a3a !important;
+    color: white !important;
+  }
+  .bg-sector-tele {
+    background-color: #2a7a5a !important;
+    color: white !important;
+  }
+  .bg-sector-diurno {
+    background-color: #3366aa !important;
+    color: white !important;
+  }
+
+  /* Sector header typography */
+  th[colspan] {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+    padding: 4px 6px !important;
+  }
+
+  /* Day column headers */
+  th:not([colspan]) {
+    font-size: 9px !important;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    background-color: #fafafa !important;
+    color: #555 !important;
+    border-bottom: 2px solid #ccc !important;
+  }
 
   /* Print header/footer styling */
   .print-header {
     display: flex !important;
     justify-content: space-between;
     align-items: flex-end;
-    border-bottom: 2px solid #333;
+    border-bottom: 2px solid #e65100;
     padding-bottom: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
   }
 
   .print-header h1 {
-    font-size: 14px !important;
+    font-size: 15px !important;
     font-weight: 700;
     margin: 0;
+    color: #1a1a1a !important;
+    letter-spacing: 0.5px;
   }
 
   .print-header p {
     font-size: 10px !important;
-    color: #555;
+    color: #666;
     margin: 0;
   }
 
@@ -246,18 +291,20 @@
     left: 0;
     right: 0;
     text-align: center;
-    font-size: 9px;
-    color: #777;
-    padding: 4px 0;
-    border-top: 1px solid #ccc;
+    font-size: 8px;
+    color: #999;
+    padding: 3px 0;
+    border-top: 1px solid #e0e0e0;
     background: white;
   }
 
   /* Badge print styling */
   [class*="badge"] {
-    border: 1px solid #999 !important;
-    font-size: 8px !important;
-    padding: 0 3px !important;
+    border: 1px solid #bbb !important;
+    font-size: 7px !important;
+    padding: 0 2px !important;
+    background: transparent !important;
+    color: #555 !important;
   }
 
   /* Flex layout reset for print container */
@@ -274,6 +321,33 @@
 
   /* Ensure space-y works in print */
   .space-y-4 > * + * {
-    margin-top: 8px;
+    margin-top: 10px;
+  }
+
+  /* Remove background highlights on cells for cleaner look */
+  td[class*="bg-accent"],
+  td[class*="bg-warning"],
+  td[class*="bg-destructive"],
+  td[class*="bg-blue"],
+  td[class*="bg-green"],
+  td[class*="bg-orange"] {
+    background: transparent !important;
+  }
+
+  /* Name buttons inside table cells should be visible as plain text */
+  table button {
+    display: inline !important;
+    cursor: default !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    font: inherit !important;
+    color: inherit !important;
+  }
+
+  /* Freelancer remove buttons should stay hidden */
+  table button[title="Remover free-lancer"] {
+    display: none !important;
   }
 }
