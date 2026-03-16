@@ -813,29 +813,26 @@ export default function Escala() {
 
           <TabsContent value="week">
             <div className="flex items-center gap-2 mb-3 no-print">
-              {weeks.map((_, i) => (
-                <Button
-                  key={i}
-                  variant={selectedWeek === i ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedWeek(i)}
-                >
-                  Semana {i + 1}
-                </Button>
-              ))}
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => { setFreesWeekIdx(selectedWeek); setFreesDialogOpen(true); }}
-              >
-                <Users className="w-4 h-4 mr-1" /> FREES
-              </Button>
+            {weeks.map((w, i) => {
+                const wStart = w.days[0].date;
+                const wEnd = w.days[w.days.length - 1].date;
+                return (
+                  <Button
+                    key={i}
+                    variant={selectedWeek === i ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedWeek(i)}
+                  >
+                    {formatDateBR(wStart)} - {formatDateBR(wEnd)}
+                  </Button>
+                );
+              })}
             </div>
             {weeks[selectedWeek] && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">
-                    Semana {selectedWeek + 1} — {weeks[selectedWeek].days[0].label}
+                    {formatDateBR(weeks[selectedWeek].days[0].date)} - {formatDateBR(weeks[selectedWeek].days[6].date)}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-2">{renderWeek(weeks[selectedWeek])}</CardContent>
@@ -846,16 +843,8 @@ export default function Escala() {
           <TabsContent value="4weeks" className="space-y-4">
             {weeks.map((week, i) => (
               <Card key={i}>
-                <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                  <CardTitle className="text-sm">Semana {i + 1}</CardTitle>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="no-print"
-                    onClick={() => { setFreesWeekIdx(i); setFreesDialogOpen(true); }}
-                  >
-                    <Users className="w-4 h-4 mr-1" /> FREES
-                  </Button>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">{formatDateBR(week.days[0].date)} - {formatDateBR(week.days[6].date)}</CardTitle>
                 </CardHeader>
                 <CardContent className="p-2">{renderWeek(week)}</CardContent>
               </Card>
@@ -866,16 +855,8 @@ export default function Escala() {
             <div className={`grid grid-cols-1 lg:grid-cols-2 ${weeks.length > 4 ? 'xl:grid-cols-3' : ''} gap-4`}>
               {weeks.map((week, i) => (
                 <Card key={i}>
-                  <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                    <CardTitle className="text-xs">Semana {i + 1}</CardTitle>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      className="no-print h-7 text-xs"
-                      onClick={() => { setFreesWeekIdx(i); setFreesDialogOpen(true); }}
-                    >
-                      <Users className="w-3 h-3 mr-1" /> FREES
-                    </Button>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs">{formatDateBR(week.days[0].date)} - {formatDateBR(week.days[6].date)}</CardTitle>
                   </CardHeader>
                   <CardContent className="p-1">{renderWeek(week)}</CardContent>
                 </Card>
