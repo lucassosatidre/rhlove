@@ -479,6 +479,12 @@ export default function Colaboradores() {
         open={!!profileCollaborator}
         onOpenChange={open => { if (!open) setProfileCollaborator(null); }}
       />
+
+      <PisImportDialog
+        open={pisImportOpen}
+        onOpenChange={setPisImportOpen}
+        collaborators={collaborators}
+      />
     </div>
   );
 }
