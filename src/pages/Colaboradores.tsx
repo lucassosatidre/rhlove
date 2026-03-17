@@ -57,6 +57,7 @@ export default function Colaboradores() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
   const [profileCollaborator, setProfileCollaborator] = useState<Collaborator | null>(null);
+  const [pisImportOpen, setPisImportOpen] = useState(false);
 
   const openNew = () => {
     setEditingId(null);
