@@ -49,6 +49,7 @@ function EscalaInner() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { isDraft, setIsDraft, draftEvents, draftFreelancerEntries, addDraftFreelancer, removeDraftFreelancer, clearDraft } = useDraftMode();
 
   const { data: collaborators = [] } = useCollaborators();
   const { data: scheduledVacations = [] } = useScheduledVacations();
