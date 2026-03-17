@@ -6,7 +6,7 @@ import { useDailySales, useUpsertDailySales } from '@/hooks/useDailySales';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
 import { useAfastamentos } from '@/hooks/useAfastamentos';
 import { useScheduleEvents, buildEventsMap, buildSwapOverrides, type ScheduleEvent } from '@/hooks/useScheduleEvents';
-import { generateSchedule, getMonthLabel, getFirstMondayOfMonthGrid, getWeekCount, type ScheduleWeek } from '@/lib/scheduleEngine';
+import { generateSchedule, getMonthLabel, getFirstMondayOfMonthGrid, getWeekCount, getScheduledCollaboratorIdsBySectorOnDate, type ScheduleWeek } from '@/lib/scheduleEngine';
 import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 
 import { Button } from '@/components/ui/button';
@@ -313,6 +313,20 @@ export default function Escala() {
     return qtyFrees + namedFrees;
   };
 
+  const getPresentScheduledCount = (date: Date, sector: string): number => {
+    const dateKey = formatDateKey(date);
+    const absentIds = absentCollaboratorIdsByDate.get(dateKey);
+    const collaboratorsBySector = getScheduledCollaboratorIdsBySectorOnDate(
+      collaborators,
+      date,
+      scheduledVacations,
+      swapOverrides,
+      afastamentos
+    );
+
+    return (collaboratorsBySector[sector] || []).filter(id => !absentIds?.has(id)).length;
+  };
+
   const renderWeek = (week: ScheduleWeek) => {
     const allSectors = new Set<string>();
     week.days.forEach(d => Object.keys(d.collaboratorsBySector).forEach(s => allSectors.add(s)));
@@ -518,8 +532,7 @@ export default function Escala() {
                       <tr>
                         {week.days.map((d, di) => {
                           const dateKey = formatDateKey(d.date);
-                          const absentIds = absentCollaboratorIdsByDate.get(dateKey);
-                          const scheduled = (d.collaboratorsBySector[sector] || []).filter(id => !absentIds?.has(id)).length;
+                          const scheduled = getPresentScheduledCount(d.date, sector);
                           const frees = getTotalFrees(dateKey, sector);
                           const total = scheduled + frees;
                           return (
@@ -536,8 +549,7 @@ export default function Escala() {
                           if (!sale) {
                             return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>Ticket/colab.: -</td>;
                           }
-                          const absentIds = absentCollaboratorIdsByDate.get(dateKey);
-                          const scheduled = (d.collaboratorsBySector[sector] || []).filter(id => !absentIds?.has(id)).length;
+                          const scheduled = getPresentScheduledCount(d.date, sector);
                           const frees = getTotalFrees(dateKey, sector);
                           const total = scheduled + frees;
                           const { vendas } = getSectorSales(sale, sector);
@@ -556,8 +568,7 @@ export default function Escala() {
                           if (!sale) {
                             return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>Pedidos/colab.: -</td>;
                           }
-                          const absentIds = absentCollaboratorIdsByDate.get(dateKey);
-                          const scheduled = (d.collaboratorsBySector[sector] || []).filter(id => !absentIds?.has(id)).length;
+                          const scheduled = getPresentScheduledCount(d.date, sector);
                           const frees = getTotalFrees(dateKey, sector);
                           const total = scheduled + frees;
                           const { pedidos } = getSectorSales(sale, sector);
