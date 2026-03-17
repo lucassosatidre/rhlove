@@ -115,12 +115,14 @@ export default function RegistroPonto() {
 
   const { data: collaborators = [] } = useCollaborators();
 
-  // Build PIS -> Name map from collaborators
+  // Build PIS -> Name map from collaborators (normalize to 12 digits with leading zeros)
   const pisToName = useMemo(() => {
     const map: Record<string, string> = {};
     for (const c of collaborators) {
       if (c.pis_matricula) {
+        // Store both original and zero-padded versions for matching
         map[c.pis_matricula] = c.collaborator_name;
+        map[c.pis_matricula.padStart(12, '0')] = c.collaborator_name;
       }
     }
     return map;
