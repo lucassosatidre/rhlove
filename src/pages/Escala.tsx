@@ -277,6 +277,10 @@ function EscalaInner() {
   };
 
   const handleSaveSales = async (dateKey: string, sector: string, field: 'vendas' | 'pedidos', value: number) => {
+    if (isDraft) {
+      toast({ title: '[Rascunho] Dados de vendas não são salvos no modo rascunho' });
+      return;
+    }
     const existingSale = salesMap[dateKey];
 
     const input: any = {
