@@ -1,0 +1,1 @@
+ALTER TABLE public.collaborators ADD COLUMN pis_matricula text DEFAULT NULL;

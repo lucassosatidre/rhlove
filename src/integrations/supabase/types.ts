@@ -142,6 +142,7 @@ export type Database = {
           id: string
           inicio_na_empresa: string | null
           inicio_periodo: string | null
+          pis_matricula: string | null
           sector: string
           status: string
           sunday_n: number
@@ -161,6 +162,7 @@ export type Database = {
           id?: string
           inicio_na_empresa?: string | null
           inicio_periodo?: string | null
+          pis_matricula?: string | null
           sector: string
           status?: string
           sunday_n?: number
@@ -180,6 +182,7 @@ export type Database = {
           id?: string
           inicio_na_empresa?: string | null
           inicio_periodo?: string | null
+          pis_matricula?: string | null
           sector?: string
           status?: string
           sunday_n?: number
