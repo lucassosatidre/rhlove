@@ -88,7 +88,6 @@ export default function Produtividade() {
   const { data: salesData = [], isLoading } = useDailySales(startDate, endDate);
   const { data: freelancersData = [] } = useFreelancers(startDate, endDate);
   const { data: scheduledVacations = [] } = useScheduledVacations();
-  const { data: scheduleEvents = [] } = useScheduleEvents(prevPeriod.start, endDate);
 
   // Previous period for comparison
   const prevPeriod = useMemo(() => {
@@ -103,6 +102,7 @@ export default function Produtividade() {
     return { start: toStr(prevStart), end: toStr(prevEnd) };
   }, [startDate, endDate]);
 
+  const { data: scheduleEvents = [] } = useScheduleEvents(prevPeriod.start, endDate);
   const absentCollaboratorIdsByDate = useMemo(
     () => buildAbsentCollaboratorIdsByDate(scheduleEvents),
     [scheduleEvents]
