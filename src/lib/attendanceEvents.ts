@@ -2,7 +2,7 @@ import type { ScheduleEvent, ScheduleEventType } from '@/hooks/useScheduleEvents
 
 export type AbsentCollaboratorIdsByDate = Map<string, Set<string>>;
 
-const ABSENCE_EVENT_TYPES = new Set<ScheduleEventType>(['FALTA', 'ATESTADO']);
+const ABSENCE_EVENT_TYPES = new Set<ScheduleEventType>(['FALTA', 'ATESTADO', 'COMPENSACAO']);
 
 function formatDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
