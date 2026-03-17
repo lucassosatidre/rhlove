@@ -250,6 +250,11 @@ function EscalaInner() {
     v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const handleAddFreelancer = async (date: string, sector: string, name: string) => {
+    if (isDraft) {
+      addDraftFreelancer({ date, sector, name });
+      toast({ title: `[Rascunho] ${name} (F) simulado` });
+      return;
+    }
     try {
       await addFreelancerEntry.mutateAsync({ date, sector, name });
       toast({ title: `${name} (F) adicionado` });
@@ -259,6 +264,11 @@ function EscalaInner() {
   };
 
   const handleRemoveFreelancer = async (id: string) => {
+    if (isDraft && id.startsWith('draft-')) {
+      removeDraftFreelancer(id);
+      return;
+    }
+    if (isDraft) return; // Don't delete real entries in draft mode
     try {
       await deleteFreelancerEntry.mutateAsync(id);
     } catch {
