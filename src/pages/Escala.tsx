@@ -8,7 +8,7 @@ import { useAfastamentos } from '@/hooks/useAfastamentos';
 import { useScheduleEvents, buildEventsMap, buildSwapOverrides, type ScheduleEvent } from '@/hooks/useScheduleEvents';
 import { generateSchedule, getMonthLabel, getFirstMondayOfMonthGrid, getWeekCount, getScheduledCollaboratorIdsBySectorOnDate, type ScheduleWeek } from '@/lib/scheduleEngine';
 import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
-import { DraftModeProvider, useDraftMode } from '@/contexts/DraftModeContext';
+import { DraftModeProvider, useDraftMode, type DraftSalesEntry } from '@/contexts/DraftModeContext';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -49,7 +49,7 @@ function EscalaInner() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  const { isDraft, setIsDraft, draftEvents, draftFreelancerEntries, addDraftFreelancer, removeDraftFreelancer, clearDraft } = useDraftMode();
+  const { isDraft, setIsDraft, draftEvents, draftFreelancerEntries, addDraftFreelancer, removeDraftFreelancer, draftSales, upsertDraftSales, clearDraft } = useDraftMode();
 
   const { data: collaborators = [] } = useCollaborators();
   const { data: scheduledVacations = [] } = useScheduledVacations();
@@ -144,8 +144,25 @@ function EscalaInner() {
     for (const s of salesData) {
       map[s.date] = s;
     }
+    // Overlay draft sales on top of real sales
+    if (isDraft) {
+      for (const [date, ds] of Object.entries(draftSales)) {
+        map[date] = {
+          id: `draft-sale-${date}`,
+          date: ds.date,
+          faturamento_total: ds.faturamento_total,
+          pedidos_totais: ds.pedidos_totais,
+          faturamento_salao: ds.faturamento_salao,
+          pedidos_salao: ds.pedidos_salao,
+          faturamento_tele: ds.faturamento_tele,
+          pedidos_tele: ds.pedidos_tele,
+          created_at: '',
+          updated_at: '',
+        };
+      }
+    }
     return map;
-  }, [salesData]);
+  }, [salesData, draftSales, isDraft]);
 
   const prevMonth = () => {
     setSelectedWeek(-1);
@@ -278,7 +295,34 @@ function EscalaInner() {
 
   const handleSaveSales = async (dateKey: string, sector: string, field: 'vendas' | 'pedidos', value: number) => {
     if (isDraft) {
-      toast({ title: '[Rascunho] Dados de vendas não são salvos no modo rascunho' });
+      // Build a draft sales entry merging existing real/draft data with new value
+      const existingSale = salesMap[dateKey];
+      const base: DraftSalesEntry = {
+        date: dateKey,
+        faturamento_total: existingSale ? Number(existingSale.faturamento_total) || 0 : 0,
+        pedidos_totais: existingSale ? Number(existingSale.pedidos_totais) || 0 : 0,
+        faturamento_salao: existingSale ? Number(existingSale.faturamento_salao) || 0 : 0,
+        pedidos_salao: existingSale ? Number(existingSale.pedidos_salao) || 0 : 0,
+        faturamento_tele: existingSale ? Number(existingSale.faturamento_tele) || 0 : 0,
+        pedidos_tele: existingSale ? Number(existingSale.pedidos_tele) || 0 : 0,
+      };
+
+      if (field === 'vendas') {
+        switch (sector) {
+          case 'COZINHA': case 'DIURNO': base.faturamento_total = value; break;
+          case 'SALÃO': base.faturamento_salao = value; break;
+          case 'TELE - ENTREGA': base.faturamento_tele = value; break;
+        }
+      } else {
+        switch (sector) {
+          case 'COZINHA': case 'DIURNO': base.pedidos_totais = value; break;
+          case 'SALÃO': base.pedidos_salao = value; break;
+          case 'TELE - ENTREGA': base.pedidos_tele = value; break;
+        }
+      }
+
+      upsertDraftSales(base);
+      toast({ title: '[Rascunho] Dados de vendas simulados' });
       return;
     }
     const existingSale = salesMap[dateKey];
