@@ -127,16 +127,17 @@ function EscalaInner() {
     return map;
   }, [freelancers]);
 
-  // Named freelancers by date|sector
+  // Named freelancers by date|sector (merge draft)
   const freelancerEntriesMap = useMemo(() => {
     const map: Record<string, typeof freelancerEntries> = {};
-    for (const fe of freelancerEntries) {
+    const allEntries = isDraft ? [...freelancerEntries, ...draftFreelancerEntries] : freelancerEntries;
+    for (const fe of allEntries) {
       const key = `${fe.date}|${fe.sector}`;
       if (!map[key]) map[key] = [];
-      map[key].push(fe);
+      map[key].push(fe as any);
     }
     return map;
-  }, [freelancerEntries]);
+  }, [freelancerEntries, draftFreelancerEntries, isDraft]);
 
   const salesMap = useMemo(() => {
     const map: Record<string, typeof salesData[0]> = {};
