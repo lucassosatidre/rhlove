@@ -693,6 +693,13 @@ function EscalaInner() {
             </Select>
           )}
           <div className="flex items-center gap-2">
+            <Label className="text-xs flex items-center gap-1">
+              <PenLine className="w-3.5 h-3.5" />
+              Projetar Escala
+            </Label>
+            <Switch checked={isDraft} onCheckedChange={setIsDraft} />
+          </div>
+          <div className="flex items-center gap-2">
             <Label className="text-xs">Desempenho</Label>
             <Switch checked={showPerformance} onCheckedChange={setShowPerformance} />
           </div>
