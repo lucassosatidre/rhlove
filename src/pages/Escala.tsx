@@ -655,9 +655,6 @@ function EscalaInner() {
         title="ESCALA SEMANAL"
         subtitle={weeks[effectiveSelectedWeek] ? `Semana: ${formatDateBR(weeks[effectiveSelectedWeek].days[0].date)} a ${formatDateBR(weeks[effectiveSelectedWeek].days[6].date)}` : getMonthLabel(year, month)}
       />
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 no-print">
-        <div>
-          <h1 className="text-2xl font-bold">Escala de Trabalho</h1>
       {isDraft && (
         <Card className="border-2 border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-950/30 no-print">
           <CardContent className="py-2 px-4 flex items-center justify-between">
@@ -673,6 +670,10 @@ function EscalaInner() {
           </CardContent>
         </Card>
       )}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 no-print">
+        <div>
+          <h1 className="text-2xl font-bold">Escala de Trabalho</h1>
+          <p className="text-sm text-muted-foreground capitalize">{getMonthLabel(year, month)}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
