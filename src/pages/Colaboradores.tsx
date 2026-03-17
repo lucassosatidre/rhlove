@@ -92,6 +92,7 @@ export default function Colaboradores() {
     data_desligamento: f.data_desligamento || null,
     inicio_periodo: f.inicio_periodo || null,
     fim_periodo: f.fim_periodo || null,
+    pis_matricula: f.pis_matricula || null,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
