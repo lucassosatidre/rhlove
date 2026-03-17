@@ -102,8 +102,8 @@ function EscalaInner() {
   }, [weeks, selectedWeek]);
 
   const absentCollaboratorIdsByDate = useMemo(
-    () => buildAbsentCollaboratorIdsByDate(scheduleEvents),
-    [scheduleEvents]
+    () => buildAbsentCollaboratorIdsByDate(allScheduleEvents),
+    [allScheduleEvents]
   );
 
   // Lookup: collaborator name → collaborator object
