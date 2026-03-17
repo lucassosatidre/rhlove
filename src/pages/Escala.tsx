@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, ChevronLeft, ChevronRight, Download, History, Printer, Users, X } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Download, History, Printer, Users, X, PenLine, Trash2 } from 'lucide-react';
 import FreesDialog from '@/components/FreesDialog';
 import InlineFreelancerInput from '@/components/schedule/InlineFreelancerInput';
 import EditableSalesCell from '@/components/schedule/EditableSalesCell';
