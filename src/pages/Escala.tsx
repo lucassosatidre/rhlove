@@ -654,7 +654,21 @@ function EscalaInner() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 no-print">
         <div>
           <h1 className="text-2xl font-bold">Escala de Trabalho</h1>
-          <p className="text-sm text-muted-foreground capitalize">{getMonthLabel(year, month)}</p>
+      {isDraft && (
+        <Card className="border-2 border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-950/30 no-print">
+          <CardContent className="py-2 px-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <PenLine className="w-4 h-4 text-amber-600" />
+              <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                Modo Rascunho — alterações aqui NÃO são salvas no banco de dados
+              </span>
+            </div>
+            <Button variant="outline" size="sm" onClick={clearDraft} className="text-xs border-amber-400 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-900">
+              <Trash2 className="w-3.5 h-3.5 mr-1" /> Limpar rascunho
+            </Button>
+          </CardContent>
+        </Card>
+      )}
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={prevMonth}><ChevronLeft className="w-4 h-4" /></Button>
