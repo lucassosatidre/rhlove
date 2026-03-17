@@ -71,9 +71,15 @@ function EscalaInner() {
   const { data: salesData = [] } = useDailySales(dateRange.start, dateRange.end);
   const { data: scheduleEvents = [] } = useScheduleEvents(dateRange.start, dateRange.end);
 
+  // Merge real events with draft events
+  const allScheduleEvents = useMemo(
+    () => isDraft ? [...scheduleEvents, ...draftEvents] : scheduleEvents,
+    [scheduleEvents, draftEvents, isDraft]
+  );
+
   // Build overrides from events BEFORE generating schedule
-  const swapOverrides = useMemo(() => buildSwapOverrides(scheduleEvents), [scheduleEvents]);
-  const eventsMap = useMemo(() => buildEventsMap(scheduleEvents), [scheduleEvents]);
+  const swapOverrides = useMemo(() => buildSwapOverrides(allScheduleEvents), [allScheduleEvents]);
+  const eventsMap = useMemo(() => buildEventsMap(allScheduleEvents), [allScheduleEvents]);
 
   // Generate schedule WITH day-off overrides applied
   const weeks = useMemo(
