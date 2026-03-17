@@ -93,6 +93,10 @@ export default function Escala() {
     return 0;
   }, [weeks, selectedWeek]);
 
+  const absentCollaboratorIdsByDate = useMemo(
+    () => buildAbsentCollaboratorIdsByDate(scheduleEvents),
+    [scheduleEvents]
+  );
 
   // Lookup: collaborator name → collaborator object
   const collabByName = useMemo(() => {
