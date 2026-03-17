@@ -295,7 +295,34 @@ function EscalaInner() {
 
   const handleSaveSales = async (dateKey: string, sector: string, field: 'vendas' | 'pedidos', value: number) => {
     if (isDraft) {
-      toast({ title: '[Rascunho] Dados de vendas não são salvos no modo rascunho' });
+      // Build a draft sales entry merging existing real/draft data with new value
+      const existingSale = salesMap[dateKey];
+      const base: DraftSalesEntry = {
+        date: dateKey,
+        faturamento_total: existingSale ? Number(existingSale.faturamento_total) || 0 : 0,
+        pedidos_totais: existingSale ? Number(existingSale.pedidos_totais) || 0 : 0,
+        faturamento_salao: existingSale ? Number(existingSale.faturamento_salao) || 0 : 0,
+        pedidos_salao: existingSale ? Number(existingSale.pedidos_salao) || 0 : 0,
+        faturamento_tele: existingSale ? Number(existingSale.faturamento_tele) || 0 : 0,
+        pedidos_tele: existingSale ? Number(existingSale.pedidos_tele) || 0 : 0,
+      };
+
+      if (field === 'vendas') {
+        switch (sector) {
+          case 'COZINHA': case 'DIURNO': base.faturamento_total = value; break;
+          case 'SALÃO': base.faturamento_salao = value; break;
+          case 'TELE - ENTREGA': base.faturamento_tele = value; break;
+        }
+      } else {
+        switch (sector) {
+          case 'COZINHA': case 'DIURNO': base.pedidos_totais = value; break;
+          case 'SALÃO': base.pedidos_salao = value; break;
+          case 'TELE - ENTREGA': base.pedidos_tele = value; break;
+        }
+      }
+
+      upsertDraftSales(base);
+      toast({ title: '[Rascunho] Dados de vendas simulados' });
       return;
     }
     const existingSale = salesMap[dateKey];
