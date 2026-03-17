@@ -41,6 +41,7 @@ const emptyForm: FormData = {
   data_desligamento: '',
   inicio_periodo: '',
   fim_periodo: '',
+  pis_matricula: '',
 };
 
 export default function Colaboradores() {
