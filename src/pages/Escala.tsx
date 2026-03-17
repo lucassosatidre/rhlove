@@ -8,6 +8,7 @@ import { useAfastamentos } from '@/hooks/useAfastamentos';
 import { useScheduleEvents, buildEventsMap, buildSwapOverrides, type ScheduleEvent } from '@/hooks/useScheduleEvents';
 import { generateSchedule, getMonthLabel, getFirstMondayOfMonthGrid, getWeekCount, getScheduledCollaboratorIdsBySectorOnDate, type ScheduleWeek } from '@/lib/scheduleEngine';
 import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
+import { DraftModeProvider, useDraftMode } from '@/contexts/DraftModeContext';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, ChevronLeft, ChevronRight, Download, History, Printer, Users, X } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Download, History, Printer, Users, X, PenLine, Trash2 } from 'lucide-react';
 import FreesDialog from '@/components/FreesDialog';
 import InlineFreelancerInput from '@/components/schedule/InlineFreelancerInput';
 import EditableSalesCell from '@/components/schedule/EditableSalesCell';
@@ -33,7 +34,7 @@ const MONTHS = [
 
 const DAY_NAMES = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
-export default function Escala() {
+function EscalaInner() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -48,6 +49,7 @@ export default function Escala() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { isDraft, setIsDraft, draftEvents, draftFreelancerEntries, addDraftFreelancer, removeDraftFreelancer, clearDraft } = useDraftMode();
 
   const { data: collaborators = [] } = useCollaborators();
   const { data: scheduledVacations = [] } = useScheduledVacations();
@@ -69,9 +71,15 @@ export default function Escala() {
   const { data: salesData = [] } = useDailySales(dateRange.start, dateRange.end);
   const { data: scheduleEvents = [] } = useScheduleEvents(dateRange.start, dateRange.end);
 
+  // Merge real events with draft events
+  const allScheduleEvents = useMemo(
+    () => isDraft ? [...scheduleEvents, ...draftEvents] : scheduleEvents,
+    [scheduleEvents, draftEvents, isDraft]
+  );
+
   // Build overrides from events BEFORE generating schedule
-  const swapOverrides = useMemo(() => buildSwapOverrides(scheduleEvents), [scheduleEvents]);
-  const eventsMap = useMemo(() => buildEventsMap(scheduleEvents), [scheduleEvents]);
+  const swapOverrides = useMemo(() => buildSwapOverrides(allScheduleEvents), [allScheduleEvents]);
+  const eventsMap = useMemo(() => buildEventsMap(allScheduleEvents), [allScheduleEvents]);
 
   // Generate schedule WITH day-off overrides applied
   const weeks = useMemo(
@@ -94,8 +102,8 @@ export default function Escala() {
   }, [weeks, selectedWeek]);
 
   const absentCollaboratorIdsByDate = useMemo(
-    () => buildAbsentCollaboratorIdsByDate(scheduleEvents),
-    [scheduleEvents]
+    () => buildAbsentCollaboratorIdsByDate(allScheduleEvents),
+    [allScheduleEvents]
   );
 
   // Lookup: collaborator name → collaborator object
@@ -119,16 +127,17 @@ export default function Escala() {
     return map;
   }, [freelancers]);
 
-  // Named freelancers by date|sector
+  // Named freelancers by date|sector (merge draft)
   const freelancerEntriesMap = useMemo(() => {
     const map: Record<string, typeof freelancerEntries> = {};
-    for (const fe of freelancerEntries) {
+    const allEntries = isDraft ? [...freelancerEntries, ...draftFreelancerEntries] : freelancerEntries;
+    for (const fe of allEntries) {
       const key = `${fe.date}|${fe.sector}`;
       if (!map[key]) map[key] = [];
-      map[key].push(fe);
+      map[key].push(fe as any);
     }
     return map;
-  }, [freelancerEntries]);
+  }, [freelancerEntries, draftFreelancerEntries, isDraft]);
 
   const salesMap = useMemo(() => {
     const map: Record<string, typeof salesData[0]> = {};
@@ -241,6 +250,11 @@ export default function Escala() {
     v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const handleAddFreelancer = async (date: string, sector: string, name: string) => {
+    if (isDraft) {
+      addDraftFreelancer({ date, sector, name });
+      toast({ title: `[Rascunho] ${name} (F) simulado` });
+      return;
+    }
     try {
       await addFreelancerEntry.mutateAsync({ date, sector, name });
       toast({ title: `${name} (F) adicionado` });
@@ -250,6 +264,11 @@ export default function Escala() {
   };
 
   const handleRemoveFreelancer = async (id: string) => {
+    if (isDraft && id.startsWith('draft-')) {
+      removeDraftFreelancer(id);
+      return;
+    }
+    if (isDraft) return; // Don't delete real entries in draft mode
     try {
       await deleteFreelancerEntry.mutateAsync(id);
     } catch {
@@ -258,6 +277,10 @@ export default function Escala() {
   };
 
   const handleSaveSales = async (dateKey: string, sector: string, field: 'vendas' | 'pedidos', value: number) => {
+    if (isDraft) {
+      toast({ title: '[Rascunho] Dados de vendas não são salvos no modo rascunho' });
+      return;
+    }
     const existingSale = salesMap[dateKey];
 
     const input: any = {
@@ -632,6 +655,21 @@ export default function Escala() {
         title="ESCALA SEMANAL"
         subtitle={weeks[effectiveSelectedWeek] ? `Semana: ${formatDateBR(weeks[effectiveSelectedWeek].days[0].date)} a ${formatDateBR(weeks[effectiveSelectedWeek].days[6].date)}` : getMonthLabel(year, month)}
       />
+      {isDraft && (
+        <Card className="border-2 border-amber-400 dark:border-amber-600 bg-amber-50 dark:bg-amber-950/30 no-print">
+          <CardContent className="py-2 px-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <PenLine className="w-4 h-4 text-amber-600" />
+              <span className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                Modo Rascunho — alterações aqui NÃO são salvas no banco de dados
+              </span>
+            </div>
+            <Button variant="outline" size="sm" onClick={clearDraft} className="text-xs border-amber-400 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-900">
+              <Trash2 className="w-3.5 h-3.5 mr-1" /> Limpar rascunho
+            </Button>
+          </CardContent>
+        </Card>
+      )}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 no-print">
         <div>
           <h1 className="text-2xl font-bold">Escala de Trabalho</h1>
@@ -673,6 +711,13 @@ export default function Escala() {
               </SelectContent>
             </Select>
           )}
+          <div className="flex items-center gap-2">
+            <Label className="text-xs flex items-center gap-1">
+              <PenLine className="w-3.5 h-3.5" />
+              Projetar Escala
+            </Label>
+            <Switch checked={isDraft} onCheckedChange={setIsDraft} />
+          </div>
           <div className="flex items-center gap-2">
             <Label className="text-xs">Desempenho</Label>
             <Switch checked={showPerformance} onCheckedChange={setShowPerformance} />
@@ -930,5 +975,13 @@ export default function Escala() {
       <ScheduleAdjustmentsHistoryDialog open={historyOpen} onOpenChange={setHistoryOpen} />
       <PrintFooter />
     </div>
+  );
+}
+
+export default function Escala() {
+  return (
+    <DraftModeProvider>
+      <EscalaInner />
+    </DraftModeProvider>
   );
 }

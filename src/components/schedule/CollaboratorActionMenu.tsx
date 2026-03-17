@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateScheduleEvent, type ScheduleEventInput } from '@/hooks/useScheduleEvents';
 import { useHolidayCompensations, useUpdateHolidayCompensation } from '@/hooks/useHolidayCompensations';
+import { useDraftModeOptional } from '@/contexts/DraftModeContext';
 import type { Collaborator } from '@/types/collaborator';
 import { AlertTriangle, FileText, Gift, ArrowLeftRight, ArrowRight } from 'lucide-react';
 
@@ -67,6 +68,7 @@ export default function CollaboratorActionMenu({
   const createEvent = useCreateScheduleEvent();
   const { data: compensations = [] } = useHolidayCompensations();
   const updateCompensation = useUpdateHolidayCompensation();
+  const draftCtx = useDraftModeOptional();
 
   const dateKey = formatDateKey(date);
   const weekStartKey = formatDateKey(weekStart);
@@ -105,11 +107,11 @@ export default function CollaboratorActionMenu({
   const handleSubmit = async () => {
     if (!dialogType) return;
     setLoading(true);
+    const isDraft = draftCtx?.isDraft ?? false;
 
     try {
       if (dialogType === 'AJUSTE_FOLGA') {
         if (ajusteMode === 'troca') {
-          // TROCA_FOLGA: swap day off with another collaborator
           if (!swapCollaboratorId) {
             toast({ title: 'Selecione o colaborador para a troca', variant: 'destructive' });
             setLoading(false);
@@ -135,10 +137,13 @@ export default function CollaboratorActionMenu({
             created_by: usuario?.nome || usuario?.email || null,
           };
 
-          await createEvent.mutateAsync(input);
-          toast({ title: 'Troca de folga aplicada' });
+          if (isDraft) {
+            draftCtx!.addDraftEvent(input);
+          } else {
+            await createEvent.mutateAsync(input);
+          }
+          toast({ title: isDraft ? '[Rascunho] Troca de folga simulada' : 'Troca de folga aplicada' });
         } else {
-          // MUDANCA_FOLGA: move own day off
           if (!newDayOff) {
             toast({ title: 'Selecione o novo dia da folga', variant: 'destructive' });
             setLoading(false);
@@ -162,8 +167,12 @@ export default function CollaboratorActionMenu({
             created_by: usuario?.nome || usuario?.email || null,
           };
 
-          await createEvent.mutateAsync(input);
-          toast({ title: 'Folga movida com sucesso' });
+          if (isDraft) {
+            draftCtx!.addDraftEvent(input);
+          } else {
+            await createEvent.mutateAsync(input);
+          }
+          toast({ title: isDraft ? '[Rascunho] Folga movida (simulação)' : 'Folga movida com sucesso' });
         }
 
         setDialogType(null);
@@ -171,7 +180,6 @@ export default function CollaboratorActionMenu({
         return;
       }
 
-      // Other event types (FALTA, ATESTADO, COMPENSACAO)
       const base: ScheduleEventInput = {
         collaborator_id: collaboratorId,
         collaborator_name: collaboratorName,
@@ -198,19 +206,25 @@ export default function CollaboratorActionMenu({
           return;
         }
         base.holiday_compensation_id = compId;
-        await updateCompensation.mutateAsync({
-          id: compId,
-          status: 'COMPENSADO',
-          compensation_date: dateKey,
-        });
+        if (!isDraft) {
+          await updateCompensation.mutateAsync({
+            id: compId,
+            status: 'COMPENSADO',
+            compensation_date: dateKey,
+          });
+        }
       }
 
-      await createEvent.mutateAsync(base);
+      if (isDraft) {
+        draftCtx!.addDraftEvent(base);
+      } else {
+        await createEvent.mutateAsync(base);
+      }
 
       const labels: Record<string, string> = {
-        FALTA: 'Falta registrada',
-        ATESTADO: 'Atestado registrado',
-        COMPENSACAO: 'Compensação aplicada',
+        FALTA: isDraft ? '[Rascunho] Falta simulada' : 'Falta registrada',
+        ATESTADO: isDraft ? '[Rascunho] Atestado simulado' : 'Atestado registrado',
+        COMPENSACAO: isDraft ? '[Rascunho] Compensação simulada' : 'Compensação aplicada',
       };
 
       toast({ title: labels[dialogType] });
