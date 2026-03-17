@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import type { ScheduleEvent, ScheduleEventInput } from '@/hooks/useScheduleEvents';
+import type { DailySalesInput } from '@/hooks/useDailySales';
 
 interface DraftFreelancerEntry {
   id: string;
@@ -16,6 +17,16 @@ interface DraftFreelancerEntry {
   cancelled_by: string | null;
 }
 
+export interface DraftSalesEntry {
+  date: string;
+  faturamento_total: number;
+  pedidos_totais: number;
+  faturamento_salao: number;
+  pedidos_salao: number;
+  faturamento_tele: number;
+  pedidos_tele: number;
+}
+
 interface DraftModeContextValue {
   isDraft: boolean;
   setIsDraft: (v: boolean) => void;
@@ -24,7 +35,38 @@ interface DraftModeContextValue {
   draftFreelancerEntries: DraftFreelancerEntry[];
   addDraftFreelancer: (entry: { date: string; sector: string; name: string }) => void;
   removeDraftFreelancer: (id: string) => void;
+  draftSales: Record<string, DraftSalesEntry>;
+  upsertDraftSales: (entry: DraftSalesEntry) => void;
   clearDraft: () => void;
+}
+
+const STORAGE_KEY = 'estrela-rh-draft';
+
+interface DraftStorageData {
+  events: ScheduleEvent[];
+  freelancers: DraftFreelancerEntry[];
+  sales: Record<string, DraftSalesEntry>;
+  counter: number;
+}
+
+function loadFromStorage(): DraftStorageData {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return { events: [], freelancers: [], sales: {}, counter: 0 };
+}
+
+function saveToStorage(data: DraftStorageData) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch {}
+}
+
+function clearStorage() {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {}
 }
 
 const DraftModeContext = createContext<DraftModeContextValue | null>(null);
@@ -39,17 +81,25 @@ export function useDraftModeOptional() {
   return useContext(DraftModeContext);
 }
 
-let draftCounter = 0;
-
 export function DraftModeProvider({ children }: { children: ReactNode }) {
-  const [isDraft, setIsDraft] = useState(false);
-  const [draftEvents, setDraftEvents] = useState<ScheduleEvent[]>([]);
-  const [draftFreelancerEntries, setDraftFreelancerEntries] = useState<DraftFreelancerEntry[]>([]);
+  const initial = loadFromStorage();
+  const [isDraft, setIsDraft] = useState(initial.events.length > 0 || initial.freelancers.length > 0 || Object.keys(initial.sales).length > 0);
+  const [draftEvents, setDraftEvents] = useState<ScheduleEvent[]>(initial.events);
+  const [draftFreelancerEntries, setDraftFreelancerEntries] = useState<DraftFreelancerEntry[]>(initial.freelancers);
+  const [draftSales, setDraftSales] = useState<Record<string, DraftSalesEntry>>(initial.sales);
+  const [counter, setCounter] = useState(initial.counter);
+
+  // Persist to localStorage on changes
+  useEffect(() => {
+    saveToStorage({ events: draftEvents, freelancers: draftFreelancerEntries, sales: draftSales, counter });
+  }, [draftEvents, draftFreelancerEntries, draftSales, counter]);
 
   const addDraftEvent = useCallback((input: ScheduleEventInput): ScheduleEvent => {
     const now = new Date().toISOString();
+    const newCounter = counter + 1;
+    setCounter(newCounter);
     const event: ScheduleEvent = {
-      id: `draft-${++draftCounter}`,
+      id: `draft-${newCounter}`,
       collaborator_id: input.collaborator_id,
       collaborator_name: input.collaborator_name,
       event_type: input.event_type,
@@ -72,12 +122,14 @@ export function DraftModeProvider({ children }: { children: ReactNode }) {
     };
     setDraftEvents(prev => [...prev, event]);
     return event;
-  }, []);
+  }, [counter]);
 
   const addDraftFreelancer = useCallback((entry: { date: string; sector: string; name: string }) => {
     const now = new Date().toISOString();
+    const newCounter = counter + 1;
+    setCounter(newCounter);
     const fe: DraftFreelancerEntry = {
-      id: `draft-free-${++draftCounter}`,
+      id: `draft-free-${newCounter}`,
       name: entry.name,
       date: entry.date,
       sector: entry.sector,
@@ -91,22 +143,31 @@ export function DraftModeProvider({ children }: { children: ReactNode }) {
       cancelled_by: null,
     };
     setDraftFreelancerEntries(prev => [...prev, fe]);
-  }, []);
+  }, [counter]);
 
   const removeDraftFreelancer = useCallback((id: string) => {
     setDraftFreelancerEntries(prev => prev.filter(f => f.id !== id));
   }, []);
 
+  const upsertDraftSales = useCallback((entry: DraftSalesEntry) => {
+    setDraftSales(prev => ({ ...prev, [entry.date]: entry }));
+  }, []);
+
   const clearDraft = useCallback(() => {
     setDraftEvents([]);
     setDraftFreelancerEntries([]);
+    setDraftSales({});
+    setCounter(0);
+    clearStorage();
   }, []);
 
   const handleSetIsDraft = useCallback((v: boolean) => {
     if (!v) {
-      // Clear draft data when turning off
       setDraftEvents([]);
       setDraftFreelancerEntries([]);
+      setDraftSales({});
+      setCounter(0);
+      clearStorage();
     }
     setIsDraft(v);
   }, []);
@@ -120,6 +181,8 @@ export function DraftModeProvider({ children }: { children: ReactNode }) {
       draftFreelancerEntries,
       addDraftFreelancer,
       removeDraftFreelancer,
+      draftSales,
+      upsertDraftSales,
       clearDraft,
     }}>
       {children}
