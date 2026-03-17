@@ -12,9 +12,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Upload, Download, Eye } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Download, Eye, CreditCard } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import CollaboratorProfileDialog from '@/components/collaborator/CollaboratorProfileDialog';
+import PisImportDialog from '@/components/collaborator/PisImportDialog';
 
 interface FormData {
   collaborator_name: string;
@@ -27,6 +28,7 @@ interface FormData {
   data_desligamento: string;
   inicio_periodo: string;
   fim_periodo: string;
+  pis_matricula: string;
 }
 
 const emptyForm: FormData = {
@@ -40,6 +42,7 @@ const emptyForm: FormData = {
   data_desligamento: '',
   inicio_periodo: '',
   fim_periodo: '',
+  pis_matricula: '',
 };
 
 export default function Colaboradores() {
@@ -54,6 +57,7 @@ export default function Colaboradores() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
   const [profileCollaborator, setProfileCollaborator] = useState<Collaborator | null>(null);
+  const [pisImportOpen, setPisImportOpen] = useState(false);
 
   const openNew = () => {
     setEditingId(null);
@@ -74,6 +78,7 @@ export default function Colaboradores() {
       data_desligamento: c.data_desligamento ?? '',
       inicio_periodo: c.inicio_periodo ?? '',
       fim_periodo: c.fim_periodo ?? '',
+      pis_matricula: c.pis_matricula ?? '',
     });
     setDialogOpen(true);
   };
@@ -89,6 +94,7 @@ export default function Colaboradores() {
     data_desligamento: f.data_desligamento || null,
     inicio_periodo: f.inicio_periodo || null,
     fim_periodo: f.fim_periodo || null,
+    pis_matricula: f.pis_matricula || null,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -246,7 +252,7 @@ export default function Colaboradores() {
           <h1 className="text-2xl font-bold">Colaboradores</h1>
           <p className="text-sm text-muted-foreground">{collaborators.length} cadastrados</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={handleExport} disabled={collaborators.length === 0}>
             <Download className="w-4 h-4 mr-1" /> Exportar
           </Button>
@@ -256,6 +262,9 @@ export default function Colaboradores() {
               <span><Upload className="w-4 h-4 mr-1" /> Importar</span>
             </Button>
           </label>
+          <Button variant="outline" size="sm" onClick={() => setPisImportOpen(true)}>
+            <CreditCard className="w-4 h-4 mr-1" /> Importar PIS
+          </Button>
           <Button size="sm" onClick={openNew}>
             <Plus className="w-4 h-4 mr-1" /> Novo
           </Button>
@@ -408,6 +417,15 @@ export default function Colaboradores() {
             </div>
 
             <div className="space-y-2">
+              <Label>PIS / Matrícula do ponto</Label>
+              <Input
+                value={form.pis_matricula}
+                onChange={e => setForm(f => ({ ...f, pis_matricula: e.target.value }))}
+                placeholder="Número do PIS ou matrícula (opcional)"
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label>Início na Empresa</Label>
               <Input
                 type="date"
@@ -460,6 +478,12 @@ export default function Colaboradores() {
         collaborator={profileCollaborator}
         open={!!profileCollaborator}
         onOpenChange={open => { if (!open) setProfileCollaborator(null); }}
+      />
+
+      <PisImportDialog
+        open={pisImportOpen}
+        onOpenChange={setPisImportOpen}
+        collaborators={collaborators}
       />
     </div>
   );

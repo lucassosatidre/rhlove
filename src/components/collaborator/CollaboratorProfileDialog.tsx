@@ -57,6 +57,7 @@ export default function CollaboratorProfileDialog({ collaborator, open, onOpenCh
                 label="Folgas semanais"
                 value={c.folgas_semanais.map(d => DAY_LABELS[d]?.slice(0, 3)).join(', ')}
               />
+              <InfoRow label="PIS / Matrícula" value={c.pis_matricula || 'Não informado'} />
               <InfoRow label="Início na empresa" value={fmt(c.inicio_na_empresa)} />
               {c.data_desligamento && (
                 <InfoRow label="Data de desligamento" value={fmt(c.data_desligamento)} />

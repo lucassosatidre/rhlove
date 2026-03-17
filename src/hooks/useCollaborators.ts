@@ -13,6 +13,7 @@ export interface CollaboratorInput {
   data_desligamento?: string | null;
   inicio_periodo?: string | null;
   fim_periodo?: string | null;
+  pis_matricula?: string | null;
   // legacy
   data_retorno?: string | null;
   data_fim_experiencia?: string | null;
@@ -32,6 +33,7 @@ function toDbRow(c: CollaboratorInput) {
     data_desligamento: c.data_desligamento || null,
     inicio_periodo: c.inicio_periodo || null,
     fim_periodo: c.fim_periodo || null,
+    pis_matricula: c.pis_matricula || null,
     data_retorno: c.data_retorno || c.fim_periodo || null,
     data_fim_experiencia: c.data_fim_experiencia || (c.status === 'EXPERIENCIA' ? c.fim_periodo : null) || null,
     data_fim_aviso: c.data_fim_aviso || (c.status === 'AVISO_PREVIO' ? c.fim_periodo : null) || null,
@@ -48,6 +50,7 @@ function fromDbRow(row: any): Collaborator {
     data_desligamento: row.data_desligamento ?? null,
     inicio_periodo: row.inicio_periodo ?? null,
     fim_periodo: row.fim_periodo ?? null,
+    pis_matricula: row.pis_matricula ?? null,
   } as Collaborator;
 }
 
