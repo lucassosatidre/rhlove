@@ -412,6 +412,15 @@ export default function Colaboradores() {
             </div>
 
             <div className="space-y-2">
+              <Label>PIS / Matrícula do ponto</Label>
+              <Input
+                value={form.pis_matricula}
+                onChange={e => setForm(f => ({ ...f, pis_matricula: e.target.value }))}
+                placeholder="Número do PIS ou matrícula (opcional)"
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label>Início na Empresa</Label>
               <Input
                 type="date"
