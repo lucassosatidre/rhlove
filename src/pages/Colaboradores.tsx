@@ -27,6 +27,7 @@ interface FormData {
   data_desligamento: string;
   inicio_periodo: string;
   fim_periodo: string;
+  pis_matricula: string;
 }
 
 const emptyForm: FormData = {
