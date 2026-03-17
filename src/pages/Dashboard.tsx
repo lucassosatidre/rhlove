@@ -3,6 +3,8 @@ import { useDailySales } from '@/hooks/useDailySales';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useFreelancers } from '@/hooks/useFreelancers';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
+import { useScheduleEvents } from '@/hooks/useScheduleEvents';
+import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { Loader2, CalendarDays, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import TopKPICards from '@/components/dashboard/TopKPICards';

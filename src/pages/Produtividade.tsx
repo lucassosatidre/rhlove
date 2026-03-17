@@ -4,6 +4,8 @@ import { useDailySales, useUpsertDailySales, useBulkInsertDailySales, useDeleteD
 import { useFreelancers, useBulkUpsertFreelancers } from '@/hooks/useFreelancers';
 import { useBulkInsertFreelancerEntries } from '@/hooks/useFreelancerEntries';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
+import { useScheduleEvents } from '@/hooks/useScheduleEvents';
+import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { supabase } from '@/integrations/supabase/client';
 import { generateProductivityData, formatCurrency, formatDecimal, formatDateBR, getSectorOrder } from '@/lib/productivityEngine';
 import { Button } from '@/components/ui/button';
