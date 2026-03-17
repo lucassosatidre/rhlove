@@ -33,6 +33,7 @@ function toDbRow(c: CollaboratorInput) {
     data_desligamento: c.data_desligamento || null,
     inicio_periodo: c.inicio_periodo || null,
     fim_periodo: c.fim_periodo || null,
+    pis_matricula: c.pis_matricula || null,
     data_retorno: c.data_retorno || c.fim_periodo || null,
     data_fim_experiencia: c.data_fim_experiencia || (c.status === 'EXPERIENCIA' ? c.fim_periodo : null) || null,
     data_fim_aviso: c.data_fim_aviso || (c.status === 'AVISO_PREVIO' ? c.fim_periodo : null) || null,
