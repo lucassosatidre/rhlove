@@ -556,7 +556,8 @@ export default function Escala() {
                           if (!sale) {
                             return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>Pedidos/colab.: -</td>;
                           }
-                          const scheduled = (d.collaboratorsBySector[sector] || []).length;
+                          const absentIds = absentCollaboratorIdsByDate.get(dateKey);
+                          const scheduled = (d.collaboratorsBySector[sector] || []).filter(id => !absentIds?.has(id)).length;
                           const frees = getTotalFrees(dateKey, sector);
                           const total = scheduled + frees;
                           const { pedidos } = getSectorSales(sale, sector);
