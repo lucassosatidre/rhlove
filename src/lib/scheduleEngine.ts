@@ -176,6 +176,35 @@ function formatDateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+export function getScheduledCollaboratorIdsBySectorOnDate(
+  collaborators: Collaborator[],
+  date: Date,
+  scheduledVacations: ScheduledVacation[] = [],
+  dayOffOverrides?: DayOffOverridesMap,
+  afastamentos: Afastamento[] = []
+): Record<string, string[]> {
+  const normalizedDate = dateOnly(date);
+  const mondayOffset = normalizedDate.getDay() === 0 ? -6 : 1 - normalizedDate.getDay();
+  const weekStart = new Date(normalizedDate);
+  weekStart.setDate(normalizedDate.getDate() + mondayOffset);
+  const weekStartKey = formatDateKey(weekStart);
+  const collaboratorsBySector: Record<string, string[]> = {};
+
+  for (const collab of collaborators) {
+    const overrideKey = `${weekStartKey}|${collab.id}`;
+    const override = dayOffOverrides?.get(overrideKey);
+    const displayName = getDisplayName(collab, normalizedDate, scheduledVacations, override, afastamentos);
+    if (!displayName) continue;
+
+    if (!collaboratorsBySector[collab.sector]) {
+      collaboratorsBySector[collab.sector] = [];
+    }
+    collaboratorsBySector[collab.sector].push(collab.id);
+  }
+
+  return collaboratorsBySector;
+}
+
 export function generateSchedule(
   collaborators: Collaborator[],
   year: number,
@@ -206,7 +235,6 @@ export function generateSchedule(
       const collaboratorsBySector: Record<string, string[]> = {};
 
       for (const collab of collaborators) {
-        // Look up override for this collaborator in this week
         const overrideKey = `${weekStartKey}|${collab.id}`;
         const override = dayOffOverrides?.get(overrideKey);
 

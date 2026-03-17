@@ -109,7 +109,7 @@ export function computeBlockMetrics(
   const ped = sales.reduce((a, s) => a + Number(s.pedidos_totais), 0);
   let totalPeople = 0;
   for (const s of sales) {
-    totalPeople += getTotalPeopleForDate(collaborators, freelancers, scheduledVacations, s.date);
+    totalPeople += getTotalPeopleForDate(collaborators, freelancers, scheduledVacations, s.date, absentCollaboratorIdsByDate);
   }
   const avgPeople = totalPeople / days;
   const pct = avgPeople > 0 ? (ped / days) / avgPeople : 0;
@@ -119,7 +119,7 @@ export function computeBlockMetrics(
   const prevPed = prevSales.reduce((a, s) => a + Number(s.pedidos_totais), 0);
   let prevTotalPeople = 0;
   for (const s of prevSales) {
-    prevTotalPeople += getTotalPeopleForDate(collaborators, prevFreelancers, scheduledVacations, s.date);
+    prevTotalPeople += getTotalPeopleForDate(collaborators, prevFreelancers, scheduledVacations, s.date, absentCollaboratorIdsByDate);
   }
   const prevAvgPeople = prevTotalPeople / prevDays;
   const prevPct = prevAvgPeople > 0 ? (prevPed / prevDays) / prevAvgPeople : 0;
@@ -129,7 +129,7 @@ export function computeBlockMetrics(
   const sectors: SectorMetric[] = SECTORS.map(sector => {
     let sectorPeople = 0, sectorPed = 0, sectorFat = 0;
     for (const sale of sales) {
-      sectorPeople += getSectorPeopleForDate(collaborators, freelancers, scheduledVacations, sale.date, sector);
+      sectorPeople += getSectorPeopleForDate(collaborators, freelancers, scheduledVacations, sale.date, sector, absentCollaboratorIdsByDate);
       const ss = getSectorSales(sale, sector);
       sectorPed += ss.pedidos;
       sectorFat += ss.faturamento;
@@ -138,7 +138,7 @@ export function computeBlockMetrics(
     
     let prevSectorPeople = 0, prevSectorPed = 0, prevSectorFat = 0;
     for (const sale of prevSales) {
-      prevSectorPeople += getSectorPeopleForDate(collaborators, prevFreelancers, scheduledVacations, sale.date, sector);
+      prevSectorPeople += getSectorPeopleForDate(collaborators, prevFreelancers, scheduledVacations, sale.date, sector, absentCollaboratorIdsByDate);
       const ss = getSectorSales(sale, sector);
       prevSectorPed += ss.pedidos;
       prevSectorFat += ss.faturamento;
