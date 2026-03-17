@@ -4,6 +4,7 @@ import type { DailySales } from '@/hooks/useDailySales';
 import type { Collaborator } from '@/types/collaborator';
 import type { Freelancer } from '@/hooks/useFreelancers';
 import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
+import type { AbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { countPeopleBySectorOnDate } from '@/lib/productivityEngine';
 
 const SECTORS = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'] as const;
@@ -12,12 +13,13 @@ function getTotalPeople(
   collaborators: Collaborator[],
   freelancers: Freelancer[],
   scheduledVacations: ScheduledVacation[],
-  dateStr: string
+  dateStr: string,
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
 ): number {
   const d = new Date(dateStr + 'T00:00:00');
   let total = 0;
   for (const s of SECTORS) {
-    total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations);
+    total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate);
     const f = freelancers.find(fr => fr.date === dateStr && fr.sector === s);
     if (f) total += f.quantity;
   }
@@ -27,12 +29,13 @@ function getTotalPeople(
 function getCollaboratorsOnly(
   collaborators: Collaborator[],
   scheduledVacations: ScheduledVacation[],
-  dateStr: string
+  dateStr: string,
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
 ): number {
   const d = new Date(dateStr + 'T00:00:00');
   let total = 0;
   for (const s of SECTORS) {
-    total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations);
+    total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate);
   }
   return total;
 }
@@ -49,7 +52,8 @@ function computeMonthlyKPIs(
   sales: DailySales[],
   collaborators: Collaborator[],
   freelancers: Freelancer[],
-  scheduledVacations: ScheduledVacation[]
+  scheduledVacations: ScheduledVacation[],
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
 ): MonthlyKPIs {
   if (sales.length === 0) return { tmp: 0, ppp: 0, tmt: 0, pcs: 0, hasDays: false };
 

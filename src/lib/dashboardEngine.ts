@@ -1,7 +1,8 @@
-import type { Collaborator, DayOfWeek } from '@/types/collaborator';
+import type { Collaborator } from '@/types/collaborator';
 import type { DailySales } from '@/hooks/useDailySales';
 import type { Freelancer } from '@/hooks/useFreelancers';
 import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
+import type { AbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { countPeopleBySectorOnDate } from '@/lib/productivityEngine';
 
 const SECTORS = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'] as const;
@@ -15,12 +16,13 @@ function getTotalPeopleForDate(
   collaborators: Collaborator[],
   freelancers: Freelancer[],
   scheduledVacations: ScheduledVacation[],
-  dateStr: string
+  dateStr: string,
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
 ): number {
   const d = new Date(dateStr + 'T00:00:00');
   let total = 0;
   for (const s of SECTORS) {
-    total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations);
+    total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate);
     total += getFreelancerCount(freelancers, dateStr, s);
   }
   return total;
@@ -31,10 +33,11 @@ function getSectorPeopleForDate(
   freelancers: Freelancer[],
   scheduledVacations: ScheduledVacation[],
   dateStr: string,
-  sector: string
+  sector: string,
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
 ): number {
   const d = new Date(dateStr + 'T00:00:00');
-  return countPeopleBySectorOnDate(collaborators, sector, d, scheduledVacations) +
+  return countPeopleBySectorOnDate(collaborators, sector, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate) +
     getFreelancerCount(freelancers, dateStr, sector);
 }
 
@@ -95,7 +98,8 @@ export function computeBlockMetrics(
   collaborators: Collaborator[],
   freelancers: Freelancer[],
   prevFreelancers: Freelancer[],
-  scheduledVacations: ScheduledVacation[]
+  scheduledVacations: ScheduledVacation[],
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
 ): BlockMetrics {
   const days = sales.length || 1;
   const prevDays = prevSales.length || 1;
