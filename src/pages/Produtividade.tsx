@@ -88,6 +88,7 @@ export default function Produtividade() {
   const { data: salesData = [], isLoading } = useDailySales(startDate, endDate);
   const { data: freelancersData = [] } = useFreelancers(startDate, endDate);
   const { data: scheduledVacations = [] } = useScheduledVacations();
+  const { data: scheduleEvents = [] } = useScheduleEvents(prevPeriod.start, endDate);
 
   // Previous period for comparison
   const prevPeriod = useMemo(() => {
@@ -102,6 +103,11 @@ export default function Produtividade() {
     return { start: toStr(prevStart), end: toStr(prevEnd) };
   }, [startDate, endDate]);
 
+  const absentCollaboratorIdsByDate = useMemo(
+    () => buildAbsentCollaboratorIdsByDate(scheduleEvents),
+    [scheduleEvents]
+  );
+
   const { data: prevSalesData = [] } = useDailySales(prevPeriod.start, prevPeriod.end);
   const { data: prevFreelancersData = [] } = useFreelancers(prevPeriod.start, prevPeriod.end);
 
@@ -112,13 +118,13 @@ export default function Produtividade() {
   const bulkFreeEntriesMut = useBulkInsertFreelancerEntries();
 
   const productivityRows = useMemo(
-    () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations),
-    [salesData, collaborators, freelancersData, scheduledVacations]
+    () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate),
+    [salesData, collaborators, freelancersData, scheduledVacations, absentCollaboratorIdsByDate]
   );
 
   const prevProductivityRows = useMemo(
-    () => generateProductivityData(prevSalesData, collaborators, prevFreelancersData, scheduledVacations),
-    [prevSalesData, collaborators, prevFreelancersData, scheduledVacations]
+    () => generateProductivityData(prevSalesData, collaborators, prevFreelancersData, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate),
+    [prevSalesData, collaborators, prevFreelancersData, scheduledVacations, absentCollaboratorIdsByDate]
   );
 
   const groupedByDate = useMemo(() => {

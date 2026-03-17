@@ -165,6 +165,7 @@ export default function Dashboard() {
         collaborators={collaborators}
         freelancers={freelancers}
         scheduledVacations={scheduledVacations}
+        absentCollaboratorIdsByDate={absentCollaboratorIdsByDate}
       />
     </div>
   );
