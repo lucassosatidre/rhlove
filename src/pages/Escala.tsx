@@ -144,8 +144,25 @@ function EscalaInner() {
     for (const s of salesData) {
       map[s.date] = s;
     }
+    // Overlay draft sales on top of real sales
+    if (isDraft) {
+      for (const [date, ds] of Object.entries(draftSales)) {
+        map[date] = {
+          id: `draft-sale-${date}`,
+          date: ds.date,
+          faturamento_total: ds.faturamento_total,
+          pedidos_totais: ds.pedidos_totais,
+          faturamento_salao: ds.faturamento_salao,
+          pedidos_salao: ds.pedidos_salao,
+          faturamento_tele: ds.faturamento_tele,
+          pedidos_tele: ds.pedidos_tele,
+          created_at: '',
+          updated_at: '',
+        };
+      }
+    }
     return map;
-  }, [salesData]);
+  }, [salesData, draftSales, isDraft]);
 
   const prevMonth = () => {
     setSelectedWeek(-1);
