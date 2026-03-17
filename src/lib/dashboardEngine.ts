@@ -1,7 +1,8 @@
-import type { Collaborator, DayOfWeek } from '@/types/collaborator';
+import type { Collaborator } from '@/types/collaborator';
 import type { DailySales } from '@/hooks/useDailySales';
 import type { Freelancer } from '@/hooks/useFreelancers';
 import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
+import type { AbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { countPeopleBySectorOnDate } from '@/lib/productivityEngine';
 
 const SECTORS = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'] as const;
@@ -15,12 +16,13 @@ function getTotalPeopleForDate(
   collaborators: Collaborator[],
   freelancers: Freelancer[],
   scheduledVacations: ScheduledVacation[],
-  dateStr: string
+  dateStr: string,
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
 ): number {
   const d = new Date(dateStr + 'T00:00:00');
   let total = 0;
   for (const s of SECTORS) {
-    total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations);
+    total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate);
     total += getFreelancerCount(freelancers, dateStr, s);
   }
   return total;
@@ -31,10 +33,11 @@ function getSectorPeopleForDate(
   freelancers: Freelancer[],
   scheduledVacations: ScheduledVacation[],
   dateStr: string,
-  sector: string
+  sector: string,
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
 ): number {
   const d = new Date(dateStr + 'T00:00:00');
-  return countPeopleBySectorOnDate(collaborators, sector, d, scheduledVacations) +
+  return countPeopleBySectorOnDate(collaborators, sector, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate) +
     getFreelancerCount(freelancers, dateStr, sector);
 }
 
@@ -95,7 +98,8 @@ export function computeBlockMetrics(
   collaborators: Collaborator[],
   freelancers: Freelancer[],
   prevFreelancers: Freelancer[],
-  scheduledVacations: ScheduledVacation[]
+  scheduledVacations: ScheduledVacation[],
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
 ): BlockMetrics {
   const days = sales.length || 1;
   const prevDays = prevSales.length || 1;
@@ -105,7 +109,7 @@ export function computeBlockMetrics(
   const ped = sales.reduce((a, s) => a + Number(s.pedidos_totais), 0);
   let totalPeople = 0;
   for (const s of sales) {
-    totalPeople += getTotalPeopleForDate(collaborators, freelancers, scheduledVacations, s.date);
+    totalPeople += getTotalPeopleForDate(collaborators, freelancers, scheduledVacations, s.date, absentCollaboratorIdsByDate);
   }
   const avgPeople = totalPeople / days;
   const pct = avgPeople > 0 ? (ped / days) / avgPeople : 0;
@@ -115,7 +119,7 @@ export function computeBlockMetrics(
   const prevPed = prevSales.reduce((a, s) => a + Number(s.pedidos_totais), 0);
   let prevTotalPeople = 0;
   for (const s of prevSales) {
-    prevTotalPeople += getTotalPeopleForDate(collaborators, prevFreelancers, scheduledVacations, s.date);
+    prevTotalPeople += getTotalPeopleForDate(collaborators, prevFreelancers, scheduledVacations, s.date, absentCollaboratorIdsByDate);
   }
   const prevAvgPeople = prevTotalPeople / prevDays;
   const prevPct = prevAvgPeople > 0 ? (prevPed / prevDays) / prevAvgPeople : 0;
@@ -125,7 +129,7 @@ export function computeBlockMetrics(
   const sectors: SectorMetric[] = SECTORS.map(sector => {
     let sectorPeople = 0, sectorPed = 0, sectorFat = 0;
     for (const sale of sales) {
-      sectorPeople += getSectorPeopleForDate(collaborators, freelancers, scheduledVacations, sale.date, sector);
+      sectorPeople += getSectorPeopleForDate(collaborators, freelancers, scheduledVacations, sale.date, sector, absentCollaboratorIdsByDate);
       const ss = getSectorSales(sale, sector);
       sectorPed += ss.pedidos;
       sectorFat += ss.faturamento;
@@ -134,7 +138,7 @@ export function computeBlockMetrics(
     
     let prevSectorPeople = 0, prevSectorPed = 0, prevSectorFat = 0;
     for (const sale of prevSales) {
-      prevSectorPeople += getSectorPeopleForDate(collaborators, prevFreelancers, scheduledVacations, sale.date, sector);
+      prevSectorPeople += getSectorPeopleForDate(collaborators, prevFreelancers, scheduledVacations, sale.date, sector, absentCollaboratorIdsByDate);
       const ss = getSectorSales(sale, sector);
       prevSectorPed += ss.pedidos;
       prevSectorFat += ss.faturamento;

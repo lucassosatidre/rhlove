@@ -4,6 +4,8 @@ import { useDailySales, useUpsertDailySales, useBulkInsertDailySales, useDeleteD
 import { useFreelancers, useBulkUpsertFreelancers } from '@/hooks/useFreelancers';
 import { useBulkInsertFreelancerEntries } from '@/hooks/useFreelancerEntries';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
+import { useScheduleEvents } from '@/hooks/useScheduleEvents';
+import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { supabase } from '@/integrations/supabase/client';
 import { generateProductivityData, formatCurrency, formatDecimal, formatDateBR, getSectorOrder } from '@/lib/productivityEngine';
 import { Button } from '@/components/ui/button';
@@ -100,6 +102,12 @@ export default function Produtividade() {
     return { start: toStr(prevStart), end: toStr(prevEnd) };
   }, [startDate, endDate]);
 
+  const { data: scheduleEvents = [] } = useScheduleEvents(prevPeriod.start, endDate);
+  const absentCollaboratorIdsByDate = useMemo(
+    () => buildAbsentCollaboratorIdsByDate(scheduleEvents),
+    [scheduleEvents]
+  );
+
   const { data: prevSalesData = [] } = useDailySales(prevPeriod.start, prevPeriod.end);
   const { data: prevFreelancersData = [] } = useFreelancers(prevPeriod.start, prevPeriod.end);
 
@@ -110,13 +118,13 @@ export default function Produtividade() {
   const bulkFreeEntriesMut = useBulkInsertFreelancerEntries();
 
   const productivityRows = useMemo(
-    () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations),
-    [salesData, collaborators, freelancersData, scheduledVacations]
+    () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate),
+    [salesData, collaborators, freelancersData, scheduledVacations, absentCollaboratorIdsByDate]
   );
 
   const prevProductivityRows = useMemo(
-    () => generateProductivityData(prevSalesData, collaborators, prevFreelancersData, scheduledVacations),
-    [prevSalesData, collaborators, prevFreelancersData, scheduledVacations]
+    () => generateProductivityData(prevSalesData, collaborators, prevFreelancersData, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate),
+    [prevSalesData, collaborators, prevFreelancersData, scheduledVacations, absentCollaboratorIdsByDate]
   );
 
   const groupedByDate = useMemo(() => {

@@ -3,6 +3,8 @@ import { useDailySales } from '@/hooks/useDailySales';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useFreelancers } from '@/hooks/useFreelancers';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
+import { useScheduleEvents } from '@/hooks/useScheduleEvents';
+import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { Loader2, CalendarDays, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import TopKPICards from '@/components/dashboard/TopKPICards';
@@ -59,8 +61,13 @@ export default function Dashboard() {
   const { data: collaborators = [], isLoading: loadingCollab } = useCollaborators();
   const { data: freelancers = [] } = useFreelancers(broadStart, broadEnd);
   const { data: scheduledVacations = [] } = useScheduledVacations();
+  const { data: scheduleEvents = [] } = useScheduleEvents(broadStart, broadEnd);
 
   const loading = loadingSales || loadingCollab;
+  const absentCollaboratorIdsByDate = useMemo(
+    () => buildAbsentCollaboratorIdsByDate(scheduleEvents),
+    [scheduleEvents]
+  );
 
   // Helper to filter sales/freelancers by date range
   const filterByRange = (start: string, end: string) => ({
@@ -72,22 +79,22 @@ export default function Dashboard() {
   const yesterdayData = useMemo(() => {
     const curr = filterByRange(yesterdayStr, yesterdayStr);
     const prev = filterByRange(sameWeekdayPrevStr, sameWeekdayPrevStr);
-    return computeBlockMetrics(curr.sales, prev.sales, collaborators, curr.fl, prev.fl, scheduledVacations);
-  }, [allSales, freelancers, collaborators, scheduledVacations, yesterdayStr, sameWeekdayPrevStr]);
+    return computeBlockMetrics(curr.sales, prev.sales, collaborators, curr.fl, prev.fl, scheduledVacations, absentCollaboratorIdsByDate);
+  }, [allSales, freelancers, collaborators, scheduledVacations, yesterdayStr, sameWeekdayPrevStr, absentCollaboratorIdsByDate]);
 
   // 7-day avg metrics
   const avg7Data = useMemo(() => {
     const curr = filterByRange(fmt(start7), fmt(yesterday));
     const prev = filterByRange(fmt(prev7Start), fmt(prev7End));
-    return computeBlockMetrics(curr.sales, prev.sales, collaborators, curr.fl, prev.fl, scheduledVacations);
-  }, [allSales, freelancers, collaborators, scheduledVacations]);
+    return computeBlockMetrics(curr.sales, prev.sales, collaborators, curr.fl, prev.fl, scheduledVacations, absentCollaboratorIdsByDate);
+  }, [allSales, freelancers, collaborators, scheduledVacations, absentCollaboratorIdsByDate]);
 
   // 30-day avg metrics
   const avg30Data = useMemo(() => {
     const curr = filterByRange(fmt(start30), fmt(yesterday));
     const prev = filterByRange(fmt(prev30Start), fmt(prev30End));
-    return computeBlockMetrics(curr.sales, prev.sales, collaborators, curr.fl, prev.fl, scheduledVacations);
-  }, [allSales, freelancers, collaborators, scheduledVacations]);
+    return computeBlockMetrics(curr.sales, prev.sales, collaborators, curr.fl, prev.fl, scheduledVacations, absentCollaboratorIdsByDate);
+  }, [allSales, freelancers, collaborators, scheduledVacations, absentCollaboratorIdsByDate]);
 
   if (loading) {
     return (
@@ -158,6 +165,7 @@ export default function Dashboard() {
         collaborators={collaborators}
         freelancers={freelancers}
         scheduledVacations={scheduledVacations}
+        absentCollaboratorIdsByDate={absentCollaboratorIdsByDate}
       />
     </div>
   );

@@ -4,7 +4,8 @@ import type { Freelancer } from '@/hooks/useFreelancers';
 import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
 import type { Afastamento } from '@/hooks/useAfastamentos';
 import type { DayOffOverridesMap } from '@/lib/scheduleEngine';
-import { generateSchedule } from '@/lib/scheduleEngine';
+import { getScheduledCollaboratorIdsBySectorOnDate } from '@/lib/scheduleEngine';
+import type { AbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 
 export interface ProductivityRow {
   date: string;
@@ -18,30 +19,9 @@ export interface ProductivityRow {
 
 const SECTOR_ORDER = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO', 'TIME', 'TCT', 'PCT'];
 
-function formatDateKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
 function getFreelancerCount(freelancers: Freelancer[], date: string, sector: string): number {
   const f = freelancers.find(fr => fr.date === date && fr.sector === sector);
   return f ? f.quantity : 0;
-}
-
-function buildMonthRange(start: Date, end: Date) {
-  const months: Array<{ year: number; month: number }> = [];
-  let year = start.getFullYear();
-  let month = start.getMonth();
-
-  while (year < end.getFullYear() || (year === end.getFullYear() && month <= end.getMonth())) {
-    months.push({ year, month });
-    month += 1;
-    if (month > 11) {
-      month = 0;
-      year += 1;
-    }
-  }
-
-  return months;
 }
 
 function buildScheduledCountMap(
@@ -49,27 +29,24 @@ function buildScheduledCountMap(
   salesData: DailySales[],
   scheduledVacations: ScheduledVacation[] = [],
   dayOffOverrides?: DayOffOverridesMap,
-  afastamentos: Afastamento[] = []
+  afastamentos: Afastamento[] = [],
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
 ): Record<string, number> {
   const map: Record<string, number> = {};
-  if (salesData.length === 0) return map;
 
-  const dates = salesData.map(sale => new Date(sale.date + 'T00:00:00'));
-  const minDate = new Date(Math.min(...dates.map(date => date.getTime())));
-  const maxDate = new Date(Math.max(...dates.map(date => date.getTime())));
+  for (const sale of salesData) {
+    const date = new Date(sale.date + 'T00:00:00');
+    const absentCollaboratorIds = absentCollaboratorIdsByDate?.get(sale.date);
+    const collaboratorsBySector = getScheduledCollaboratorIdsBySectorOnDate(
+      collaborators,
+      date,
+      scheduledVacations,
+      dayOffOverrides,
+      afastamentos
+    );
 
-  for (const { year, month } of buildMonthRange(minDate, maxDate)) {
-    const weeks = generateSchedule(collaborators, year, month, scheduledVacations, dayOffOverrides, afastamentos);
-
-    for (const week of weeks) {
-      for (const day of week.days) {
-        const dayKey = formatDateKey(day.date);
-        if (day.date < minDate || day.date > maxDate) continue;
-
-        for (const [sector, names] of Object.entries(day.collaboratorsBySector)) {
-          map[`${dayKey}|${sector}`] = names.length;
-        }
-      }
+    for (const [sector, collaboratorIds] of Object.entries(collaboratorsBySector)) {
+      map[`${sale.date}|${sector}`] = collaboratorIds.filter(id => !absentCollaboratorIds?.has(id)).length;
     }
   }
 
@@ -82,19 +59,20 @@ export function countPeopleBySectorOnDate(
   date: Date,
   scheduledVacations: ScheduledVacation[] = [],
   dayOffOverrides?: DayOffOverridesMap,
-  afastamentos: Afastamento[] = []
+  afastamentos: Afastamento[] = [],
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
 ): number {
-  const weeks = generateSchedule(
+  const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const absentCollaboratorIds = absentCollaboratorIdsByDate?.get(dateKey);
+  const collaboratorsBySector = getScheduledCollaboratorIdsBySectorOnDate(
     collaborators,
-    date.getFullYear(),
-    date.getMonth(),
+    date,
     scheduledVacations,
     dayOffOverrides,
     afastamentos
   );
-  const dateKey = formatDateKey(date);
-  const day = weeks.flatMap(week => week.days).find(item => formatDateKey(item.date) === dateKey);
-  return day?.collaboratorsBySector[sector]?.length || 0;
+
+  return (collaboratorsBySector[sector] ?? []).filter(id => !absentCollaboratorIds?.has(id)).length;
 }
 
 export function generateProductivityData(
@@ -103,7 +81,8 @@ export function generateProductivityData(
   freelancers: Freelancer[] = [],
   scheduledVacations: ScheduledVacation[] = [],
   dayOffOverrides?: DayOffOverridesMap,
-  afastamentos: Afastamento[] = []
+  afastamentos: Afastamento[] = [],
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
 ): ProductivityRow[] {
   const rows: ProductivityRow[] = [];
   const scheduledCountMap = buildScheduledCountMap(
@@ -111,7 +90,8 @@ export function generateProductivityData(
     salesData,
     scheduledVacations,
     dayOffOverrides,
-    afastamentos
+    afastamentos,
+    absentCollaboratorIdsByDate
   );
 
   const getScheduledCount = (date: string, sector: string) => scheduledCountMap[`${date}|${sector}`] || 0;
