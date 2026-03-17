@@ -972,3 +972,11 @@ function EscalaInner() {
     </div>
   );
 }
+
+export default function Escala() {
+  return (
+    <DraftModeProvider>
+      <EscalaInner />
+    </DraftModeProvider>
+  );
+}
