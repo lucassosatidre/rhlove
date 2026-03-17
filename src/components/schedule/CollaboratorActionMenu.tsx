@@ -68,6 +68,7 @@ export default function CollaboratorActionMenu({
   const createEvent = useCreateScheduleEvent();
   const { data: compensations = [] } = useHolidayCompensations();
   const updateCompensation = useUpdateHolidayCompensation();
+  const draftCtx = useDraftModeOptional();
 
   const dateKey = formatDateKey(date);
   const weekStartKey = formatDateKey(weekStart);
