@@ -103,7 +103,6 @@ export function useScheduleAdjustmentHistory() {
       const { data, error } = await supabase
         .from('schedule_events')
         .select('*')
-        .in('event_type', DAY_OFF_EVENT_TYPES)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as ScheduleEvent[];
