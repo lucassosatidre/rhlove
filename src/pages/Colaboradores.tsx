@@ -76,6 +76,7 @@ export default function Colaboradores() {
       data_desligamento: c.data_desligamento ?? '',
       inicio_periodo: c.inicio_periodo ?? '',
       fim_periodo: c.fim_periodo ?? '',
+      pis_matricula: c.pis_matricula ?? '',
     });
     setDialogOpen(true);
   };
