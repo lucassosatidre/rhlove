@@ -313,6 +313,20 @@ export default function Escala() {
     return qtyFrees + namedFrees;
   };
 
+  const getPresentScheduledCount = (date: Date, sector: string): number => {
+    const dateKey = formatDateKey(date);
+    const absentIds = absentCollaboratorIdsByDate.get(dateKey);
+    const collaboratorsBySector = getScheduledCollaboratorIdsBySectorOnDate(
+      collaborators,
+      date,
+      scheduledVacations,
+      swapOverrides,
+      afastamentos
+    );
+
+    return (collaboratorsBySector[sector] || []).filter(id => !absentIds?.has(id)).length;
+  };
+
   const renderWeek = (week: ScheduleWeek) => {
     const allSectors = new Set<string>();
     week.days.forEach(d => Object.keys(d.collaboratorsBySector).forEach(s => allSectors.add(s)));
