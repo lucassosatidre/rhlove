@@ -12,13 +12,12 @@ import { toast } from 'sonner';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
+import { useCollaborators } from '@/hooks/useCollaborators';
 
-// AFD type 3 record: punch registration
-// Pos 1-9: NSR, Pos 10: type "3", Pos 11-18: date ddmmyyyy, Pos 19-22: time hhmm, Pos 23-34: PIS (12 digits)
 interface PunchRecord {
   pis: string;
-  date: string; // yyyy-mm-dd
-  time: string; // hh:mm
+  date: string;
+  time: string;
 }
 
 interface DaySummary {
@@ -55,8 +54,8 @@ function parseAFDLine(line: string): PunchRecord | null {
   const type = line.charAt(9);
   if (type !== '3') return null;
 
-  const dateStr = line.substring(10, 18); // ddmmyyyy
-  const timeStr = line.substring(18, 22); // hhmm
+  const dateStr = line.substring(10, 18);
+  const timeStr = line.substring(18, 22);
   const pis = line.substring(22, 34).trim();
 
   const day = dateStr.substring(0, 2);
@@ -73,7 +72,7 @@ function parseAFDLine(line: string): PunchRecord | null {
   return { pis, date: isoDate, time: formattedTime };
 }
 
-function processRecords(records: PunchRecord[]): DaySummary[] {
+function processRecords(records: PunchRecord[], pisToName: Record<string, string>): DaySummary[] {
   const grouped: Record<string, PunchRecord[]> = {};
 
   for (const r of records) {
@@ -88,7 +87,7 @@ function processRecords(records: PunchRecord[]): DaySummary[] {
     const punches = recs.map(r => r.time).sort();
     summaries.push({
       pis,
-      collaboratorName: '', // AFD doesn't have names, only PIS
+      collaboratorName: pisToName[pis] || '',
       date,
       totalPunches: punches.length,
       punches,
@@ -96,11 +95,12 @@ function processRecords(records: PunchRecord[]): DaySummary[] {
     });
   }
 
-  // Sort by date desc, then by PIS
   summaries.sort((a, b) => {
     const dateCmp = b.date.localeCompare(a.date);
     if (dateCmp !== 0) return dateCmp;
-    return a.pis.localeCompare(b.pis);
+    const nameA = a.collaboratorName || a.pis;
+    const nameB = b.collaboratorName || b.pis;
+    return nameA.localeCompare(nameB);
   });
 
   return summaries;
@@ -113,9 +113,22 @@ export default function RegistroPonto() {
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
 
+  const { data: collaborators = [] } = useCollaborators();
+
+  // Build PIS -> Name map from collaborators
+  const pisToName = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const c of collaborators) {
+      if (c.pis_matricula) {
+        map[c.pis_matricula] = c.collaborator_name;
+      }
+    }
+    return map;
+  }, [collaborators]);
+
   const allRecords = useMemo(() => sessions.flatMap(s => s.records), [sessions]);
 
-  const summaries = useMemo(() => processRecords(allRecords), [allRecords]);
+  const summaries = useMemo(() => processRecords(allRecords, pisToName), [allRecords, pisToName]);
 
   const uniquePis = useMemo(() => {
     const set = new Set(summaries.map(s => s.pis));
@@ -162,12 +175,12 @@ export default function RegistroPonto() {
       setSessions(updated);
       saveSessions(updated);
 
-      const oddCount = processRecords(records).filter(s => s.isOdd).length;
+      const oddCount = processRecords(records, pisToName).filter(s => s.isOdd).length;
       toast.success(`${records.length} batidas importadas. ${oddCount} inconsistência(s) encontrada(s).`);
     };
     reader.readAsText(file, 'latin1');
     e.target.value = '';
-  }, [sessions]);
+  }, [sessions, pisToName]);
 
   const clearAllSessions = useCallback(() => {
     setSessions([]);
@@ -188,6 +201,7 @@ export default function RegistroPonto() {
       return;
     }
     const rows = filtered.map(s => ({
+      'Colaborador': s.collaboratorName || '-',
       'PIS / Matrícula': s.pis,
       'Data': format(parse(s.date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy'),
       'Total Batidas': s.totalPunches,
@@ -278,7 +292,7 @@ export default function RegistroPonto() {
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
                   {uniquePis.map(p => (
-                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                    <SelectItem key={p} value={p}>{pisToName[p] ? `${pisToName[p]} (${p})` : p}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -343,6 +357,7 @@ export default function RegistroPonto() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Colaborador</TableHead>
                     <TableHead>PIS / Matrícula</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead className="text-center">Batidas</TableHead>
@@ -353,6 +368,9 @@ export default function RegistroPonto() {
                 <TableBody>
                   {filtered.map((s, i) => (
                     <TableRow key={`${s.pis}-${s.date}-${i}`}>
+                      <TableCell className="text-sm font-medium">
+                        {s.collaboratorName || <span className="text-muted-foreground italic">Não vinculado</span>}
+                      </TableCell>
                       <TableCell className="font-mono text-xs">{s.pis}</TableCell>
                       <TableCell className="text-sm whitespace-nowrap">{formatDate(s.date)}</TableCell>
                       <TableCell className="text-center font-bold">{s.totalPunches}</TableCell>
