@@ -50,6 +50,7 @@ function fromDbRow(row: any): Collaborator {
     data_desligamento: row.data_desligamento ?? null,
     inicio_periodo: row.inicio_periodo ?? null,
     fim_periodo: row.fim_periodo ?? null,
+    pis_matricula: row.pis_matricula ?? null,
   } as Collaborator;
 }
 
