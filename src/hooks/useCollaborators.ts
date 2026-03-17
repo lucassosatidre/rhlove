@@ -13,6 +13,7 @@ export interface CollaboratorInput {
   data_desligamento?: string | null;
   inicio_periodo?: string | null;
   fim_periodo?: string | null;
+  pis_matricula?: string | null;
   // legacy
   data_retorno?: string | null;
   data_fim_experiencia?: string | null;
