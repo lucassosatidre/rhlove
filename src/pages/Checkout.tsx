@@ -182,7 +182,7 @@ export default function Checkout() {
     setFilterName('');
     setFilterDateFrom('');
     setFilterDateTo('');
-    setFilterStatus('');
+    setFilterStatus('all');
   };
 
   return (
