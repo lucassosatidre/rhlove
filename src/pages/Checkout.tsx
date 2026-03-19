@@ -50,7 +50,7 @@ export default function Checkout() {
   const [filterName, setFilterName] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
 
   // Dialog
   const [viewCheckout, setViewCheckout] = useState<CheckoutType | null>(null);
