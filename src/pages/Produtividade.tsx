@@ -1014,18 +1014,24 @@ export default function Produtividade() {
               className="hidden"
               onChange={handleFreeFileSelect}
             />
-            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-              <Upload className="w-4 h-4 mr-1" /> Importar Vendas
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => freeFileInputRef.current?.click()}>
-              <Users className="w-4 h-4 mr-1" /> Importar Free-lancers
-            </Button>
+            <DropZone inline accept=".xlsx,.xls" onFiles={(files) => { const s = { target: { files, value: '' } } as unknown as React.ChangeEvent<HTMLInputElement>; handleFileSelect(s); }}>
+              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="w-4 h-4 mr-1" /> Importar Vendas
+              </Button>
+            </DropZone>
+            <DropZone inline accept=".xlsx,.xls" onFiles={(files) => { const s = { target: { files, value: '' } } as unknown as React.ChangeEvent<HTMLInputElement>; handleFreeFileSelect(s); }}>
+              <Button variant="outline" size="sm" onClick={() => freeFileInputRef.current?.click()}>
+                <Users className="w-4 h-4 mr-1" /> Importar Free-lancers
+              </Button>
+            </DropZone>
             <Button variant="outline" size="sm" onClick={() => setFreeHistoryOpen(true)}>
               <ClipboardList className="w-4 h-4 mr-1" /> Histórico Free-lancers
             </Button>
-            <Button variant="outline" size="sm" onClick={() => histFileInputRef.current?.click()}>
-              <History className="w-4 h-4 mr-1" /> Carga Histórica
-            </Button>
+            <DropZone inline accept=".xlsx,.xls" onFiles={(files) => { const s = { target: { files, value: '' } } as unknown as React.ChangeEvent<HTMLInputElement>; handleHistFileSelect(s); }}>
+              <Button variant="outline" size="sm" onClick={() => histFileInputRef.current?.click()}>
+                <History className="w-4 h-4 mr-1" /> Carga Histórica
+              </Button>
+            </DropZone>
             <Button size="sm" onClick={openNew}>
               <Plus className="w-4 h-4 mr-1" /> Cadastrar Dia
             </Button>
