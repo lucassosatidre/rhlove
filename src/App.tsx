@@ -18,6 +18,7 @@ import CalendarioRH from "@/pages/CalendarioRH";
 import GerenciarUsuarios from "@/pages/GerenciarUsuarios";
 import RegistroPonto from "@/pages/RegistroPonto";
 import CheckoutPage from "@/pages/Checkout";
+import Manutencoes from "@/pages/Manutencoes";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
