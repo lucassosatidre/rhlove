@@ -17,6 +17,7 @@ import Afastamentos from "@/pages/Afastamentos";
 import CalendarioRH from "@/pages/CalendarioRH";
 import GerenciarUsuarios from "@/pages/GerenciarUsuarios";
 import RegistroPonto from "@/pages/RegistroPonto";
+import CheckoutPage from "@/pages/Checkout";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -90,6 +91,7 @@ function AppRoutes() {
         <Route path="/afastamentos" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Afastamentos /></ProtectedRoute>} />
         <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['admin']}><GerenciarUsuarios /></ProtectedRoute>} />
         <Route path="/registro-ponto" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><RegistroPonto /></ProtectedRoute>} />
+        <Route path="/checkout" element={<ProtectedRoute allowedRoles={['admin', 'gestor', 'lider']}><CheckoutPage /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
