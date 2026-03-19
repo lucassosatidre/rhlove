@@ -432,7 +432,7 @@ function EscalaInner() {
 
           return (
             <div key={sector} className="overflow-x-auto">
-              <table className={`w-full border-collapse ${textSize}`}>
+              <table className={`w-full border-collapse table-fixed ${textSize}`}>
                 <thead>
                   <tr>
                     <th
