@@ -353,7 +353,7 @@ export default function Manutencoes() {
                   accept="image/*"
                   multiple
                   onFiles={(files) => {
-                    const arr = Array.from(files);
+                    const arr: File[] = Array.from(files);
                     setSelectedFiles(prev => [...prev, ...arr]);
                   }}
                   label="Arraste fotos aqui ou clique para selecionar"
