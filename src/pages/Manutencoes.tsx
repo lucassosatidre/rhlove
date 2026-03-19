@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Wrench, Plus, Eye, ImageIcon, Camera, X, Loader2 } from 'lucide-react';
+import { DropZone } from '@/components/ui/drop-zone';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

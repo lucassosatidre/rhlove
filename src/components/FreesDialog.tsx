@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useFreelancers, useUpsertFreelancer, useBulkUpsertFreelancers, useDeleteFreelancer, type FreelancerInput } from '@/hooks/useFreelancers';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Upload, Trash2 } from 'lucide-react';
+import { DropZone } from '@/components/ui/drop-zone';
 import * as XLSX from 'xlsx';
 
 interface FreesDialogProps {

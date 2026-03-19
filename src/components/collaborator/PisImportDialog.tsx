@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle, AlertTriangle, XCircle, Upload } from 'lucide-react';
+import { DropZone } from '@/components/ui/drop-zone';
 import { toast } from 'sonner';
 import type { Collaborator } from '@/types/collaborator';
 import { supabase } from '@/integrations/supabase/client';
