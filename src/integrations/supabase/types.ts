@@ -535,6 +535,48 @@ export type Database = {
           },
         ]
       }
+      manutencoes: {
+        Row: {
+          collaborator_name: string
+          created_at: string
+          description: string
+          id: string
+          observation: string | null
+          photo_paths: string[]
+          priority: string
+          sector: string | null
+          status: string
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          collaborator_name: string
+          created_at?: string
+          description: string
+          id?: string
+          observation?: string | null
+          photo_paths?: string[]
+          priority?: string
+          sector?: string | null
+          status?: string
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          collaborator_name?: string
+          created_at?: string
+          description?: string
+          id?: string
+          observation?: string | null
+          photo_paths?: string[]
+          priority?: string
+          sector?: string | null
+          status?: string
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       schedule_events: {
         Row: {
           collaborator_id: string
