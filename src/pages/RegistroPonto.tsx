@@ -255,6 +255,12 @@ export default function RegistroPonto() {
         collaborators={collaborators}
       />
 
+      <AFDPunchImportDialog
+        open={afdDialogOpen}
+        onOpenChange={setAfdDialogOpen}
+        collaborators={collaborators}
+      />
+
       {/* Stats cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
