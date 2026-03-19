@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useFreelancers, useUpsertFreelancer, useBulkUpsertFreelancers, useDeleteFreelancer, type FreelancerInput } from '@/hooks/useFreelancers';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Upload, Trash2 } from 'lucide-react';
+import { DropZone } from '@/components/ui/drop-zone';
 import * as XLSX from 'xlsx';
 
 interface FreesDialogProps {
@@ -210,10 +211,19 @@ export default function FreesDialog({ open, onOpenChange, weekStartDate, weekEnd
           <p className="text-xs text-muted-foreground">
             Formato: Coluna A = Data, B = Free Cozinha, C = Free Salão, D = Free Tele
           </p>
-          <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
-          <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-            <Upload className="w-4 h-4 mr-1" /> Importar Excel
-          </Button>
+          <DropZone
+            inline
+            accept=".xlsx,.xls"
+            onFiles={(files) => {
+              const synth = { target: { files, value: '' } } as unknown as React.ChangeEvent<HTMLInputElement>;
+              handleImport(synth);
+            }}
+          >
+            <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleImport} />
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+              <Upload className="w-4 h-4 mr-1" /> Importar Excel
+            </Button>
+          </DropZone>
         </div>
 
         {/* Table */}

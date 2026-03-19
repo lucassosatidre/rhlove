@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Wrench, Plus, Eye, ImageIcon, Camera, X, Loader2 } from 'lucide-react';
+import { DropZone } from '@/components/ui/drop-zone';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -348,23 +349,21 @@ export default function Manutencoes() {
             <div>
               <Label>Fotos * (mínimo 1)</Label>
               <div className="mt-2 space-y-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Camera className="w-4 h-4" />
-                  Adicionar fotos
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
+                <DropZone
                   accept="image/*"
                   multiple
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
+                  onFiles={(files) => {
+                    const arr: File[] = Array.from(files);
+                    setSelectedFiles(prev => [...prev, ...arr]);
+                  }}
+                  label="Arraste fotos aqui ou clique para selecionar"
+                  className="py-4"
+                >
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <Camera className="w-8 h-8 opacity-50" />
+                    <p className="text-sm">Arraste fotos aqui ou clique para selecionar</p>
+                  </div>
+                </DropZone>
 
                 {selectedFiles.length > 0 && (
                   <div className="grid grid-cols-3 gap-2">

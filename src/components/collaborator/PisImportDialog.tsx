@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle, AlertTriangle, XCircle, Upload } from 'lucide-react';
+import { DropZone } from '@/components/ui/drop-zone';
 import { toast } from 'sonner';
 import type { Collaborator } from '@/types/collaborator';
 import { supabase } from '@/integrations/supabase/client';
@@ -220,18 +221,25 @@ export default function PisImportDialog({ open, onOpenChange, collaborators }: P
         </DialogHeader>
 
         {step === 'upload' && (
-          <div className="py-8 text-center space-y-4">
-            <Upload className="w-12 h-12 mx-auto text-muted-foreground opacity-50" />
-            <p className="text-sm text-muted-foreground">
-              Envie um arquivo CSV com as colunas: <strong>Nome;PIS;Matrícula</strong>
-            </p>
-            <label className="cursor-pointer inline-block">
-              <input type="file" accept=".csv,.txt" className="hidden" onChange={handleFile} />
-              <Button asChild>
-                <span><Upload className="w-4 h-4 mr-2" /> Selecionar arquivo</span>
-              </Button>
-            </label>
-          </div>
+          <DropZone
+            accept=".csv,.txt"
+            onFiles={(files) => {
+              const synth = { target: { files, value: '' } } as unknown as React.ChangeEvent<HTMLInputElement>;
+              handleFile(synth);
+            }}
+            label="Arraste um arquivo CSV aqui ou clique para selecionar"
+            className="py-8"
+          >
+            <div className="flex flex-col items-center gap-2 text-muted-foreground">
+              <Upload className="w-12 h-12 opacity-50" />
+              <p className="text-sm">
+                Arraste um arquivo CSV aqui ou clique para selecionar
+              </p>
+              <p className="text-xs">
+                Colunas: <strong>Nome;PIS;Matrícula</strong>
+              </p>
+            </div>
+          </DropZone>
         )}
 
         {step === 'review' && (
