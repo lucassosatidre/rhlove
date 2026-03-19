@@ -6,6 +6,7 @@ import { useDailySales, useUpsertDailySales } from '@/hooks/useDailySales';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
 import { useAfastamentos } from '@/hooks/useAfastamentos';
 import { useScheduleEvents, buildEventsMap, buildSwapOverrides, type ScheduleEvent } from '@/hooks/useScheduleEvents';
+import { useHolidays } from '@/hooks/useHolidayCompensations';
 import { generateSchedule, getMonthLabel, getFirstMondayOfMonthGrid, getWeekCount, getScheduledCollaboratorIdsBySectorOnDate, type ScheduleWeek } from '@/lib/scheduleEngine';
 import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { DraftModeProvider, useDraftMode, type DraftSalesEntry } from '@/contexts/DraftModeContext';
@@ -54,6 +55,21 @@ function EscalaInner() {
   const { data: collaborators = [] } = useCollaborators();
   const { data: scheduledVacations = [] } = useScheduledVacations();
   const { data: afastamentos = [] } = useAfastamentos();
+  const { data: holidays = [] } = useHolidays();
+
+  // Helper: get upcoming holiday warnings for a week start date (within 21 days)
+  const getHolidayWarnings = (weekStartDate: Date) => {
+    const warnings: { name: string; daysUntil: number }[] = [];
+    const startTime = weekStartDate.getTime();
+    for (const h of holidays) {
+      const hDate = new Date(h.date + 'T00:00:00');
+      const diff = Math.round((hDate.getTime() - startTime) / (1000 * 60 * 60 * 24));
+      if (diff >= 0 && diff <= 21) {
+        warnings.push({ name: h.name, daysUntil: diff });
+      }
+    }
+    return warnings.sort((a, b) => a.daysUntil - b.daysUntil);
+  };
 
   // Compute dateRange from year/month (independent of weeks)
   const dateRange = useMemo(() => {
@@ -961,18 +977,25 @@ function EscalaInner() {
           </TabsContent>
 
           <TabsContent value="week">
-            <div className="flex items-center gap-2 mb-3 no-print">
+            <div className="flex items-center gap-2 mb-3 no-print flex-wrap">
             {weeks.map((w, i) => {
                 const wStart = w.days[0].date;
                 const wEnd = w.days[w.days.length - 1].date;
+                const warnings = getHolidayWarnings(wStart);
                 return (
                   <Button
                     key={i}
                     variant={effectiveSelectedWeek === i ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setSelectedWeek(i)}
+                    className="flex items-center gap-1.5"
                   >
-                    {formatDateBR(wStart)} - {formatDateBR(wEnd)}
+                    <span>{formatDateBR(wStart)} - {formatDateBR(wEnd)}</span>
+                    {warnings.length > 0 && (
+                      <span className="text-[10px] text-[#F97316] font-medium whitespace-nowrap">
+                        ⚠️ {warnings[0].name} em {warnings[0].daysUntil} dia{warnings[0].daysUntil !== 1 ? 's' : ''}
+                      </span>
+                    )}
                   </Button>
                 );
               })}
