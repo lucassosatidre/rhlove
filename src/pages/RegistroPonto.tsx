@@ -237,21 +237,9 @@ export default function RegistroPonto() {
           <p className="text-sm text-muted-foreground">Análise de inconsistências em batidas de ponto</p>
         </div>
         <div className="flex items-center gap-2">
-          <DropZone
-            inline
-            accept=".txt,.csv,.afdt,.afd"
-            onFiles={(files) => {
-              const synth = { target: { files, value: '' } } as unknown as React.ChangeEvent<HTMLInputElement>;
-              handleFileImport(synth);
-            }}
-          >
-            <label className="cursor-pointer">
-              <input type="file" accept=".txt,.csv,.afdt,.afd" className="hidden" onChange={handleFileImport} />
-              <Button asChild variant="default">
-                <span><Upload className="w-4 h-4 mr-2" /> Importar Arquivo</span>
-              </Button>
-            </label>
-          </DropZone>
+          <Button variant="default" onClick={() => setAfdDialogOpen(true)}>
+            <Upload className="w-4 h-4 mr-2" /> Importar AFD
+          </Button>
           <Button variant="secondary" onClick={() => setExcelDialogOpen(true)}>
             <FileSpreadsheet className="w-4 h-4 mr-2" /> Importar Ponto
           </Button>
