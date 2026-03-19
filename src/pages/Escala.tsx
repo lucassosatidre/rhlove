@@ -996,7 +996,7 @@ function EscalaInner() {
                   >
                     {formatDateBR(wStart)}–{formatDateBR(wEnd)}
                     {warnings.length > 0 && (
-                      <span className="text-[9px] text-[#F97316] font-semibold whitespace-nowrap leading-none">
+                      <span className={`text-[9px] font-semibold whitespace-nowrap leading-none ${effectiveSelectedWeek === i ? 'text-yellow-200' : 'text-red-600'}`}>
                         ⚠️{shortName} {warnings[0].daysUntil}d
                       </span>
                     )}
