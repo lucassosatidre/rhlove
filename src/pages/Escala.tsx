@@ -884,11 +884,15 @@ function EscalaInner() {
                                 // Find the week containing today
                                 const todayWeek = weeks.find(w => w.days.some(dd => formatDateKey(dd.date) === todayKey));
 
+                                const alertSuffix = rawName.includes('(EXPERIÊNCIA VENCENDO)') ? 'EXP. VENC.' : rawName.includes('(AVISO TERMINANDO)') ? 'AV. TERM.' : '';
+                                const displayClean = `${idx + 1} – ${cleanName}`;
+
                                 const nameContent = (
                                   <span className="flex items-center gap-1 flex-wrap">
                                     <span className={`${hasFalta ? 'line-through text-destructive/70' : ''} ${hasAtestado ? 'text-blue-600 dark:text-blue-400' : ''} ${hasAlert ? 'text-amber-700 dark:text-amber-400' : ''}`}>
-                                      {idx + 1} - {rawName}
+                                      {displayClean}
                                     </span>
+                                    {alertSuffix && <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 shrink-0 border-amber-500 text-amber-700 dark:text-amber-400">{alertSuffix}</Badge>}
                                     {hasFalta && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">faltou</Badge>}
                                     {hasAtestado && <Badge className="text-[9px] px-1 py-0 h-4 bg-blue-500 text-white">atestado</Badge>}
                                     {hasCompensacao && <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600 text-white">compensação</Badge>}
