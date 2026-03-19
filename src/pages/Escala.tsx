@@ -55,6 +55,21 @@ function EscalaInner() {
   const { data: collaborators = [] } = useCollaborators();
   const { data: scheduledVacations = [] } = useScheduledVacations();
   const { data: afastamentos = [] } = useAfastamentos();
+  const { data: holidays = [] } = useHolidays();
+
+  // Helper: get upcoming holiday warnings for a week start date (within 21 days)
+  const getHolidayWarnings = (weekStartDate: Date) => {
+    const warnings: { name: string; daysUntil: number }[] = [];
+    const startTime = weekStartDate.getTime();
+    for (const h of holidays) {
+      const hDate = new Date(h.date + 'T00:00:00');
+      const diff = Math.round((hDate.getTime() - startTime) / (1000 * 60 * 60 * 24));
+      if (diff >= 0 && diff <= 21) {
+        warnings.push({ name: h.name, daysUntil: diff });
+      }
+    }
+    return warnings.sort((a, b) => a.daysUntil - b.daysUntil);
+  };
 
   // Compute dateRange from year/month (independent of weeks)
   const dateRange = useMemo(() => {
