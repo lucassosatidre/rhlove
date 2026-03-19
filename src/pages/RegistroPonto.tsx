@@ -250,11 +250,20 @@ export default function RegistroPonto() {
               </Button>
             </label>
           </DropZone>
+          <Button variant="secondary" onClick={() => setExcelDialogOpen(true)}>
+            <FileSpreadsheet className="w-4 h-4 mr-2" /> Importar Ponto
+          </Button>
           <Button variant="outline" onClick={exportToExcel} disabled={filtered.length === 0}>
             <Download className="w-4 h-4 mr-2" /> Excel
           </Button>
         </div>
       </div>
+
+      <ExcelPunchImportDialog
+        open={excelDialogOpen}
+        onOpenChange={setExcelDialogOpen}
+        collaborators={collaborators}
+      />
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
