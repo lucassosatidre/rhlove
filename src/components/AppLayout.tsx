@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { to: '/afastamentos', label: 'Afastamentos', icon: UserMinus, roles: ['admin', 'gestor'] },
   { to: '/registro-ponto', label: 'Registro Ponto', icon: Fingerprint, roles: ['admin', 'gestor'] },
   { to: '/checkout', label: 'Checkout', icon: Mic, roles: ['admin', 'gestor', 'lider'] },
+  { to: '/manutencoes', label: 'Manutenções', icon: Wrench, roles: ['admin', 'gestor', 'lider'] },
   { to: '/usuarios', label: 'Usuários', icon: Shield, roles: ['admin'] },
 ];
 
