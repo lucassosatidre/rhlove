@@ -977,23 +977,27 @@ function EscalaInner() {
           </TabsContent>
 
           <TabsContent value="week">
-            <div className="flex items-center gap-2 mb-3 no-print flex-wrap">
+            <div className="flex items-center gap-1.5 mb-3 no-print flex-wrap">
             {weeks.map((w, i) => {
                 const wStart = w.days[0].date;
                 const wEnd = w.days[w.days.length - 1].date;
                 const warnings = getHolidayWarnings(wStart);
+                const shortName = warnings.length > 0
+                  ? warnings[0].name.length > 12 ? warnings[0].name.slice(0, 12) + '…' : warnings[0].name
+                  : '';
                 return (
                   <Button
                     key={i}
                     variant={effectiveSelectedWeek === i ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setSelectedWeek(i)}
-                    className="flex items-center gap-1.5"
+                    className="h-8 px-2.5 text-xs flex items-center gap-1"
+                    title={warnings.length > 0 ? `${warnings[0].name} em ${warnings[0].daysUntil} dias` : undefined}
                   >
-                    <span>{formatDateBR(wStart)} - {formatDateBR(wEnd)}</span>
+                    {formatDateBR(wStart)}–{formatDateBR(wEnd)}
                     {warnings.length > 0 && (
-                      <span className="text-[10px] text-[#F97316] font-medium whitespace-nowrap">
-                        ⚠️ {warnings[0].name} em {warnings[0].daysUntil} dia{warnings[0].daysUntil !== 1 ? 's' : ''}
+                      <span className="text-[9px] text-[#F97316] font-semibold whitespace-nowrap leading-none">
+                        ⚠️{shortName} {warnings[0].daysUntil}d
                       </span>
                     )}
                   </Button>
