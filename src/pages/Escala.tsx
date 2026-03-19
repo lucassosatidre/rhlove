@@ -888,15 +888,15 @@ function EscalaInner() {
                                 const displayClean = `${idx + 1} – ${cleanName}`;
 
                                 const nameContent = (
-                                  <span className="flex items-center gap-1 flex-wrap">
-                                    <span className={`${hasFalta ? 'line-through text-destructive/70' : ''} ${hasAtestado ? 'text-blue-600 dark:text-blue-400' : ''} ${hasAlert ? 'text-amber-700 dark:text-amber-400' : ''}`}>
+                                  <span className="flex items-center gap-1 overflow-hidden">
+                                    <span className={`truncate min-w-0 ${hasFalta ? 'line-through text-destructive/70' : ''} ${hasAtestado ? 'text-blue-600 dark:text-blue-400' : ''} ${hasAlert ? 'text-amber-700 dark:text-amber-400' : ''}`}>
                                       {displayClean}
                                     </span>
                                     {alertSuffix && <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 shrink-0 border-amber-500 text-amber-700 dark:text-amber-400">{alertSuffix}</Badge>}
-                                    {hasFalta && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4">faltou</Badge>}
-                                    {hasAtestado && <Badge className="text-[9px] px-1 py-0 h-4 bg-blue-500 text-white">atestado</Badge>}
-                                    {hasCompensacao && <Badge className="text-[9px] px-1 py-0 h-4 bg-green-600 text-white">compensação</Badge>}
-                                    {hasTroca && <Badge className="text-[9px] px-1 py-0 h-4 bg-orange-500 text-white">ajuste</Badge>}
+                                    {hasFalta && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4 shrink-0">faltou</Badge>}
+                                    {hasAtestado && <Badge className="text-[9px] px-1 py-0 h-4 shrink-0 bg-blue-500 text-white">atestado</Badge>}
+                                    {hasCompensacao && <Badge className="text-[9px] px-1 py-0 h-4 shrink-0 bg-green-600 text-white">compensação</Badge>}
+                                    {hasTroca && <Badge className="text-[9px] px-1 py-0 h-4 shrink-0 bg-orange-500 text-white">ajuste</Badge>}
                                   </span>
                                 );
 
