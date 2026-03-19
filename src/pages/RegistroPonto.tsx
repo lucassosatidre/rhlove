@@ -7,13 +7,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Upload, FileText, AlertTriangle, Download, Trash2 } from 'lucide-react';
+import { Upload, FileText, AlertTriangle, Download, Trash2, FileSpreadsheet } from 'lucide-react';
 import { DropZone } from '@/components/ui/drop-zone';
 import { toast } from 'sonner';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import { useCollaborators } from '@/hooks/useCollaborators';
+import { ExcelPunchImportDialog } from '@/components/ponto/ExcelPunchImportDialog';
 
 interface PunchRecord {
   pis: string;
@@ -113,7 +114,7 @@ export default function RegistroPonto() {
   const [filterPis, setFilterPis] = useState('all');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
-
+  const [excelDialogOpen, setExcelDialogOpen] = useState(false);
   const { data: collaborators = [] } = useCollaborators();
 
   // Build PIS -> Name map from collaborators (normalize to 12 digits with leading zeros)
@@ -249,11 +250,20 @@ export default function RegistroPonto() {
               </Button>
             </label>
           </DropZone>
+          <Button variant="secondary" onClick={() => setExcelDialogOpen(true)}>
+            <FileSpreadsheet className="w-4 h-4 mr-2" /> Importar Ponto
+          </Button>
           <Button variant="outline" onClick={exportToExcel} disabled={filtered.length === 0}>
             <Download className="w-4 h-4 mr-2" /> Excel
           </Button>
         </div>
       </div>
+
+      <ExcelPunchImportDialog
+        open={excelDialogOpen}
+        onOpenChange={setExcelDialogOpen}
+        collaborators={collaborators}
+      />
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

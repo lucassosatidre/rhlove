@@ -577,6 +577,53 @@ export type Database = {
         }
         Relationships: []
       }
+      punch_records: {
+        Row: {
+          collaborator_id: string
+          collaborator_name: string
+          created_at: string
+          date: string
+          entrada: string | null
+          id: string
+          retorno_intervalo: string | null
+          saida: string | null
+          saida_intervalo: string | null
+          updated_at: string
+        }
+        Insert: {
+          collaborator_id: string
+          collaborator_name: string
+          created_at?: string
+          date: string
+          entrada?: string | null
+          id?: string
+          retorno_intervalo?: string | null
+          saida?: string | null
+          saida_intervalo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          collaborator_id?: string
+          collaborator_name?: string
+          created_at?: string
+          date?: string
+          entrada?: string | null
+          id?: string
+          retorno_intervalo?: string | null
+          saida?: string | null
+          saida_intervalo?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "punch_records_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schedule_events: {
         Row: {
           collaborator_id: string
