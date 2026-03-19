@@ -60,7 +60,7 @@ export default function Checkout() {
     collaborator: filterName || undefined,
     dateFrom: filterDateFrom || undefined,
     dateTo: filterDateTo || undefined,
-    status: filterStatus || undefined,
+    status: filterStatus && filterStatus !== 'all' ? filterStatus : undefined,
   });
   const createCheckout = useCreateCheckout();
   const retryTranscription = useRetryTranscription();
