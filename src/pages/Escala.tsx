@@ -977,18 +977,25 @@ function EscalaInner() {
           </TabsContent>
 
           <TabsContent value="week">
-            <div className="flex items-center gap-2 mb-3 no-print">
+            <div className="flex items-center gap-2 mb-3 no-print flex-wrap">
             {weeks.map((w, i) => {
                 const wStart = w.days[0].date;
                 const wEnd = w.days[w.days.length - 1].date;
+                const warnings = getHolidayWarnings(wStart);
                 return (
                   <Button
                     key={i}
                     variant={effectiveSelectedWeek === i ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setSelectedWeek(i)}
+                    className="flex items-center gap-1.5"
                   >
-                    {formatDateBR(wStart)} - {formatDateBR(wEnd)}
+                    <span>{formatDateBR(wStart)} - {formatDateBR(wEnd)}</span>
+                    {warnings.length > 0 && (
+                      <span className="text-[10px] text-[#F97316] font-medium whitespace-nowrap">
+                        ⚠️ {warnings[0].name} em {warnings[0].daysUntil} dia{warnings[0].daysUntil !== 1 ? 's' : ''}
+                      </span>
+                    )}
                   </Button>
                 );
               })}
