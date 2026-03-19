@@ -166,10 +166,13 @@ export default function Produtividade() {
       : [pcsSectorFilter];
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
     return dates.map(date => {
-      const row: Record<string, any> = { date: formatDateBR(date) };
+      const row: Record<string, any> = { date: formatDateBR(date), _rawDate: date };
       for (const r of productivityRows.filter(r => r.date === date)) {
         if (sectors.includes(r.sector)) {
           row[r.sector] = Math.round(r.pcs * 100) / 100;
+          row[`_pessoas_${r.sector}`] = r.numero_pessoas;
+          row[`_pedidos_${r.sector}`] = r.pedidos;
+          row[`_vendas_${r.sector}`] = r.vendas;
         }
       }
       return row;
@@ -180,9 +183,13 @@ export default function Produtividade() {
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
     return dates.map(date => {
       const tctRow = productivityRows.find(r => r.date === date && r.sector === 'TCT');
+      const timeRow = productivityRows.find(r => r.date === date && r.sector === 'TIME');
       return {
         date: formatDateBR(date),
         TCT: tctRow ? Math.round(tctRow.tcs * 100) / 100 : 0,
+        _pessoas: timeRow?.numero_pessoas ?? 0,
+        _pedidos: tctRow?.pedidos ?? 0,
+        _vendas: tctRow?.vendas ?? 0,
       };
     });
   }, [productivityRows]);
@@ -191,9 +198,13 @@ export default function Produtividade() {
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
     return dates.map(date => {
       const pctRow = productivityRows.find(r => r.date === date && r.sector === 'PCT');
+      const timeRow = productivityRows.find(r => r.date === date && r.sector === 'TIME');
       return {
         date: formatDateBR(date),
         PCT: pctRow ? Math.round(pctRow.pcs * 100) / 100 : 0,
+        _pessoas: timeRow?.numero_pessoas ?? 0,
+        _pedidos: pctRow?.pedidos ?? 0,
+        _vendas: pctRow?.vendas ?? 0,
       };
     });
   }, [productivityRows]);
