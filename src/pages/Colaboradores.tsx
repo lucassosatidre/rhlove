@@ -256,12 +256,21 @@ export default function Colaboradores() {
           <Button variant="outline" size="sm" onClick={handleExport} disabled={collaborators.length === 0}>
             <Download className="w-4 h-4 mr-1" /> Exportar
           </Button>
-          <label className="cursor-pointer">
-            <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
-            <Button variant="outline" size="sm" asChild>
-              <span><Upload className="w-4 h-4 mr-1" /> Importar</span>
-            </Button>
-          </label>
+          <DropZone
+            inline
+            accept=".xlsx,.xls,.csv"
+            onFiles={(files) => {
+              const synth = { target: { files, value: '' } } as unknown as React.ChangeEvent<HTMLInputElement>;
+              handleImport(synth);
+            }}
+          >
+            <label className="cursor-pointer">
+              <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImport} />
+              <Button variant="outline" size="sm" asChild>
+                <span><Upload className="w-4 h-4 mr-1" /> Importar</span>
+              </Button>
+            </label>
+          </DropZone>
           <Button variant="outline" size="sm" onClick={() => setPisImportOpen(true)}>
             <CreditCard className="w-4 h-4 mr-1" /> Importar PIS
           </Button>
