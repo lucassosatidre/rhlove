@@ -234,6 +234,45 @@ export type Database = {
         }
         Relationships: []
       }
+      compras_insumos: {
+        Row: {
+          collaborator_name: string
+          created_at: string
+          id: string
+          item_name: string
+          observation: string | null
+          priority: string
+          status: string
+          stock_quantity: string
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          collaborator_name: string
+          created_at?: string
+          id?: string
+          item_name: string
+          observation?: string | null
+          priority?: string
+          status?: string
+          stock_quantity?: string
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          collaborator_name?: string
+          created_at?: string
+          id?: string
+          item_name?: string
+          observation?: string | null
+          priority?: string
+          status?: string
+          stock_quantity?: string
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       daily_sales: {
         Row: {
           created_at: string
