@@ -449,7 +449,7 @@ function EscalaInner() {
                         className={`border border-border px-2 ${compact ? 'py-1' : 'py-2'} text-center font-semibold bg-muted ${
                           i === 6 ? 'bg-accent text-accent-foreground' : ''
                         }`}
-                        style={{ minWidth: '110px' }}
+                        style={{ width: `${100 / 7}%` }}
                       >
                         {DAY_NAMES[i]} {formatDateBR(d.date)}
                       </th>
