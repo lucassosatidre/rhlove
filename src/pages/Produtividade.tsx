@@ -166,10 +166,13 @@ export default function Produtividade() {
       : [pcsSectorFilter];
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
     return dates.map(date => {
-      const row: Record<string, any> = { date: formatDateBR(date) };
+      const row: Record<string, any> = { date: formatDateBR(date), _rawDate: date };
       for (const r of productivityRows.filter(r => r.date === date)) {
         if (sectors.includes(r.sector)) {
           row[r.sector] = Math.round(r.pcs * 100) / 100;
+          row[`_pessoas_${r.sector}`] = r.numero_pessoas;
+          row[`_pedidos_${r.sector}`] = r.pedidos;
+          row[`_vendas_${r.sector}`] = r.vendas;
         }
       }
       return row;
@@ -180,9 +183,13 @@ export default function Produtividade() {
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
     return dates.map(date => {
       const tctRow = productivityRows.find(r => r.date === date && r.sector === 'TCT');
+      const timeRow = productivityRows.find(r => r.date === date && r.sector === 'TIME');
       return {
         date: formatDateBR(date),
         TCT: tctRow ? Math.round(tctRow.tcs * 100) / 100 : 0,
+        _pessoas: timeRow?.numero_pessoas ?? 0,
+        _pedidos: tctRow?.pedidos ?? 0,
+        _vendas: tctRow?.vendas ?? 0,
       };
     });
   }, [productivityRows]);
@@ -191,9 +198,13 @@ export default function Produtividade() {
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
     return dates.map(date => {
       const pctRow = productivityRows.find(r => r.date === date && r.sector === 'PCT');
+      const timeRow = productivityRows.find(r => r.date === date && r.sector === 'TIME');
       return {
         date: formatDateBR(date),
         PCT: pctRow ? Math.round(pctRow.pcs * 100) / 100 : 0,
+        _pessoas: timeRow?.numero_pessoas ?? 0,
+        _pedidos: pctRow?.pedidos ?? 0,
+        _vendas: pctRow?.vendas ?? 0,
       };
     });
   }, [productivityRows]);
@@ -1172,7 +1183,26 @@ export default function Produtividade() {
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 11 }} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <ChartTooltip content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const data = payload[0]?.payload;
+                        if (!data) return null;
+                        const sector = pcsSectorFilter;
+                        const val = payload[0]?.value as number;
+                        const pessoas = data[`_pessoas_${sector}`] ?? 0;
+                        const pedidos = data[`_pedidos_${sector}`] ?? 0;
+                        const vendas = data[`_vendas_${sector}`] ?? 0;
+                        const sectorLabel = sector === 'TELE - ENTREGA' ? 'Tele-Entrega' : sector.charAt(0) + sector.slice(1).toLowerCase();
+                        return (
+                          <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl space-y-0.5">
+                            <p className="font-semibold">📅 {data.date}</p>
+                            <p>🏷️ PCS · {val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} pedidos ({sectorLabel})</p>
+                            <p>👥 {pessoas}</p>
+                            <p>🧾 {pedidos}</p>
+                            <p>💰 R$ {Math.round(vendas).toLocaleString('pt-BR')}</p>
+                          </div>
+                        );
+                      }} />
                       <Line type="monotone" dataKey={pcsSectorFilter} stroke={SECTOR_COLORS[pcsSectorFilter] || 'hsl(220, 15%, 25%)'} strokeWidth={2} dot={{ r: 4, fill: SECTOR_COLORS[pcsSectorFilter] || 'hsl(220, 15%, 25%)' }} name={pcsSectorFilter}>
                         <LabelList
                           dataKey={pcsSectorFilter}
@@ -1276,7 +1306,21 @@ export default function Produtividade() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const data = payload[0]?.payload;
+                      if (!data) return null;
+                      const val = payload[0]?.value as number;
+                      return (
+                        <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl space-y-0.5">
+                          <p className="font-semibold">📅 {data.date}</p>
+                          <p>🏷️ PCT · {val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} pedidos (Time)</p>
+                          <p>👥 {data._pessoas}</p>
+                          <p>🧾 {data._pedidos}</p>
+                          <p>💰 R$ {Math.round(data._vendas).toLocaleString('pt-BR')}</p>
+                        </div>
+                      );
+                    }} />
                     <Line type="monotone" dataKey="PCT" stroke="hsl(160, 60%, 45%)" strokeWidth={2.5} dot={{ r: 4, fill: 'hsl(160, 60%, 45%)' }} name="PCT">
                       <LabelList
                         dataKey="PCT"
@@ -1302,7 +1346,21 @@ export default function Produtividade() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const data = payload[0]?.payload;
+                      if (!data) return null;
+                      const val = payload[0]?.value as number;
+                      return (
+                        <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl space-y-0.5">
+                          <p className="font-semibold">📅 {data.date}</p>
+                          <p>🏷️ TCT · R$ {Math.round(val).toLocaleString('pt-BR')} (Time)</p>
+                          <p>👥 {data._pessoas}</p>
+                          <p>🧾 {data._pedidos}</p>
+                          <p>💰 R$ {Math.round(data._vendas).toLocaleString('pt-BR')}</p>
+                        </div>
+                      );
+                    }} />
                     <Line type="monotone" dataKey="TCT" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 4, fill: 'hsl(var(--primary))' }} name="TCT">
                       <LabelList
                         dataKey="TCT"
