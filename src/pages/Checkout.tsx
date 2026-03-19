@@ -23,13 +23,13 @@ function formatDuration(seconds: number) {
 function statusBadge(status: string) {
   switch (status) {
     case 'concluida':
-      return <Badge className="bg-green-600 text-white">Concluída</Badge>;
+      return <Badge className="bg-primary text-primary-foreground">Concluída</Badge>;
     case 'processando':
-      return <Badge className="bg-yellow-500 text-white">Processando</Badge>;
+      return <Badge variant="secondary">Processando</Badge>;
     case 'erro':
       return <Badge variant="destructive">Erro</Badge>;
     default:
-      return <Badge variant="secondary">Pendente</Badge>;
+      return <Badge variant="outline">Pendente</Badge>;
   }
 }
 
