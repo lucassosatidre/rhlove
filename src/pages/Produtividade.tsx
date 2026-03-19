@@ -1306,7 +1306,21 @@ export default function Produtividade() {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const data = payload[0]?.payload;
+                      if (!data) return null;
+                      const val = payload[0]?.value as number;
+                      return (
+                        <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl space-y-0.5">
+                          <p className="font-semibold">📅 {data.date}</p>
+                          <p>🏷️ PCT · {val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} pedidos (Time)</p>
+                          <p>👥 {data._pessoas}</p>
+                          <p>🧾 {data._pedidos}</p>
+                          <p>💰 R$ {Math.round(data._vendas).toLocaleString('pt-BR')}</p>
+                        </div>
+                      );
+                    }} />
                     <Line type="monotone" dataKey="PCT" stroke="hsl(160, 60%, 45%)" strokeWidth={2.5} dot={{ r: 4, fill: 'hsl(160, 60%, 45%)' }} name="PCT">
                       <LabelList
                         dataKey="PCT"
