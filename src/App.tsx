@@ -91,6 +91,7 @@ function AppRoutes() {
         <Route path="/afastamentos" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Afastamentos /></ProtectedRoute>} />
         <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['admin']}><GerenciarUsuarios /></ProtectedRoute>} />
         <Route path="/registro-ponto" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><RegistroPonto /></ProtectedRoute>} />
+        <Route path="/checkout" element={<ProtectedRoute allowedRoles={['admin', 'gestor', 'lider']}><CheckoutPage /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
