@@ -1229,7 +1229,27 @@ export default function Produtividade() {
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 11 }} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <ChartTooltip content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const data = payload[0]?.payload;
+                        if (!data) return null;
+                        const sector = tmpSectorFilter;
+                        const ticket = payload[0]?.value as number;
+                        const pessoas = data[`_pessoas_${sector}`] ?? 0;
+                        const pedidos = data[`_pedidos_${sector}`] ?? 0;
+                        const vendas = data[`_vendas_${sector}`] ?? 0;
+                        const sectorLabel = sector === 'TELE - ENTREGA' ? 'Tele-Entrega' : sector.charAt(0) + sector.slice(1).toLowerCase();
+                        return (
+                          <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl space-y-0.5">
+                            <p className="font-semibold">{data.date}</p>
+                            <p className="text-muted-foreground">{sectorLabel}</p>
+                            <p>Ticket: <span className="font-medium">R$ {Math.round(ticket).toLocaleString('pt-BR')}</span></p>
+                            <p>👥 {pessoas}</p>
+                            <p>🧾 {pedidos}</p>
+                            <p>💰 R$ {Math.round(vendas).toLocaleString('pt-BR')}</p>
+                          </div>
+                        );
+                      }} />
                       <Line type="monotone" dataKey={tmpSectorFilter} stroke={SECTOR_COLORS[tmpSectorFilter] || 'hsl(220, 15%, 25%)'} strokeWidth={2} dot={{ r: 4, fill: SECTOR_COLORS[tmpSectorFilter] || 'hsl(220, 15%, 25%)' }} name={tmpSectorFilter}>
                         <LabelList
                           dataKey={tmpSectorFilter}
