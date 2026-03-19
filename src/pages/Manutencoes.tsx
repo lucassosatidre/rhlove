@@ -1,8 +1,8 @@
 import { useState, useRef } from 'react';
-import { Wrench, Plus, Eye, ImageIcon, Camera, X, Loader2 } from 'lucide-react';
+import { Wrench, Plus, Eye, ImageIcon, Camera, X, Loader2, ShoppingCart } from 'lucide-react';
 import { DropZone } from '@/components/ui/drop-zone';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -10,10 +10,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useManutencoes, useCreateManutencao, useUpdateManutencaoStatus, type Manutencao } from '@/hooks/useManutencoes';
+import { useComprasInsumos, useCreateCompraInsumo, useUpdateCompraInsumoStatus, type CompraInsumo } from '@/hooks/useComprasInsumos';
 
 const SECTORS = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'BANHEIRO', 'ÁREA EXTERNA', 'ELÉTRICA', 'HIDRÁULICA', 'OUTRO'];
 const PRIORITIES = [
@@ -52,12 +54,12 @@ function getPublicUrl(path: string) {
   return data.publicUrl;
 }
 
-export default function Manutencoes() {
+/* ───────────── MANUTENÇÕES TAB ───────────── */
+function ManutencaoTab() {
   const { usuario } = useAuth();
   const { toast } = useToast();
   const isAdminOrGestor = usuario?.perfil === 'admin' || usuario?.perfil === 'gestor';
 
-  // New request dialog
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [description, setDescription] = useState('');
   const [sector, setSector] = useState('');
@@ -65,18 +67,14 @@ export default function Manutencoes() {
   const [observation, setObservation] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Filters
   const [filterName, setFilterName] = useState('');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterSector, setFilterSector] = useState('');
 
-  // Detail dialog
   const [viewItem, setViewItem] = useState<Manutencao | null>(null);
-  // Photo viewer
   const [viewPhoto, setViewPhoto] = useState<string | null>(null);
 
   const { data: items = [], isLoading } = useManutencoes({
@@ -98,12 +96,6 @@ export default function Manutencoes() {
     setSelectedFiles([]);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setSelectedFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
-    }
-  };
-
   const removeFile = (index: number) => {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
@@ -121,7 +113,6 @@ export default function Manutencoes() {
 
     setIsSubmitting(true);
     try {
-      // Upload photos
       const photoPaths: string[] = [];
       for (const file of selectedFiles) {
         const ext = file.name.split('.').pop() || 'jpg';
@@ -171,9 +162,8 @@ export default function Manutencoes() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Manutenções</h1>
+    <div className="space-y-4">
+      <div className="flex justify-end">
         <Button onClick={() => setShowNewDialog(true)} className="gap-2">
           <Plus className="w-4 h-4" />
           Nova solicitação
@@ -265,13 +255,8 @@ export default function Manutencoes() {
                             <Eye className="w-4 h-4" />
                           </Button>
                           {isAdminOrGestor && m.status !== 'concluido' && (
-                            <Select
-                              value={m.status}
-                              onValueChange={(val) => handleStatusChange(m.id, val)}
-                            >
-                              <SelectTrigger className="w-[130px] h-8 text-xs">
-                                <SelectValue />
-                              </SelectTrigger>
+                            <Select value={m.status} onValueChange={(val) => handleStatusChange(m.id, val)}>
+                              <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="solicitado">Solicitado</SelectItem>
                                 <SelectItem value="em_andamento">Em andamento</SelectItem>
@@ -299,27 +284,18 @@ export default function Manutencoes() {
               Nova solicitação de manutenção
             </DialogTitle>
           </DialogHeader>
-
           <div className="space-y-4">
             <div>
               <Label>Descrição do problema *</Label>
-              <Textarea
-                placeholder="Descreva o problema encontrado..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={4}
-              />
+              <Textarea placeholder="Descreva o problema encontrado..." value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Setor / Local</Label>
                 <Select value={sector} onValueChange={setSector}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    {SECTORS.map((s) => (
-                      <SelectItem key={s} value={s}>{s}</SelectItem>
-                    ))}
+                    {SECTORS.map((s) => (<SelectItem key={s} value={s}>{s}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
@@ -328,34 +304,22 @@ export default function Manutencoes() {
                 <Select value={priority} onValueChange={setPriority}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {PRIORITIES.map((p) => (
-                      <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                    ))}
+                    {PRIORITIES.map((p) => (<SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-
             <div>
               <Label>Observações adicionais</Label>
-              <Textarea
-                placeholder="Informações extras..."
-                value={observation}
-                onChange={(e) => setObservation(e.target.value)}
-                rows={2}
-              />
+              <Textarea placeholder="Informações extras..." value={observation} onChange={(e) => setObservation(e.target.value)} rows={2} />
             </div>
-
             <div>
               <Label>Fotos * (mínimo 1)</Label>
               <div className="mt-2 space-y-3">
                 <DropZone
                   accept="image/*"
                   multiple
-                  onFiles={(files) => {
-                    const arr: File[] = Array.from(files);
-                    setSelectedFiles(prev => [...prev, ...arr]);
-                  }}
+                  onFiles={(files) => setSelectedFiles(prev => [...prev, ...Array.from(files)])}
                   label="Arraste fotos aqui ou clique para selecionar"
                   className="py-4"
                 >
@@ -364,20 +328,12 @@ export default function Manutencoes() {
                     <p className="text-sm">Arraste fotos aqui ou clique para selecionar</p>
                   </div>
                 </DropZone>
-
                 {selectedFiles.length > 0 && (
                   <div className="grid grid-cols-3 gap-2">
                     {selectedFiles.map((file, i) => (
                       <div key={i} className="relative group">
-                        <img
-                          src={URL.createObjectURL(file)}
-                          alt={`Foto ${i + 1}`}
-                          className="w-full h-24 object-cover rounded-lg border border-border"
-                        />
-                        <button
-                          onClick={() => removeFile(i)}
-                          className="absolute top-1 right-1 bg-background/80 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
+                        <img src={URL.createObjectURL(file)} alt={`Foto ${i + 1}`} className="w-full h-24 object-cover rounded-lg border border-border" />
+                        <button onClick={() => removeFile(i)} className="absolute top-1 right-1 bg-background/80 rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <X className="w-3 h-3" />
                         </button>
                       </div>
@@ -387,11 +343,8 @@ export default function Manutencoes() {
               </div>
             </div>
           </div>
-
           <DialogFooter>
-            <Button variant="outline" onClick={() => { resetForm(); setShowNewDialog(false); }}>
-              Cancelar
-            </Button>
+            <Button variant="outline" onClick={() => { resetForm(); setShowNewDialog(false); }}>Cancelar</Button>
             <Button onClick={handleSubmit} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
               Enviar solicitação
@@ -403,43 +356,21 @@ export default function Manutencoes() {
       {/* Detail Dialog */}
       <Dialog open={!!viewItem} onOpenChange={() => setViewItem(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Detalhes da solicitação</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Detalhes da solicitação</DialogTitle></DialogHeader>
           {viewItem && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Colaborador</span>
-                  <p className="font-medium">{viewItem.collaborator_name}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Data / Hora</span>
-                  <p className="font-medium">
-                    {new Date(viewItem.created_at).toLocaleDateString('pt-BR')}{' '}
-                    {new Date(viewItem.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Setor</span>
-                  <p className="font-medium">{viewItem.sector || '—'}</p>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Prioridade</span>
-                  <p>{priorityBadge(viewItem.priority)}</p>
-                </div>
+                <div><span className="text-muted-foreground">Colaborador</span><p className="font-medium">{viewItem.collaborator_name}</p></div>
+                <div><span className="text-muted-foreground">Data / Hora</span><p className="font-medium">{new Date(viewItem.created_at).toLocaleDateString('pt-BR')} {new Date(viewItem.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p></div>
+                <div><span className="text-muted-foreground">Setor</span><p className="font-medium">{viewItem.sector || '—'}</p></div>
+                <div><span className="text-muted-foreground">Prioridade</span><p>{priorityBadge(viewItem.priority)}</p></div>
                 <div>
                   <span className="text-muted-foreground">Status</span>
                   <div className="flex items-center gap-2">
                     {statusBadge(viewItem.status)}
                     {isAdminOrGestor && viewItem.status !== 'concluido' && (
-                      <Select
-                        value={viewItem.status}
-                        onValueChange={(val) => handleStatusChange(viewItem.id, val)}
-                      >
-                        <SelectTrigger className="w-[130px] h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
+                      <Select value={viewItem.status} onValueChange={(val) => handleStatusChange(viewItem.id, val)}>
+                        <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="solicitado">Solicitado</SelectItem>
                           <SelectItem value="em_andamento">Em andamento</SelectItem>
@@ -450,33 +381,22 @@ export default function Manutencoes() {
                   </div>
                 </div>
               </div>
-
               <div>
                 <span className="text-sm text-muted-foreground">Descrição</span>
                 <p className="text-sm bg-muted rounded-lg p-3 mt-1 whitespace-pre-wrap">{viewItem.description}</p>
               </div>
-
               {viewItem.observation && (
                 <div>
                   <span className="text-sm text-muted-foreground">Observações</span>
                   <p className="text-sm bg-muted rounded-lg p-3 mt-1 whitespace-pre-wrap">{viewItem.observation}</p>
                 </div>
               )}
-
               <div>
                 <span className="text-sm text-muted-foreground">Fotos ({viewItem.photo_paths?.length || 0})</span>
                 <div className="grid grid-cols-3 gap-3 mt-2">
                   {viewItem.photo_paths?.map((path, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setViewPhoto(getPublicUrl(path))}
-                      className="overflow-hidden rounded-lg border border-border hover:ring-2 ring-primary transition-all"
-                    >
-                      <img
-                        src={getPublicUrl(path)}
-                        alt={`Foto ${i + 1}`}
-                        className="w-full h-32 object-cover"
-                      />
+                    <button key={i} onClick={() => setViewPhoto(getPublicUrl(path))} className="overflow-hidden rounded-lg border border-border hover:ring-2 ring-primary transition-all">
+                      <img src={getPublicUrl(path)} alt={`Foto ${i + 1}`} className="w-full h-32 object-cover" />
                     </button>
                   ))}
                 </div>
@@ -489,11 +409,318 @@ export default function Manutencoes() {
       {/* Full Photo Viewer */}
       <Dialog open={!!viewPhoto} onOpenChange={() => setViewPhoto(null)}>
         <DialogContent className="max-w-4xl p-2">
-          {viewPhoto && (
-            <img src={viewPhoto} alt="Foto ampliada" className="w-full h-auto max-h-[80vh] object-contain rounded-lg" />
+          {viewPhoto && <img src={viewPhoto} alt="Foto ampliada" className="w-full h-auto max-h-[80vh] object-contain rounded-lg" />}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+/* ───────────── COMPRAS INSUMOS TAB ───────────── */
+function ComprasInsumosTab() {
+  const { usuario } = useAuth();
+  const { toast } = useToast();
+  const isAdminOrGestor = usuario?.perfil === 'admin' || usuario?.perfil === 'gestor';
+
+  const [showNewDialog, setShowNewDialog] = useState(false);
+  const [itemName, setItemName] = useState('');
+  const [stockQuantity, setStockQuantity] = useState('');
+  const [priority, setPriority] = useState('media');
+  const [observation, setObservation] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [filterName, setFilterName] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterItem, setFilterItem] = useState('');
+
+  const [viewItem, setViewItem] = useState<CompraInsumo | null>(null);
+
+  const { data: items = [], isLoading } = useComprasInsumos({
+    collaborator: filterName || undefined,
+    dateFrom: filterDateFrom || undefined,
+    dateTo: filterDateTo || undefined,
+    status: filterStatus !== 'all' ? filterStatus : undefined,
+    item: filterItem || undefined,
+  });
+
+  const createCompra = useCreateCompraInsumo();
+  const updateStatus = useUpdateCompraInsumoStatus();
+
+  const resetForm = () => {
+    setItemName('');
+    setStockQuantity('');
+    setPriority('media');
+    setObservation('');
+  };
+
+  const handleSubmit = async () => {
+    if (!usuario) return;
+    if (!itemName.trim()) {
+      toast({ title: 'Erro', description: 'O nome do insumo é obrigatório.', variant: 'destructive' });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await createCompra.mutateAsync({
+        usuario_id: usuario.id,
+        collaborator_name: usuario.nome,
+        item_name: itemName.trim(),
+        stock_quantity: stockQuantity.trim(),
+        priority,
+        observation: observation.trim(),
+      });
+
+      resetForm();
+      setShowNewDialog(false);
+      toast({ title: 'Solicitação criada!', description: 'Sua solicitação de compra foi registrada.' });
+    } catch (err: any) {
+      toast({ title: 'Erro ao enviar', description: err.message, variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleStatusChange = (id: string, newStatus: string) => {
+    updateStatus.mutate({ id, status: newStatus }, {
+      onSuccess: () => {
+        toast({ title: 'Status atualizado!' });
+        if (viewItem?.id === id) {
+          setViewItem((prev) => prev ? { ...prev, status: newStatus } : null);
+        }
+      },
+    });
+  };
+
+  const clearFilters = () => {
+    setFilterName('');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+    setFilterStatus('all');
+    setFilterItem('');
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => setShowNewDialog(true)} className="gap-2">
+          <Plus className="w-4 h-4" />
+          Nova solicitação
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Colaborador</label>
+              <Input placeholder="Nome" value={filterName} onChange={(e) => setFilterName(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Data início</label>
+              <Input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Data fim</label>
+              <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Status</label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="solicitado">Solicitado</SelectItem>
+                  <SelectItem value="em_andamento">Em andamento</SelectItem>
+                  <SelectItem value="concluido">Concluído</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Insumo</label>
+              <Input placeholder="Nome do insumo" value={filterItem} onChange={(e) => setFilterItem(e.target.value)} />
+            </div>
+            <Button variant="outline" onClick={clearFilters}>Limpar</Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Table */}
+      <Card>
+        <CardContent className="pt-6">
+          {isLoading ? (
+            <p className="text-center text-muted-foreground py-8">Carregando...</p>
+          ) : items.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">Nenhuma solicitação encontrada.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Colaborador</TableHead>
+                  <TableHead>Data / Hora</TableHead>
+                  <TableHead>Insumo</TableHead>
+                  <TableHead>Qtd em Estoque</TableHead>
+                  <TableHead>Prioridade</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((c) => {
+                  const dt = new Date(c.created_at);
+                  return (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-medium">{c.collaborator_name}</TableCell>
+                      <TableCell className="text-sm">
+                        {dt.toLocaleDateString('pt-BR')}
+                        <br />
+                        <span className="text-muted-foreground">{dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate">{c.item_name}</TableCell>
+                      <TableCell>{c.stock_quantity || '—'}</TableCell>
+                      <TableCell>{priorityBadge(c.priority)}</TableCell>
+                      <TableCell>{statusBadge(c.status)}</TableCell>
+                      <TableCell>
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" title="Ver detalhes" onClick={() => setViewItem(c)}>
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          {isAdminOrGestor && c.status !== 'concluido' && (
+                            <Select value={c.status} onValueChange={(val) => handleStatusChange(c.id, val)}>
+                              <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="solicitado">Solicitado</SelectItem>
+                                <SelectItem value="em_andamento">Em andamento</SelectItem>
+                                <SelectItem value="concluido">Concluído</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* New Request Dialog */}
+      <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5" />
+              Nova solicitação de compra
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Insumo que faltou *</Label>
+              <Input placeholder="Ex: Mussarela, Farinha de trigo..." value={itemName} onChange={(e) => setItemName(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Quantidade em estoque</Label>
+                <Input placeholder="Ex: 2 unidades, 500g..." value={stockQuantity} onChange={(e) => setStockQuantity(e.target.value)} />
+              </div>
+              <div>
+                <Label>Prioridade</Label>
+                <Select value={priority} onValueChange={setPriority}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PRIORITIES.map((p) => (<SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label>Observações</Label>
+              <Textarea placeholder="Informações extras..." value={observation} onChange={(e) => setObservation(e.target.value)} rows={3} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { resetForm(); setShowNewDialog(false); }}>Cancelar</Button>
+            <Button onClick={handleSubmit} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="w-4 h-4 mr-1 animate-spin" />}
+              Enviar solicitação
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail Dialog */}
+      <Dialog open={!!viewItem} onOpenChange={() => setViewItem(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Detalhes da solicitação de compra</DialogTitle></DialogHeader>
+          {viewItem && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div><span className="text-muted-foreground">Colaborador</span><p className="font-medium">{viewItem.collaborator_name}</p></div>
+                <div><span className="text-muted-foreground">Data / Hora</span><p className="font-medium">{new Date(viewItem.created_at).toLocaleDateString('pt-BR')} {new Date(viewItem.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p></div>
+                <div><span className="text-muted-foreground">Insumo</span><p className="font-medium">{viewItem.item_name}</p></div>
+                <div><span className="text-muted-foreground">Qtd em Estoque</span><p className="font-medium">{viewItem.stock_quantity || '—'}</p></div>
+                <div><span className="text-muted-foreground">Prioridade</span><p>{priorityBadge(viewItem.priority)}</p></div>
+                <div>
+                  <span className="text-muted-foreground">Status</span>
+                  <div className="flex items-center gap-2">
+                    {statusBadge(viewItem.status)}
+                    {isAdminOrGestor && viewItem.status !== 'concluido' && (
+                      <Select value={viewItem.status} onValueChange={(val) => handleStatusChange(viewItem.id, val)}>
+                        <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="solicitado">Solicitado</SelectItem>
+                          <SelectItem value="em_andamento">Em andamento</SelectItem>
+                          <SelectItem value="concluido">Concluído</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {viewItem.observation && (
+                <div>
+                  <span className="text-sm text-muted-foreground">Observações</span>
+                  <p className="text-sm bg-muted rounded-lg p-3 mt-1 whitespace-pre-wrap">{viewItem.observation}</p>
+                </div>
+              )}
+            </div>
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+/* ───────────── MAIN PAGE ───────────── */
+export default function Manutencoes() {
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Manutenções & Compras</h1>
+
+      <Tabs defaultValue="manutencoes" className="w-full">
+        <TabsList>
+          <TabsTrigger value="manutencoes" className="gap-2">
+            <Wrench className="w-4 h-4" />
+            Manutenções
+          </TabsTrigger>
+          <TabsTrigger value="compras" className="gap-2">
+            <ShoppingCart className="w-4 h-4" />
+            Compras de Insumos
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="manutencoes">
+          <ManutencaoTab />
+        </TabsContent>
+        <TabsContent value="compras">
+          <ComprasInsumosTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
