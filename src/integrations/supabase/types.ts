@@ -129,6 +129,48 @@ export type Database = {
           },
         ]
       }
+      checkouts: {
+        Row: {
+          audio_path: string | null
+          checkout_date: string
+          checkout_time: string
+          collaborator_name: string
+          created_at: string
+          duration_seconds: number
+          id: string
+          transcription: string | null
+          transcription_status: string
+          updated_at: string
+          usuario_id: string
+        }
+        Insert: {
+          audio_path?: string | null
+          checkout_date?: string
+          checkout_time?: string
+          collaborator_name: string
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          transcription?: string | null
+          transcription_status?: string
+          updated_at?: string
+          usuario_id: string
+        }
+        Update: {
+          audio_path?: string | null
+          checkout_date?: string
+          checkout_time?: string
+          collaborator_name?: string
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          transcription?: string | null
+          transcription_status?: string
+          updated_at?: string
+          usuario_id?: string
+        }
+        Relationships: []
+      }
       collaborators: {
         Row: {
           collaborator_name: string
