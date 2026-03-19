@@ -245,8 +245,8 @@ export default function Checkout() {
 
           {isRecording && (
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-sm text-red-500 font-medium">Gravando...</span>
+              <span className="w-3 h-3 rounded-full bg-destructive animate-pulse" />
+              <span className="text-sm text-destructive font-medium">Gravando...</span>
             </div>
           )}
 
