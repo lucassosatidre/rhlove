@@ -4,7 +4,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { ArrowUp, ArrowDown, Minus, Search, ChevronUp, ChevronDown } from 'lucide-react';
+import { ArrowUp, ArrowDown, Minus, Search, ChevronUp, ChevronDown, ChevronRight } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { ProductivityRow } from '@/lib/productivityEngine';
 import { formatCurrency, formatDecimal, formatDateBR } from '@/lib/productivityEngine';
 
