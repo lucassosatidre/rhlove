@@ -97,7 +97,7 @@ function CollapsibleCard({ title, subtitle, children }: { title: string; subtitl
     </Collapsible>
   );
 }
-
+interface Props {
   currentRows: ProductivityRow[];
   previousRows: ProductivityRow[];
   startDate: string;
