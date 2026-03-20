@@ -137,7 +137,7 @@ export default function EspelhoPonto() {
       );
       const isFolgaSemanal = selected.folgas_semanais?.includes(wd);
       const isFolgaEvent = scheduleEvents.some(e =>
-        e.collaborator_id === selected.id && e.event_date === iso && e.event_type === 'folga' && e.status === 'ATIVO'
+        e.collaborator_id === selected.id && e.event_date === iso && (e.event_type === 'TROCA_FOLGA' || e.event_type === 'MUDANCA_FOLGA') && e.status === 'ATIVO'
       );
 
       if (isVacation) { status = '🌴 Férias'; statusEmoji = '🌴'; }
