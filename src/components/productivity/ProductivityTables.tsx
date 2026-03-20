@@ -154,11 +154,7 @@ export default function ProductivityTables({ currentRows, previousRows, startDat
       </div>
 
       {/* 1. Pedidos por Setor */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Pedidos por Colaborador do Setor</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+      <CollapsibleCard title="Pedidos por Colaborador do Setor" subtitle="PCS por setor + PCT do time">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -249,8 +245,7 @@ export default function ProductivityTables({ currentRows, previousRows, startDat
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+      </CollapsibleCard>
 
       {/* 2. Ticket por Setor */}
       <Card>
