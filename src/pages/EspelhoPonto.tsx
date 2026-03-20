@@ -26,9 +26,18 @@ const WEEKDAY_MAP: Record<number, DayOfWeek> = {
 function calcHours(entrada: string | null, saida: string | null, saidaInt: string | null, retornoInt: string | null): number | null {
   if (!entrada || !saida) return null;
   const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-  let total = toMin(saida) - toMin(entrada);
+  const adjustForOvernight = (timeMin: number, refMin: number) => {
+    // If time is between 00:00-02:59 and reference is in the afternoon/evening, add 24h
+    if (timeMin < 180 && refMin > timeMin) return timeMin + 1440;
+    return timeMin;
+  };
+  const entradaMin = toMin(entrada);
+  let saidaMin = adjustForOvernight(toMin(saida), entradaMin);
+  let total = saidaMin - entradaMin;
   if (saidaInt && retornoInt) {
-    total -= (toMin(retornoInt) - toMin(saidaInt));
+    const saidaIntMin = toMin(saidaInt);
+    const retornoIntMin = adjustForOvernight(toMin(retornoInt), saidaIntMin);
+    total -= (retornoIntMin - saidaIntMin);
   }
   return total > 0 ? total : 0;
 }
