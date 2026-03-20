@@ -1,6 +1,6 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, UserMinus, Fingerprint, Mic, Wrench } from 'lucide-react';
+import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, UserMinus, Fingerprint, Mic, Wrench, ClipboardList } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 import rhLoveIcon from '@/assets/rh-love-icon.png';
@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { to: '/avisos-previos', label: 'Avisos Prévios', icon: FileWarning, roles: ['admin', 'gestor'] },
   { to: '/afastamentos', label: 'Afastamentos', icon: UserMinus, roles: ['admin', 'gestor'] },
   { to: '/registro-ponto', label: 'Registro Ponto', icon: Fingerprint, roles: ['admin', 'gestor'] },
+  { to: '/espelho-ponto', label: 'Espelho de Ponto', icon: ClipboardList, roles: ['admin', 'gestor'] },
   { to: '/checkout', label: 'Checkout', icon: Mic, roles: ['admin', 'gestor', 'lider'] },
   { to: '/manutencoes', label: 'Manutenções e Compras', icon: Wrench, roles: ['admin', 'gestor', 'lider'] },
   { to: '/usuarios', label: 'Usuários', icon: Shield, roles: ['admin'] },
