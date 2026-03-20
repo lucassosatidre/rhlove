@@ -84,16 +84,31 @@ export function AFDPunchImportDialog({ open, onOpenChange, collaborators }: Prop
           return;
         }
 
-        // Group by PIS + date
+        // Group by PIS + date, moving 00:00-02:59 punches to previous day
         const grouped: Record<string, { pis: string; date: string; times: string[] }> = {};
         for (const r of records) {
-          const key = `${r.pis}|${r.date}`;
-          if (!grouped[key]) grouped[key] = { pis: r.pis, date: r.date, times: [] };
+          const hour = parseInt(r.time.split(':')[0]);
+          let targetDate = r.date;
+          // If punch is between 00:00-02:59, assign to previous calendar day
+          if (hour >= 0 && hour < 3) {
+            const d = new Date(r.date + 'T12:00:00');
+            d.setDate(d.getDate() - 1);
+            targetDate = d.toISOString().slice(0, 10);
+          }
+          const key = `${r.pis}|${targetDate}`;
+          if (!grouped[key]) grouped[key] = { pis: r.pis, date: targetDate, times: [] };
           grouped[key].times.push(r.time);
         }
 
         const days: ParsedDay[] = Object.values(grouped).map(g => {
-          const sortedTimes = g.times.sort();
+          const sortedTimes = g.times.sort((a, b) => {
+            // Sort with overnight awareness: 00:00-02:59 should come AFTER 03:00-23:59
+            const ha = parseInt(a.split(':')[0]);
+            const hb = parseInt(b.split(':')[0]);
+            const aAdj = ha < 3 ? ha + 24 : ha;
+            const bAdj = hb < 3 ? hb + 24 : hb;
+            return (aAdj * 60 + parseInt(a.split(':')[1])) - (bAdj * 60 + parseInt(b.split(':')[1]));
+          });
           const collab = pisMap.get(g.pis) || pisMap.get(g.pis.padStart(12, '0')) || pisMap.get(g.pis.replace(/^0+/, ''));
 
           return {
