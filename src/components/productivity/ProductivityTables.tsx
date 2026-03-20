@@ -71,7 +71,33 @@ function DiffBadge({ current, previous, isCurrency }: { current: number; previou
   );
 }
 
-interface Props {
+function CollapsibleCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <Card>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="pb-3 cursor-pointer hover:bg-muted/30 transition-colors select-none">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
+                <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+                {subtitle && <span className="text-xs text-muted-foreground hidden sm:inline">({subtitle})</span>}
+              </div>
+              <span className="text-[10px] text-muted-foreground">{open ? 'Recolher' : 'Expandir'}</span>
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="p-0">
+            {children}
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  );
+}
+
   currentRows: ProductivityRow[];
   previousRows: ProductivityRow[];
   startDate: string;
