@@ -34,6 +34,27 @@ const SECTOR_COLORS: Record<string, string> = {
   'DIURNO': 'hsl(var(--sector-diurno))',
 };
 
+const WEEKDAY_ABBR = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+
+function getWeekdayAbbr(rawDate: string): string {
+  const [y, m, d] = rawDate.split('-').map(Number);
+  const dow = new Date(y, m - 1, d).getDay();
+  return WEEKDAY_ABBR[dow];
+}
+
+const WeekdayXAxisTick = (props: any) => {
+  const { x, y, payload } = props;
+  const item = payload?.value;
+  // Find the weekday from the chart data stored in the payload
+  const weekday = props.weekdays?.[item] || '';
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={0} dy={12} textAnchor="middle" fontSize={11} fill="currentColor">{item}</text>
+      <text x={0} y={0} dy={25} textAnchor="middle" fontSize={9} fill="hsl(var(--muted-foreground))">{weekday}</text>
+    </g>
+  );
+};
+
 interface ImportPreviewRow {
   date: string;
   pedidos_totais: number;
@@ -146,11 +167,10 @@ export default function Produtividade() {
       : [tmpSectorFilter];
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
     return dates.map(date => {
-      const row: Record<string, any> = { date: formatDateBR(date), _rawDate: date };
+      const row: Record<string, any> = { date: formatDateBR(date), _rawDate: date, _weekday: getWeekdayAbbr(date) };
       for (const r of productivityRows.filter(r => r.date === date)) {
         if (sectors.includes(r.sector)) {
           row[r.sector] = Math.round(r.tcs * 100) / 100;
-          // Store extra data per sector for tooltip
           row[`_pessoas_${r.sector}`] = r.numero_pessoas;
           row[`_pedidos_${r.sector}`] = r.pedidos;
           row[`_vendas_${r.sector}`] = r.vendas;
@@ -166,7 +186,7 @@ export default function Produtividade() {
       : [pcsSectorFilter];
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
     return dates.map(date => {
-      const row: Record<string, any> = { date: formatDateBR(date), _rawDate: date };
+      const row: Record<string, any> = { date: formatDateBR(date), _rawDate: date, _weekday: getWeekdayAbbr(date) };
       for (const r of productivityRows.filter(r => r.date === date)) {
         if (sectors.includes(r.sector)) {
           row[r.sector] = Math.round(r.pcs * 100) / 100;
@@ -1165,9 +1185,9 @@ export default function Produtividade() {
               <CardContent>
                 {pcsSectorFilter === 'ALL' ? (
                   <ChartContainer config={tcsChartConfig} className="h-[320px] w-full">
-                    <LineChart data={chartPCS} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
+                    <LineChart data={chartPCS} margin={{ top: 20, right: 20, bottom: 25, left: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                      <XAxis dataKey="date" tick={<WeekdayXAxisTick weekdays={Object.fromEntries(chartPCS.map(d => [d.date, d._weekday]))} />} />
                       <YAxis tick={{ fontSize: 11 }} />
                       <ChartTooltip content={({ active, payload }) => {
                         if (!active || !payload?.length) return null;
@@ -1193,9 +1213,9 @@ export default function Produtividade() {
                   </ChartContainer>
                 ) : (
                   <ChartContainer config={{ [pcsSectorFilter]: { label: pcsSectorFilter, color: SECTOR_COLORS[pcsSectorFilter] || 'hsl(220, 15%, 25%)' } }} className="h-[320px] w-full">
-                    <LineChart data={chartPCS} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
+                    <LineChart data={chartPCS} margin={{ top: 20, right: 20, bottom: 25, left: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                      <XAxis dataKey="date" tick={<WeekdayXAxisTick weekdays={Object.fromEntries(chartPCS.map(d => [d.date, d._weekday]))} />} />
                       <YAxis tick={{ fontSize: 11 }} />
                       <ChartTooltip content={({ active, payload }) => {
                         if (!active || !payload?.length) return null;
@@ -1255,9 +1275,9 @@ export default function Produtividade() {
               <CardContent>
                 {tmpSectorFilter === 'ALL' ? (
                   <ChartContainer config={tcsChartConfig} className="h-[320px] w-full">
-                    <LineChart data={chartTCS} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
+                    <LineChart data={chartTCS} margin={{ top: 20, right: 20, bottom: 25, left: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                      <XAxis dataKey="date" tick={<WeekdayXAxisTick weekdays={Object.fromEntries(chartTCS.map(d => [d.date, d._weekday]))} />} />
                       <YAxis tick={{ fontSize: 11 }} />
                       <ChartTooltip content={({ active, payload }) => {
                         if (!active || !payload?.length) return null;
@@ -1283,9 +1303,9 @@ export default function Produtividade() {
                   </ChartContainer>
                 ) : (
                   <ChartContainer config={{ [tmpSectorFilter]: { label: tmpSectorFilter, color: SECTOR_COLORS[tmpSectorFilter] || 'hsl(220, 15%, 25%)' } }} className="h-[320px] w-full">
-                    <LineChart data={chartTCS} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
+                    <LineChart data={chartTCS} margin={{ top: 20, right: 20, bottom: 25, left: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                      <XAxis dataKey="date" tick={<WeekdayXAxisTick weekdays={Object.fromEntries(chartTCS.map(d => [d.date, d._weekday]))} />} />
                       <YAxis tick={{ fontSize: 11 }} />
                       <ChartTooltip content={({ active, payload }) => {
                         if (!active || !payload?.length) return null;
