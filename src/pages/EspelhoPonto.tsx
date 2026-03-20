@@ -119,6 +119,14 @@ export default function EspelhoPonto() {
 
   const rows: DayRow[] = useMemo(() => {
     if (!selected) return [];
+
+    // First, collect all punch records for this collaborator in the month
+    const collabPunches = punchRecords.filter(p => p.collaborator_id === selected.id);
+    
+    // Build a map of punches by date for quick lookup
+    const punchMap = new Map<string, typeof punchRecords[0]>();
+    collabPunches.forEach(p => punchMap.set(p.date, p));
+
     const result: DayRow[] = [];
     for (let d = 1; d <= daysInMonth; d++) {
       const dateObj = new Date(selectedYear, selectedMonth, d);
@@ -126,11 +134,53 @@ export default function EspelhoPonto() {
       const wd = WEEKDAY_MAP[getDay(dateObj)];
       const weekday = format(dateObj, 'EEE', { locale: ptBR });
 
-      const punch = punchRecords.find(p => p.collaborator_id === selected.id && p.date === iso);
-      const entrada = punch?.entrada ?? null;
-      const saida = punch?.saida ?? null;
-      const saidaInt = punch?.saida_intervalo ?? null;
-      const retornoInt = punch?.retorno_intervalo ?? null;
+      const punch = punchMap.get(iso);
+      let entrada = punch?.entrada ?? null;
+      let saida = punch?.saida ?? null;
+      let saidaInt = punch?.saida_intervalo ?? null;
+      let retornoInt = punch?.retorno_intervalo ?? null;
+
+      // Detect shifted data: if entrada is 00:00-02:59 and saida_intervalo >= 12:00,
+      // it means the entrada is actually the exit from previous day's shift.
+      // The real punches for today are: entrada=saida_intervalo, saidaInt=retornoInt, retornoInt=saida, saida=?
+      const entradaHour = entrada ? parseInt(entrada.split(':')[0]) : -1;
+      const saidaIntHour = saidaInt ? parseInt(saidaInt.split(':')[0]) : -1;
+      const isShifted = entradaHour >= 0 && entradaHour < 3 && saidaIntHour >= 12;
+
+      if (isShifted) {
+        // Rearrange: the 00:xx punch belongs to previous day, shift the rest
+        const prevDayIso = format(addDays(dateObj, -1), 'yyyy-MM-dd');
+        // Update previous day's row if it exists and has no proper saida after midnight
+        const prevRow = result.find(r => r.date === prevDayIso);
+        if (prevRow && prevRow.saida !== null) {
+          // The previous day already has a saida (before midnight like 23:57),
+          // but the real exit was the 00:xx punch. Use it if it gives more hours.
+          const prevSaidaHour = parseInt(prevRow.saida.split(':')[0]);
+          if (prevSaidaHour >= 20 && entradaHour < 3) {
+            // Replace previous day's saida with the overnight punch
+            prevRow.saida = entrada;
+            prevRow.hoursMin = calcHours(prevRow.entrada, prevRow.saida, prevRow.saidaInt, prevRow.retornoInt);
+          }
+        }
+
+        // Now rearrange this day's punches
+        entrada = saidaInt;    // real entrada
+        saidaInt = retornoInt; // real saida intervalo
+        retornoInt = saida;    // real retorno intervalo
+        saida = null;          // saida is unknown (after midnight, might be on next day)
+
+        // Check if next day has a 00:xx entrada that could be today's saida
+        const nextDayIso = format(addDays(dateObj, 1), 'yyyy-MM-dd');
+        const nextPunch = punchMap.get(nextDayIso);
+        if (nextPunch?.entrada) {
+          const nextEntradaHour = parseInt(nextPunch.entrada.split(':')[0]);
+          const nextSaidaIntHour = nextPunch.saida_intervalo ? parseInt(nextPunch.saida_intervalo.split(':')[0]) : -1;
+          if (nextEntradaHour >= 0 && nextEntradaHour < 3 && nextSaidaIntHour >= 12) {
+            saida = nextPunch.entrada; // next day's 00:xx is our exit
+          }
+        }
+      }
+
       const hoursMin = calcHours(entrada, saida, saidaInt, retornoInt);
 
       // Status logic
@@ -154,6 +204,7 @@ export default function EspelhoPonto() {
       else if (isHoliday) { status = '🎉 Feriado'; statusEmoji = '🎉'; }
       else if (isFolgaSemanal || isFolgaEvent) { status = '🏖️ Folga'; statusEmoji = '🏖️'; }
       else if (entrada && saida) { status = '✅ Normal'; statusEmoji = '✅'; }
+      else if (entrada && !saida) { status = '⚠️ Saída pendente'; statusEmoji = '⚠️'; }
 
       result.push({ date: iso, dateObj, weekday, entrada, saidaInt, retornoInt, saida, hoursMin, status, statusEmoji });
     }
