@@ -167,11 +167,10 @@ export default function Produtividade() {
       : [tmpSectorFilter];
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
     return dates.map(date => {
-      const row: Record<string, any> = { date: formatDateBR(date), _rawDate: date };
+      const row: Record<string, any> = { date: formatDateBR(date), _rawDate: date, _weekday: getWeekdayAbbr(date) };
       for (const r of productivityRows.filter(r => r.date === date)) {
         if (sectors.includes(r.sector)) {
           row[r.sector] = Math.round(r.tcs * 100) / 100;
-          // Store extra data per sector for tooltip
           row[`_pessoas_${r.sector}`] = r.numero_pessoas;
           row[`_pedidos_${r.sector}`] = r.pedidos;
           row[`_vendas_${r.sector}`] = r.vendas;
