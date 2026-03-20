@@ -1254,18 +1254,32 @@ export default function Produtividade() {
               </CardHeader>
               <CardContent>
                 {tmpSectorFilter === 'ALL' ? (
-                  <ChartContainer config={tcsChartConfig} className="h-[300px] w-full">
-                    <BarChart data={chartTCS}>
+                  <ChartContainer config={tcsChartConfig} className="h-[320px] w-full">
+                    <LineChart data={chartTCS} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 11 }} />
-                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <ChartTooltip content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const data = payload[0]?.payload;
+                        if (!data) return null;
+                        return (
+                          <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl space-y-0.5">
+                            <p className="font-semibold">📅 {data.date}</p>
+                            {['COZINHA', 'DIURNO', 'SALÃO', 'TELE - ENTREGA'].map(s => {
+                              const val = data[s];
+                              if (val === undefined) return null;
+                              const label = s === 'TELE - ENTREGA' ? 'Tele' : s.charAt(0) + s.slice(1).toLowerCase();
+                              return <p key={s}>🏷️ {label}: R$ {Math.round(val).toLocaleString('pt-BR')}</p>;
+                            })}
+                          </div>
+                        );
+                      }} />
                       <Legend />
-                      <Bar dataKey="COZINHA" fill={SECTOR_COLORS['COZINHA']} name="Cozinha" radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="DIURNO" fill={SECTOR_COLORS['DIURNO']} name="Diurno" radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="SALÃO" fill={SECTOR_COLORS['SALÃO']} name="Salão" radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="TELE - ENTREGA" fill={SECTOR_COLORS['TELE - ENTREGA']} name="Tele-Entrega" radius={[2, 2, 0, 0]} />
-                    </BarChart>
+                      {['COZINHA', 'DIURNO', 'SALÃO', 'TELE - ENTREGA'].map(s => (
+                        <Line key={s} type="monotone" dataKey={s} stroke={SECTOR_COLORS[s]} strokeWidth={2} dot={{ r: 3, fill: SECTOR_COLORS[s] }} name={s === 'TELE - ENTREGA' ? 'Tele-Entrega' : s.charAt(0) + s.slice(1).toLowerCase()} />
+                      ))}
+                    </LineChart>
                   </ChartContainer>
                 ) : (
                   <ChartContainer config={{ [tmpSectorFilter]: { label: tmpSectorFilter, color: SECTOR_COLORS[tmpSectorFilter] || 'hsl(220, 15%, 25%)' } }} className="h-[320px] w-full">
