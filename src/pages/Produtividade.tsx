@@ -34,6 +34,27 @@ const SECTOR_COLORS: Record<string, string> = {
   'DIURNO': 'hsl(var(--sector-diurno))',
 };
 
+const WEEKDAY_ABBR = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+
+function getWeekdayAbbr(rawDate: string): string {
+  const [y, m, d] = rawDate.split('-').map(Number);
+  const dow = new Date(y, m - 1, d).getDay();
+  return WEEKDAY_ABBR[dow];
+}
+
+const WeekdayXAxisTick = (props: any) => {
+  const { x, y, payload } = props;
+  const item = payload?.value;
+  // Find the weekday from the chart data stored in the payload
+  const weekday = props.weekdays?.[item] || '';
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text x={0} y={0} dy={12} textAnchor="middle" fontSize={11} fill="currentColor">{item}</text>
+      <text x={0} y={0} dy={25} textAnchor="middle" fontSize={9} fill="hsl(var(--muted-foreground))">{weekday}</text>
+    </g>
+  );
+};
+
 interface ImportPreviewRow {
   date: string;
   pedidos_totais: number;
