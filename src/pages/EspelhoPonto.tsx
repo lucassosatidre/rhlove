@@ -184,8 +184,12 @@ export default function EspelhoPonto() {
       const hoursMin = calcHours(entrada, saida, saidaInt, retornoInt);
 
       // Status logic
-      let status = '❌ Falta';
-      let statusEmoji = '❌';
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const isFuture = dateObj >= today;
+
+      let status = isFuture ? '—' : '❌ Falta';
+      let statusEmoji = isFuture ? '—' : '❌';
 
       const isHoliday = holidaySet.has(iso);
       const isVacation = vacations.some(v =>
