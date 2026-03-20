@@ -64,7 +64,9 @@ export default function EspelhoPonto() {
 
   const { data: collaborators = [] } = useCollaborators();
   const { data: punchRecords = [] } = usePunchRecords();
-  const { data: scheduleEvents = [] } = useScheduleEvents();
+  const monthStart = format(new Date(selectedYear, selectedMonth, 1), 'yyyy-MM-dd');
+  const monthEnd = format(new Date(selectedYear, selectedMonth, getDaysInMonth(new Date(selectedYear, selectedMonth)), ), 'yyyy-MM-dd');
+  const { data: scheduleEvents = [] } = useScheduleEvents(monthStart, monthEnd);
   const { data: vacations = [] } = useScheduledVacations();
   const { data: afastamentos = [] } = useAfastamentos();
   const { data: holidays = [] } = useHolidays();
