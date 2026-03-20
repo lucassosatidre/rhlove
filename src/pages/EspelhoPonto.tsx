@@ -422,7 +422,24 @@ export default function EspelhoPonto() {
         </div>
       </div>
 
+      {/* Registro de Ponto collapsible */}
+      <Collapsible className="print:hidden">
+        <CollapsibleTrigger asChild>
+          <Button variant="outline" className="w-full justify-between gap-2">
+            <span className="flex items-center gap-2">
+              <Fingerprint className="w-4 h-4" />
+              Registro de Ponto
+            </span>
+            <ChevronDown className="w-4 h-4 transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-4">
+          <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Carregando...</div>}>
+            <RegistroPonto />
+          </Suspense>
+        </CollapsibleContent>
+      </Collapsible>
+
       <PrintFooter />
     </div>
-  );
 }
