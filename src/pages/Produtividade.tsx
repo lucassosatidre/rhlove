@@ -1020,85 +1020,65 @@ export default function Produtividade() {
       </Card>
 
       {/* Data entry */}
-      <Card className="no-print">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Dados de Vendas</CardTitle>
-          <CardDescription className="text-xs">
-            Cadastre manualmente ou importe planilha de vendas
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls"
-              className="hidden"
-              onChange={handleFileSelect}
-            />
-            <input
-              ref={histFileInputRef}
-              type="file"
-              accept=".xlsx,.xls"
-              className="hidden"
-              onChange={handleHistFileSelect}
-            />
-            <input
-              ref={freeFileInputRef}
-              type="file"
-              accept=".xlsx,.xls"
-              className="hidden"
-              onChange={handleFreeFileSelect}
-            />
-            <DropZone inline accept=".xlsx,.xls" onFiles={(files) => { const s = { target: { files, value: '' } } as unknown as React.ChangeEvent<HTMLInputElement>; handleFileSelect(s); }}>
-              <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="w-4 h-4 mr-1" /> Importar Vendas
-              </Button>
-            </DropZone>
-            <DropZone inline accept=".xlsx,.xls" onFiles={(files) => { const s = { target: { files, value: '' } } as unknown as React.ChangeEvent<HTMLInputElement>; handleFreeFileSelect(s); }}>
-              <Button variant="outline" size="sm" onClick={() => freeFileInputRef.current?.click()}>
-                <Users className="w-4 h-4 mr-1" /> Importar Free-lancers
-              </Button>
-            </DropZone>
-            <Button variant="outline" size="sm" onClick={() => setFreeHistoryOpen(true)}>
-              <ClipboardList className="w-4 h-4 mr-1" /> Histórico Free-lancers
-            </Button>
-            <DropZone inline accept=".xlsx,.xls" onFiles={(files) => { const s = { target: { files, value: '' } } as unknown as React.ChangeEvent<HTMLInputElement>; handleHistFileSelect(s); }}>
-              <Button variant="outline" size="sm" onClick={() => histFileInputRef.current?.click()}>
-                <History className="w-4 h-4 mr-1" /> Carga Histórica
-              </Button>
-            </DropZone>
-            <Button size="sm" onClick={openNew}>
-              <Plus className="w-4 h-4 mr-1" /> Cadastrar Dia
-            </Button>
-          </div>
-
-          {/* Historical import description */}
-          <div className="rounded-lg border border-border bg-muted/30 p-3 flex items-start gap-2">
-            <History className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
-            <p className="text-xs text-muted-foreground">
-              <strong className="text-foreground">Carga Histórica:</strong> use esta opção para carregar os dados históricos desde 23/02/2026 a partir do arquivo base preenchido. Cada linha da planilha (a partir da linha 2) corresponde a um dia sequencial.
-            </p>
-          </div>
-
-          {/* Column mapping reference */}
-          <div className="rounded-lg border border-border bg-muted/30 p-3">
-            <div className="flex items-start gap-2">
-              <FileSpreadsheet className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
-              <div className="text-xs text-muted-foreground space-y-1">
-                <p className="font-medium text-foreground">Relatório canais de venda — mapeamento automático</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-0.5">
-                  <span><strong>TOTAL QTD</strong> → Ped. Totais</span>
-                  <span><strong>TOTAL</strong> → Fat. Total</span>
-                  <span><strong>LOJA FÍSICA QTD</strong> → Ped. Salão</span>
-                  <span><strong>LOJA FÍSICA</strong> → Fat. Salão</span>
-                  <span><strong>DELIVERY + TELEFONE QTD</strong> → Ped. Tele</span>
-                  <span><strong>DELIVERY + TELEFONE</strong> → Fat. Tele</span>
+      <Collapsible className="no-print">
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="pb-3 cursor-pointer hover:bg-muted/30 transition-colors select-none">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <ChevronRight className="w-4 h-4 transition-transform duration-200 [[data-state=open]_&]:rotate-90" />
+                    Dados de Vendas
+                  </CardTitle>
+                  <CardDescription className="text-xs ml-6">
+                    Cadastre manualmente ou importe planilha de vendas
+                  </CardDescription>
                 </div>
-                <p className="text-muted-foreground/70">Regra: TELE = DELIVERY + TELEFONE. As demais colunas são ignoradas.</p>
+                <span className="text-[10px] text-muted-foreground">Expandir</span>
               </div>
-            </div>
-          </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                />
+                <input
+                  ref={histFileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={handleHistFileSelect}
+                />
+                <input
+                  ref={freeFileInputRef}
+                  type="file"
+                  accept=".xlsx,.xls"
+                  className="hidden"
+                  onChange={handleFreeFileSelect}
+                />
+                <DropZone inline accept=".xlsx,.xls" onFiles={(files) => { const s = { target: { files, value: '' } } as unknown as React.ChangeEvent<HTMLInputElement>; handleFileSelect(s); }}>
+                  <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="w-4 h-4 mr-1" /> Importar Vendas
+                  </Button>
+                </DropZone>
+                <DropZone inline accept=".xlsx,.xls" onFiles={(files) => { const s = { target: { files, value: '' } } as unknown as React.ChangeEvent<HTMLInputElement>; handleFreeFileSelect(s); }}>
+                  <Button variant="outline" size="sm" onClick={() => freeFileInputRef.current?.click()}>
+                    <Users className="w-4 h-4 mr-1" /> Importar Free-lancers
+                  </Button>
+                </DropZone>
+                <Button variant="outline" size="sm" onClick={() => setFreeHistoryOpen(true)}>
+                  <ClipboardList className="w-4 h-4 mr-1" /> Histórico Free-lancers
+                </Button>
+                <Button size="sm" onClick={openNew}>
+                  <Plus className="w-4 h-4 mr-1" /> Cadastrar Dia
+                </Button>
+              </div>
 
           {salesData.length > 0 && (
             <div className="border rounded-lg overflow-hidden">
