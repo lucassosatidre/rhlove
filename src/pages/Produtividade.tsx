@@ -187,7 +187,7 @@ export default function Produtividade() {
       : [pcsSectorFilter];
     const dates = [...new Set(productivityRows.map(r => r.date))].sort();
     return dates.map(date => {
-      const row: Record<string, any> = { date: formatDateBR(date), _rawDate: date };
+      const row: Record<string, any> = { date: formatDateBR(date), _rawDate: date, _weekday: getWeekdayAbbr(date) };
       for (const r of productivityRows.filter(r => r.date === date)) {
         if (sectors.includes(r.sector)) {
           row[r.sector] = Math.round(r.pcs * 100) / 100;
