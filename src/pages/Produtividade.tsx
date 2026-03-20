@@ -1303,9 +1303,9 @@ export default function Produtividade() {
                   </ChartContainer>
                 ) : (
                   <ChartContainer config={{ [tmpSectorFilter]: { label: tmpSectorFilter, color: SECTOR_COLORS[tmpSectorFilter] || 'hsl(220, 15%, 25%)' } }} className="h-[320px] w-full">
-                    <LineChart data={chartTCS} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
+                    <LineChart data={chartTCS} margin={{ top: 20, right: 20, bottom: 25, left: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                      <XAxis dataKey="date" tick={<WeekdayXAxisTick weekdays={Object.fromEntries(chartTCS.map(d => [d.date, d._weekday]))} />} />
                       <YAxis tick={{ fontSize: 11 }} />
                       <ChartTooltip content={({ active, payload }) => {
                         if (!active || !payload?.length) return null;
