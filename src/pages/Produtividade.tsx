@@ -1121,8 +1121,10 @@ export default function Produtividade() {
               </Table>
             </div>
           )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Results */}
       {productivityRows.length > 0 && (
