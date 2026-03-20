@@ -442,4 +442,5 @@ export default function EspelhoPonto() {
 
       <PrintFooter />
     </div>
+  );
 }
