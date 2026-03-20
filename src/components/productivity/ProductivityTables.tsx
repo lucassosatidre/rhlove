@@ -4,7 +4,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { ArrowUp, ArrowDown, Minus, Search, ChevronUp, ChevronDown } from 'lucide-react';
+import { ArrowUp, ArrowDown, Minus, Search, ChevronUp, ChevronDown, ChevronRight } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import type { ProductivityRow } from '@/lib/productivityEngine';
 import { formatCurrency, formatDecimal, formatDateBR } from '@/lib/productivityEngine';
 
@@ -70,6 +71,32 @@ function DiffBadge({ current, previous, isCurrency }: { current: number; previou
   );
 }
 
+function CollapsibleCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <Card>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="pb-3 cursor-pointer hover:bg-muted/30 transition-colors select-none">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-90' : ''}`} />
+                <CardTitle className="text-sm font-semibold">{title}</CardTitle>
+                {subtitle && <span className="text-xs text-muted-foreground hidden sm:inline">({subtitle})</span>}
+              </div>
+              <span className="text-[10px] text-muted-foreground">{open ? 'Recolher' : 'Expandir'}</span>
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="p-0">
+            {children}
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
+  );
+}
 interface Props {
   currentRows: ProductivityRow[];
   previousRows: ProductivityRow[];
@@ -153,11 +180,7 @@ export default function ProductivityTables({ currentRows, previousRows, startDat
       </div>
 
       {/* 1. Pedidos por Setor */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Pedidos por Colaborador do Setor</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+      <CollapsibleCard title="Pedidos por Colaborador do Setor" subtitle="PCS por setor + PCT do time">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -248,15 +271,10 @@ export default function ProductivityTables({ currentRows, previousRows, startDat
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+      </CollapsibleCard>
 
       {/* 2. Ticket por Setor */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Ticket por Colaborador do Setor</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+      <CollapsibleCard title="Ticket por Colaborador do Setor" subtitle="TCS por setor + TCT do time">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -339,15 +357,10 @@ export default function ProductivityTables({ currentRows, previousRows, startDat
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+      </CollapsibleCard>
 
       {/* 3. Pedidos por Time (daily PCT) */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Pedidos por Colaborador do Time</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+      <CollapsibleCard title="Pedidos por Colaborador do Time" subtitle="PCT diário">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -405,15 +418,10 @@ export default function ProductivityTables({ currentRows, previousRows, startDat
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+      </CollapsibleCard>
 
       {/* 4. Ticket por Time (daily TCT) */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold">Ticket por Colaborador do Time</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
+      <CollapsibleCard title="Ticket por Colaborador do Time" subtitle="TCT diário">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -471,8 +479,7 @@ export default function ProductivityTables({ currentRows, previousRows, startDat
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+      </CollapsibleCard>
     </div>
   );
 }
