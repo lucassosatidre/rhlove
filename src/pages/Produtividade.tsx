@@ -1185,9 +1185,9 @@ export default function Produtividade() {
               <CardContent>
                 {pcsSectorFilter === 'ALL' ? (
                   <ChartContainer config={tcsChartConfig} className="h-[320px] w-full">
-                    <LineChart data={chartPCS} margin={{ top: 20, right: 20, bottom: 5, left: 10 }}>
+                    <LineChart data={chartPCS} margin={{ top: 20, right: 20, bottom: 25, left: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                      <XAxis dataKey="date" tick={<WeekdayXAxisTick weekdays={Object.fromEntries(chartPCS.map(d => [d.date, d._weekday]))} />} />
                       <YAxis tick={{ fontSize: 11 }} />
                       <ChartTooltip content={({ active, payload }) => {
                         if (!active || !payload?.length) return null;
