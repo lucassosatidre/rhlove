@@ -128,6 +128,7 @@ export default function Produtividade() {
   }, [startDate, endDate]);
 
   const { data: scheduleEvents = [] } = useScheduleEvents(prevPeriod.start, endDate);
+  const swapOverrides = useMemo(() => buildSwapOverrides(scheduleEvents), [scheduleEvents]);
   const absentCollaboratorIdsByDate = useMemo(
     () => buildAbsentCollaboratorIdsByDate(scheduleEvents),
     [scheduleEvents]
