@@ -167,6 +167,7 @@ export default function Dashboard() {
         allSales={allSales}
         collaborators={collaborators}
         freelancers={freelancers}
+        freelancerEntries={freelancerEntries}
         scheduledVacations={scheduledVacations}
         absentCollaboratorIdsByDate={absentCollaboratorIdsByDate}
       />

@@ -3,15 +3,23 @@ import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { DailySales } from '@/hooks/useDailySales';
 import type { Collaborator } from '@/types/collaborator';
 import type { Freelancer } from '@/hooks/useFreelancers';
+import type { FreelancerEntry } from '@/hooks/useFreelancerEntries';
 import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
 import type { AbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { countPeopleBySectorOnDate } from '@/lib/productivityEngine';
 
 const SECTORS = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'] as const;
 
+function getFreelancerCount(freelancers: Freelancer[], freelancerEntries: FreelancerEntry[], date: string, sector: string): number {
+  const qtyFrees = freelancers.find(fr => fr.date === date && fr.sector === sector)?.quantity ?? 0;
+  const namedFrees = freelancerEntries.filter(fe => fe.date === date && fe.sector === sector).length;
+  return qtyFrees + namedFrees;
+}
+
 function getTotalPeople(
   collaborators: Collaborator[],
   freelancers: Freelancer[],
+  freelancerEntries: FreelancerEntry[],
   scheduledVacations: ScheduledVacation[],
   dateStr: string,
   absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
@@ -20,8 +28,7 @@ function getTotalPeople(
   let total = 0;
   for (const s of SECTORS) {
     total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate);
-    const f = freelancers.find(fr => fr.date === dateStr && fr.sector === s);
-    if (f) total += f.quantity;
+    total += getFreelancerCount(freelancers, freelancerEntries, dateStr, s);
   }
   return total;
 }
