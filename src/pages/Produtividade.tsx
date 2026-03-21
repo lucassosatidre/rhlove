@@ -112,6 +112,7 @@ export default function Produtividade() {
   const { data: salesData = [], isLoading } = useDailySales(startDate, endDate);
   const { data: freelancersData = [] } = useFreelancers(startDate, endDate);
   const { data: scheduledVacations = [] } = useScheduledVacations();
+  const { data: afastamentos = [] } = useAfastamentos();
 
   // Previous period for comparison
   const prevPeriod = useMemo(() => {
