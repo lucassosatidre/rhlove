@@ -155,13 +155,14 @@ interface Props {
   allSales: DailySales[];
   collaborators: Collaborator[];
   freelancers: Freelancer[];
+  freelancerEntries?: FreelancerEntry[];
   scheduledVacations: ScheduledVacation[];
   absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate;
 }
 
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
-export default function MonthlyComparison({ allSales, collaborators, freelancers, scheduledVacations, absentCollaboratorIdsByDate }: Props) {
+export default function MonthlyComparison({ allSales, collaborators, freelancers, freelancerEntries = [], scheduledVacations, absentCollaboratorIdsByDate }: Props) {
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth();
@@ -180,9 +181,11 @@ export default function MonthlyComparison({ allSales, collaborators, freelancers
 
   const currentFl = freelancers.filter(f => f.date.startsWith(currentPrefix));
   const prevFl = freelancers.filter(f => f.date.startsWith(prevPrefix));
+  const currentFe = freelancerEntries.filter(f => f.date.startsWith(currentPrefix));
+  const prevFe = freelancerEntries.filter(f => f.date.startsWith(prevPrefix));
 
-  const curr = computeMonthlyKPIs(currentSales, collaborators, currentFl, scheduledVacations, absentCollaboratorIdsByDate);
-  const prev = computeMonthlyKPIs(prevSales, collaborators, prevFl, scheduledVacations, absentCollaboratorIdsByDate);
+  const curr = computeMonthlyKPIs(currentSales, collaborators, currentFl, currentFe, scheduledVacations, absentCollaboratorIdsByDate);
+  const prev = computeMonthlyKPIs(prevSales, collaborators, prevFl, prevFe, scheduledVacations, absentCollaboratorIdsByDate);
 
   const currentMonthLabel = MONTH_NAMES[currentMonth];
   const prevMonthLabel = MONTH_NAMES[prevMonth];
