@@ -111,6 +111,7 @@ export default function Produtividade() {
   const { data: collaborators = [] } = useCollaborators();
   const { data: salesData = [], isLoading } = useDailySales(startDate, endDate);
   const { data: freelancersData = [] } = useFreelancers(startDate, endDate);
+  const { data: freelancerEntriesData = [] } = useFreelancerEntries(startDate, endDate);
   const { data: scheduledVacations = [] } = useScheduledVacations();
   const { data: afastamentos = [] } = useAfastamentos();
 
