@@ -61,6 +61,7 @@ export default function Dashboard() {
   const { data: allSales = [], isLoading: loadingSales } = useDailySales(broadStart, broadEnd);
   const { data: collaborators = [], isLoading: loadingCollab } = useCollaborators();
   const { data: freelancers = [] } = useFreelancers(broadStart, broadEnd);
+  const { data: freelancerEntries = [] } = useFreelancerEntries(broadStart, broadEnd);
   const { data: scheduledVacations = [] } = useScheduledVacations();
   const { data: scheduleEvents = [] } = useScheduleEvents(broadStart, broadEnd);
 
@@ -74,6 +75,7 @@ export default function Dashboard() {
   const filterByRange = (start: string, end: string) => ({
     sales: allSales.filter(s => s.date >= start && s.date <= end),
     fl: freelancers.filter(f => f.date >= start && f.date <= end),
+    fe: freelancerEntries.filter(f => f.date >= start && f.date <= end),
   });
 
   // Yesterday metrics
