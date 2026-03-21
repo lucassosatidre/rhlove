@@ -59,6 +59,7 @@ function computeMonthlyKPIs(
   sales: DailySales[],
   collaborators: Collaborator[],
   freelancers: Freelancer[],
+  freelancerEntries: FreelancerEntry[],
   scheduledVacations: ScheduledVacation[],
   absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
 ): MonthlyKPIs {
@@ -69,7 +70,7 @@ function computeMonthlyKPIs(
   for (const sale of sales) {
     totalFat += Number(sale.faturamento_total);
     totalPed += Number(sale.pedidos_totais);
-    totalPeople += getTotalPeople(collaborators, freelancers, scheduledVacations, sale.date, absentCollaboratorIdsByDate);
+    totalPeople += getTotalPeople(collaborators, freelancers, freelancerEntries, scheduledVacations, sale.date, absentCollaboratorIdsByDate);
     totalColabs += getCollaboratorsOnly(collaborators, scheduledVacations, sale.date, absentCollaboratorIdsByDate);
   }
 
