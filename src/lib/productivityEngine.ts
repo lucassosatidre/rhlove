@@ -1,6 +1,7 @@
 import type { Collaborator } from '@/types/collaborator';
 import type { DailySales } from '@/hooks/useDailySales';
 import type { Freelancer } from '@/hooks/useFreelancers';
+import type { FreelancerEntry } from '@/hooks/useFreelancerEntries';
 import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
 import type { Afastamento } from '@/hooks/useAfastamentos';
 import type { DayOffOverridesMap } from '@/lib/scheduleEngine';
@@ -19,9 +20,10 @@ export interface ProductivityRow {
 
 const SECTOR_ORDER = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO', 'TIME', 'TCT', 'PCT'];
 
-function getFreelancerCount(freelancers: Freelancer[], date: string, sector: string): number {
-  const f = freelancers.find(fr => fr.date === date && fr.sector === sector);
-  return f ? f.quantity : 0;
+function getFreelancerCount(freelancers: Freelancer[], freelancerEntries: FreelancerEntry[], date: string, sector: string): number {
+  const qtyFrees = freelancers.find(fr => fr.date === date && fr.sector === sector)?.quantity ?? 0;
+  const namedFrees = freelancerEntries.filter(fe => fe.date === date && fe.sector === sector).length;
+  return qtyFrees + namedFrees;
 }
 
 function buildScheduledCountMap(
@@ -82,7 +84,8 @@ export function generateProductivityData(
   scheduledVacations: ScheduledVacation[] = [],
   dayOffOverrides?: DayOffOverridesMap,
   afastamentos: Afastamento[] = [],
-  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
+  freelancerEntries: FreelancerEntry[] = []
 ): ProductivityRow[] {
   const rows: ProductivityRow[] = [];
   const scheduledCountMap = buildScheduledCountMap(
@@ -97,10 +100,10 @@ export function generateProductivityData(
   const getScheduledCount = (date: string, sector: string) => scheduledCountMap[`${date}|${sector}`] || 0;
 
   for (const sale of salesData) {
-    const pCozinha = getScheduledCount(sale.date, 'COZINHA') + getFreelancerCount(freelancers, sale.date, 'COZINHA');
-    const pDiurno = getScheduledCount(sale.date, 'DIURNO') + getFreelancerCount(freelancers, sale.date, 'DIURNO');
-    const pSalao = getScheduledCount(sale.date, 'SALÃO') + getFreelancerCount(freelancers, sale.date, 'SALÃO');
-    const pTele = getScheduledCount(sale.date, 'TELE - ENTREGA') + getFreelancerCount(freelancers, sale.date, 'TELE - ENTREGA');
+    const pCozinha = getScheduledCount(sale.date, 'COZINHA') + getFreelancerCount(freelancers, freelancerEntries, sale.date, 'COZINHA');
+    const pDiurno = getScheduledCount(sale.date, 'DIURNO') + getFreelancerCount(freelancers, freelancerEntries, sale.date, 'DIURNO');
+    const pSalao = getScheduledCount(sale.date, 'SALÃO') + getFreelancerCount(freelancers, freelancerEntries, sale.date, 'SALÃO');
+    const pTele = getScheduledCount(sale.date, 'TELE - ENTREGA') + getFreelancerCount(freelancers, freelancerEntries, sale.date, 'TELE - ENTREGA');
 
     const ft = Number(sale.faturamento_total) || 0;
     const pt = Number(sale.pedidos_totais) || 0;

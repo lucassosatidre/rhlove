@@ -3,15 +3,23 @@ import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { DailySales } from '@/hooks/useDailySales';
 import type { Collaborator } from '@/types/collaborator';
 import type { Freelancer } from '@/hooks/useFreelancers';
+import type { FreelancerEntry } from '@/hooks/useFreelancerEntries';
 import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
 import type { AbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { countPeopleBySectorOnDate } from '@/lib/productivityEngine';
 
 const SECTORS = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'] as const;
 
+function getFreelancerCount(freelancers: Freelancer[], freelancerEntries: FreelancerEntry[], date: string, sector: string): number {
+  const qtyFrees = freelancers.find(fr => fr.date === date && fr.sector === sector)?.quantity ?? 0;
+  const namedFrees = freelancerEntries.filter(fe => fe.date === date && fe.sector === sector).length;
+  return qtyFrees + namedFrees;
+}
+
 function getTotalPeople(
   collaborators: Collaborator[],
   freelancers: Freelancer[],
+  freelancerEntries: FreelancerEntry[],
   scheduledVacations: ScheduledVacation[],
   dateStr: string,
   absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
@@ -20,8 +28,7 @@ function getTotalPeople(
   let total = 0;
   for (const s of SECTORS) {
     total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate);
-    const f = freelancers.find(fr => fr.date === dateStr && fr.sector === s);
-    if (f) total += f.quantity;
+    total += getFreelancerCount(freelancers, freelancerEntries, dateStr, s);
   }
   return total;
 }
@@ -52,6 +59,7 @@ function computeMonthlyKPIs(
   sales: DailySales[],
   collaborators: Collaborator[],
   freelancers: Freelancer[],
+  freelancerEntries: FreelancerEntry[],
   scheduledVacations: ScheduledVacation[],
   absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
 ): MonthlyKPIs {
@@ -62,7 +70,7 @@ function computeMonthlyKPIs(
   for (const sale of sales) {
     totalFat += Number(sale.faturamento_total);
     totalPed += Number(sale.pedidos_totais);
-    totalPeople += getTotalPeople(collaborators, freelancers, scheduledVacations, sale.date, absentCollaboratorIdsByDate);
+    totalPeople += getTotalPeople(collaborators, freelancers, freelancerEntries, scheduledVacations, sale.date, absentCollaboratorIdsByDate);
     totalColabs += getCollaboratorsOnly(collaborators, scheduledVacations, sale.date, absentCollaboratorIdsByDate);
   }
 
@@ -147,13 +155,14 @@ interface Props {
   allSales: DailySales[];
   collaborators: Collaborator[];
   freelancers: Freelancer[];
+  freelancerEntries?: FreelancerEntry[];
   scheduledVacations: ScheduledVacation[];
   absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate;
 }
 
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
-export default function MonthlyComparison({ allSales, collaborators, freelancers, scheduledVacations, absentCollaboratorIdsByDate }: Props) {
+export default function MonthlyComparison({ allSales, collaborators, freelancers, freelancerEntries = [], scheduledVacations, absentCollaboratorIdsByDate }: Props) {
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth();
@@ -172,9 +181,11 @@ export default function MonthlyComparison({ allSales, collaborators, freelancers
 
   const currentFl = freelancers.filter(f => f.date.startsWith(currentPrefix));
   const prevFl = freelancers.filter(f => f.date.startsWith(prevPrefix));
+  const currentFe = freelancerEntries.filter(f => f.date.startsWith(currentPrefix));
+  const prevFe = freelancerEntries.filter(f => f.date.startsWith(prevPrefix));
 
-  const curr = computeMonthlyKPIs(currentSales, collaborators, currentFl, scheduledVacations, absentCollaboratorIdsByDate);
-  const prev = computeMonthlyKPIs(prevSales, collaborators, prevFl, scheduledVacations, absentCollaboratorIdsByDate);
+  const curr = computeMonthlyKPIs(currentSales, collaborators, currentFl, currentFe, scheduledVacations, absentCollaboratorIdsByDate);
+  const prev = computeMonthlyKPIs(prevSales, collaborators, prevFl, prevFe, scheduledVacations, absentCollaboratorIdsByDate);
 
   const currentMonthLabel = MONTH_NAMES[currentMonth];
   const prevMonthLabel = MONTH_NAMES[prevMonth];
