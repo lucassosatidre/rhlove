@@ -137,6 +137,7 @@ export default function Produtividade() {
 
   const { data: prevSalesData = [] } = useDailySales(prevPeriod.start, prevPeriod.end);
   const { data: prevFreelancersData = [] } = useFreelancers(prevPeriod.start, prevPeriod.end);
+  const { data: prevFreelancerEntriesData = [] } = useFreelancerEntries(prevPeriod.start, prevPeriod.end);
 
   const upsertMut = useUpsertDailySales();
   const bulkMut = useBulkInsertDailySales();
@@ -145,13 +146,13 @@ export default function Produtividade() {
   const bulkFreeEntriesMut = useBulkInsertFreelancerEntries();
 
   const productivityRows = useMemo(
-    () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate),
-    [salesData, collaborators, freelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate]
+    () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, freelancerEntriesData),
+    [salesData, collaborators, freelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, freelancerEntriesData]
   );
 
   const prevProductivityRows = useMemo(
-    () => generateProductivityData(prevSalesData, collaborators, prevFreelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate),
-    [prevSalesData, collaborators, prevFreelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate]
+    () => generateProductivityData(prevSalesData, collaborators, prevFreelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, prevFreelancerEntriesData),
+    [prevSalesData, collaborators, prevFreelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, prevFreelancerEntriesData]
   );
 
   const groupedByDate = useMemo(() => {
