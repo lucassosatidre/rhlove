@@ -1,20 +1,23 @@
 import type { Collaborator } from '@/types/collaborator';
 import type { DailySales } from '@/hooks/useDailySales';
 import type { Freelancer } from '@/hooks/useFreelancers';
+import type { FreelancerEntry } from '@/hooks/useFreelancerEntries';
 import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
 import type { AbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { countPeopleBySectorOnDate } from '@/lib/productivityEngine';
 
 const SECTORS = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'] as const;
 
-function getFreelancerCount(freelancers: Freelancer[], date: string, sector: string): number {
-  const f = freelancers.find(fr => fr.date === date && fr.sector === sector);
-  return f ? f.quantity : 0;
+function getFreelancerCount(freelancers: Freelancer[], freelancerEntries: FreelancerEntry[], date: string, sector: string): number {
+  const qtyFrees = freelancers.find(fr => fr.date === date && fr.sector === sector)?.quantity ?? 0;
+  const namedFrees = freelancerEntries.filter(fe => fe.date === date && fe.sector === sector).length;
+  return qtyFrees + namedFrees;
 }
 
 function getTotalPeopleForDate(
   collaborators: Collaborator[],
   freelancers: Freelancer[],
+  freelancerEntries: FreelancerEntry[],
   scheduledVacations: ScheduledVacation[],
   dateStr: string,
   absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
@@ -23,7 +26,7 @@ function getTotalPeopleForDate(
   let total = 0;
   for (const s of SECTORS) {
     total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate);
-    total += getFreelancerCount(freelancers, dateStr, s);
+    total += getFreelancerCount(freelancers, freelancerEntries, dateStr, s);
   }
   return total;
 }
@@ -31,6 +34,7 @@ function getTotalPeopleForDate(
 function getSectorPeopleForDate(
   collaborators: Collaborator[],
   freelancers: Freelancer[],
+  freelancerEntries: FreelancerEntry[],
   scheduledVacations: ScheduledVacation[],
   dateStr: string,
   sector: string,
@@ -38,7 +42,7 @@ function getSectorPeopleForDate(
 ): number {
   const d = new Date(dateStr + 'T00:00:00');
   return countPeopleBySectorOnDate(collaborators, sector, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate) +
-    getFreelancerCount(freelancers, dateStr, sector);
+    getFreelancerCount(freelancers, freelancerEntries, dateStr, sector);
 }
 
 export interface SectorMetric {
