@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,20 +17,29 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
 
-    const supabase = createClient(supabaseUrl, serviceKey);
+    // Create signed URL using REST API directly (no heavy SDK)
+    const signRes = await fetch(
+      `${supabaseUrl}/storage/v1/object/sign/checkout-audios/${audioPath}`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ expiresIn: 3600 }),
+      }
+    );
 
-    // Create a signed URL instead of downloading the file
-    const { data: urlData, error: urlErr } = await supabase.storage
-      .from("checkout-audios")
-      .createSignedUrl(audioPath, 3600); // 1 hour
-
-    if (urlErr || !urlData?.signedUrl) {
-      throw new Error("Failed to create signed URL: " + urlErr?.message);
+    if (!signRes.ok) {
+      throw new Error("Failed to create signed URL: " + await signRes.text());
     }
 
-    console.log(`Processing checkout ${checkoutId}, audio URL created`);
+    const { signedURL } = await signRes.json();
+    const fullAudioUrl = `${supabaseUrl}/storage/v1${signedURL}`;
 
-    // Use image_url type with the signed URL (Gemini supports media URLs)
+    console.log(`Processing checkout ${checkoutId}`);
+
+    // Send URL to Lovable AI for transcription
     const aiResponse = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -54,7 +62,7 @@ serve(async (req) => {
                 {
                   type: "image_url",
                   image_url: {
-                    url: urlData.signedUrl,
+                    url: fullAudioUrl,
                   },
                 },
                 {
@@ -72,10 +80,7 @@ serve(async (req) => {
       const errText = await aiResponse.text();
       console.error("AI gateway error:", aiResponse.status, errText);
 
-      await supabase
-        .from("checkouts")
-        .update({ transcription_status: "erro" })
-        .eq("id", checkoutId);
+      await updateCheckoutStatus(supabaseUrl, serviceKey, checkoutId, "erro");
 
       return new Response(
         JSON.stringify({ error: "Transcription failed", details: errText }),
@@ -89,35 +94,33 @@ serve(async (req) => {
     const aiData = await aiResponse.json();
     const transcription = aiData.choices?.[0]?.message?.content || "";
 
-    await supabase
-      .from("checkouts")
-      .update({
-        transcription,
-        transcription_status: "concluida",
-      })
-      .eq("id", checkoutId);
+    // Update checkout with transcription
+    const updateRes = await fetch(
+      `${supabaseUrl}/rest/v1/checkouts?id=eq.${checkoutId}`,
+      {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          apikey: serviceKey,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({
+          transcription,
+          transcription_status: "concluida",
+        }),
+      }
+    );
+
+    if (!updateRes.ok) {
+      console.error("Update error:", await updateRes.text());
+    }
 
     return new Response(JSON.stringify({ success: true, transcription }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("transcribe-checkout error:", e);
-
-    // Try to mark as error if we have the checkoutId
-    try {
-      const { checkoutId } = await req.clone().json().catch(() => ({}));
-      if (checkoutId) {
-        const supabase = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        );
-        await supabase
-          .from("checkouts")
-          .update({ transcription_status: "erro" })
-          .eq("id", checkoutId);
-      }
-    } catch {}
-
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       {
@@ -127,3 +130,21 @@ serve(async (req) => {
     );
   }
 });
+
+async function updateCheckoutStatus(
+  supabaseUrl: string,
+  serviceKey: string,
+  checkoutId: string,
+  status: string
+) {
+  await fetch(`${supabaseUrl}/rest/v1/checkouts?id=eq.${checkoutId}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${serviceKey}`,
+      apikey: serviceKey,
+      "Content-Type": "application/json",
+      Prefer: "return=minimal",
+    },
+    body: JSON.stringify({ transcription_status: status }),
+  });
+}
