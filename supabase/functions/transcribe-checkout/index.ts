@@ -1,14 +1,10 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
 
@@ -19,21 +15,38 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
 
-    const supabase = createClient(supabaseUrl, serviceKey);
+    // Download audio directly using the service key
+    const dlRes = await fetch(
+      `${supabaseUrl}/storage/v1/object/checkout-audios/${audioPath}`,
+      {
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          apikey: serviceKey,
+        },
+      }
+    );
 
-    // Download audio from storage
-    const { data: audioData, error: dlErr } = await supabase.storage
-      .from("checkout-audios")
-      .download(audioPath);
-
-    if (dlErr || !audioData) {
-      throw new Error("Failed to download audio: " + dlErr?.message);
+    if (!dlRes.ok) {
+      const errBody = await dlRes.text();
+      throw new Error("Download failed: " + errBody);
     }
 
-    const arrayBuffer = await audioData.arrayBuffer();
-    const base64 = base64Encode(new Uint8Array(arrayBuffer));
+    // Convert to base64
+    const arrayBuffer = await dlRes.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // Use btoa with binary string
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+    const base64 = btoa(binary);
 
-    // Send to Lovable AI (Gemini) for transcription
+    console.log(`Audio: ${bytes.length} bytes for checkout ${checkoutId}`);
+
+    // Send to AI for transcription
     const aiResponse = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -43,12 +56,12 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-2.5-flash-lite",
           messages: [
             {
               role: "system",
               content:
-                "Você é um transcritor profissional de áudios em português brasileiro. Transcreva o áudio fornecido de forma fiel e completa, preservando todo o conteúdo falado. Não resuma, não edite, não adicione comentários. Apenas transcreva o que foi dito, separando em parágrafos naturais quando houver pausas. Preserve nomes próprios, gírias e expressões regionais.",
+                "Você é um transcritor de áudios em português brasileiro. Transcreva o áudio de forma fiel e completa.",
             },
             {
               role: "user",
@@ -71,46 +84,44 @@ serve(async (req) => {
       }
     );
 
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("AI gateway error:", aiResponse.status, errText);
+    let transcription = "";
+    let newStatus = "erro";
 
-      await supabase
-        .from("checkouts")
-        .update({ transcription_status: "erro" })
-        .eq("id", checkoutId);
-
-      return new Response(
-        JSON.stringify({ error: "Transcription failed", details: errText }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    if (aiResponse.ok) {
+      const aiData = await aiResponse.json();
+      transcription = aiData.choices?.[0]?.message?.content || "";
+      newStatus = transcription ? "concluida" : "erro";
+    } else {
+      console.error("AI error:", aiResponse.status, await aiResponse.text());
     }
 
-    const aiData = await aiResponse.json();
-    const transcription = aiData.choices?.[0]?.message?.content || "";
-
-    await supabase
-      .from("checkouts")
-      .update({
-        transcription,
-        transcription_status: "concluida",
-      })
-      .eq("id", checkoutId);
-
-    return new Response(JSON.stringify({ success: true, transcription }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (e) {
-    console.error("transcribe-checkout error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+    // Update checkout
+    await fetch(
+      `${supabaseUrl}/rest/v1/checkouts?id=eq.${checkoutId}`,
       {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          apikey: serviceKey,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({
+          transcription: transcription || null,
+          transcription_status: newStatus,
+        }),
       }
+    );
+
+    return new Response(
+      JSON.stringify({ success: newStatus === "concluida", transcription }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (e) {
+    console.error("Error:", e);
+    return new Response(
+      JSON.stringify({ error: String(e) }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
