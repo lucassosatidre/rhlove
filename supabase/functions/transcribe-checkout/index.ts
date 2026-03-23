@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,10 +29,26 @@ serve(async (req) => {
       throw new Error("Failed to download audio: " + dlErr?.message);
     }
 
+    // Convert to base64 in chunks to reduce memory pressure
     const arrayBuffer = await audioData.arrayBuffer();
-    const base64 = base64Encode(new Uint8Array(arrayBuffer));
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // Manual base64 encoding to avoid importing extra modules
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let base64 = "";
+    for (let i = 0; i < bytes.length; i += 3) {
+      const b0 = bytes[i];
+      const b1 = i + 1 < bytes.length ? bytes[i + 1] : 0;
+      const b2 = i + 2 < bytes.length ? bytes[i + 2] : 0;
+      base64 += chars[b0 >> 2];
+      base64 += chars[((b0 & 3) << 4) | (b1 >> 4)];
+      base64 += i + 1 < bytes.length ? chars[((b1 & 15) << 2) | (b2 >> 6)] : "=";
+      base64 += i + 2 < bytes.length ? chars[b2 & 63] : "=";
+    }
 
-    // Send to Lovable AI (Gemini) for transcription
+    console.log(`Audio size: ${bytes.length} bytes, base64 length: ${base64.length}`);
+
+    // Use gemini-2.5-flash-lite for lower resource usage
     const aiResponse = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -43,12 +58,12 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: "google/gemini-2.5-flash-lite",
           messages: [
             {
               role: "system",
               content:
-                "Você é um transcritor profissional de áudios em português brasileiro. Transcreva o áudio fornecido de forma fiel e completa, preservando todo o conteúdo falado. Não resuma, não edite, não adicione comentários. Apenas transcreva o que foi dito, separando em parágrafos naturais quando houver pausas. Preserve nomes próprios, gírias e expressões regionais.",
+                "Você é um transcritor de áudios em português brasileiro. Transcreva o áudio de forma fiel e completa. Não resuma, não edite. Apenas transcreva o que foi dito, separando em parágrafos quando houver pausas.",
             },
             {
               role: "user",
