@@ -394,7 +394,7 @@ export default function Colaboradores() {
             <div className="space-y-2">
               <Label>Folgas Semanais</Label>
               <div className="flex flex-wrap gap-3">
-                {DAYS_OF_WEEK.filter(d => d !== 'DOMINGO').map(day => (
+                {DAYS_OF_WEEK.map(day => (
                   <label key={day} className="flex items-center gap-1.5 text-sm cursor-pointer">
                     <Checkbox
                       checked={form.folgas_semanais.includes(day)}
@@ -407,13 +407,21 @@ export default function Colaboradores() {
             </div>
 
             <div className="space-y-2">
-              <Label>Domingo de folga (nº do mês)</Label>
-              <Select value={String(form.sunday_n)} onValueChange={v => setForm(f => ({ ...f, sunday_n: Number(v) }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {[1, 2, 3, 4, 5].map(n => <SelectItem key={n} value={String(n)}>{n}º domingo</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={form.sunday_n > 0}
+                  onCheckedChange={(checked) => setForm(f => ({ ...f, sunday_n: checked ? 1 : 0 }))}
+                />
+                <span className="font-medium">Domingo fixo de folga no mês</span>
+              </label>
+              {form.sunday_n > 0 && (
+                <Select value={String(form.sunday_n)} onValueChange={v => setForm(f => ({ ...f, sunday_n: Number(v) }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5].map(n => <SelectItem key={n} value={String(n)}>{n}º domingo</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="space-y-2">
