@@ -327,7 +327,7 @@ export default function Colaboradores() {
                       <TableCell className="hidden sm:table-cell text-xs">
                         {c.folgas_semanais.map(d => DAY_LABELS[d]?.slice(0, 3)).join(', ')}
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell">{c.sunday_n}º</TableCell>
+                      <TableCell className="hidden sm:table-cell">{c.sunday_n > 0 ? `${c.sunday_n}º` : '—'}</TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <Badge variant="secondary" className={`text-xs ${statusColor(c.status)}`}>
                           {STATUS_LABELS[c.status]}

@@ -134,8 +134,8 @@ function getDisplayName(
     }
   }
 
-  // STEP 4 — DOMINGO DO MÊS (with override removeDays)
-  if (dayKey === 'DOMINGO') {
+  // STEP 4 — DOMINGO DO MÊS (with override removeDays) — only if sunday_n > 0
+  if (dayKey === 'DOMINGO' && collab.sunday_n > 0) {
     const sundayNum = getSundayNumber(sd);
     if (collab.sunday_n === sundayNum) {
       if (dayOffOverride?.removeDays.includes('DOMINGO')) {
