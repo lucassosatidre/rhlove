@@ -1,12 +1,10 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
 
@@ -17,7 +15,7 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
 
-    // Create signed URL using REST API directly (no heavy SDK)
+    // Create signed URL using REST API directly
     const signRes = await fetch(
       `${supabaseUrl}/storage/v1/object/sign/checkout-audios/${audioPath}`,
       {
@@ -31,15 +29,14 @@ serve(async (req) => {
     );
 
     if (!signRes.ok) {
-      throw new Error("Failed to create signed URL: " + await signRes.text());
+      const errBody = await signRes.text();
+      throw new Error("Signed URL failed: " + errBody);
     }
 
     const { signedURL } = await signRes.json();
     const fullAudioUrl = `${supabaseUrl}/storage/v1${signedURL}`;
 
-    console.log(`Processing checkout ${checkoutId}`);
-
-    // Send URL to Lovable AI for transcription
+    // Send URL to AI for transcription
     const aiResponse = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -54,16 +51,14 @@ serve(async (req) => {
             {
               role: "system",
               content:
-                "Você é um transcritor de áudios em português brasileiro. Transcreva o áudio de forma fiel e completa. Não resuma, não edite. Apenas transcreva o que foi dito, separando em parágrafos quando houver pausas.",
+                "Você é um transcritor de áudios em português brasileiro. Transcreva o áudio de forma fiel e completa.",
             },
             {
               role: "user",
               content: [
                 {
                   type: "image_url",
-                  image_url: {
-                    url: fullAudioUrl,
-                  },
+                  image_url: { url: fullAudioUrl },
                 },
                 {
                   type: "text",
@@ -76,26 +71,19 @@ serve(async (req) => {
       }
     );
 
-    if (!aiResponse.ok) {
-      const errText = await aiResponse.text();
-      console.error("AI gateway error:", aiResponse.status, errText);
+    let transcription = "";
+    let newStatus = "erro";
 
-      await updateCheckoutStatus(supabaseUrl, serviceKey, checkoutId, "erro");
-
-      return new Response(
-        JSON.stringify({ error: "Transcription failed", details: errText }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    if (aiResponse.ok) {
+      const aiData = await aiResponse.json();
+      transcription = aiData.choices?.[0]?.message?.content || "";
+      newStatus = "concluida";
+    } else {
+      console.error("AI error:", aiResponse.status, await aiResponse.text());
     }
 
-    const aiData = await aiResponse.json();
-    const transcription = aiData.choices?.[0]?.message?.content || "";
-
-    // Update checkout with transcription
-    const updateRes = await fetch(
+    // Update checkout
+    await fetch(
       `${supabaseUrl}/rest/v1/checkouts?id=eq.${checkoutId}`,
       {
         method: "PATCH",
@@ -106,45 +94,21 @@ serve(async (req) => {
           Prefer: "return=minimal",
         },
         body: JSON.stringify({
-          transcription,
-          transcription_status: "concluida",
+          transcription: transcription || null,
+          transcription_status: newStatus,
         }),
       }
     );
 
-    if (!updateRes.ok) {
-      console.error("Update error:", await updateRes.text());
-    }
-
-    return new Response(JSON.stringify({ success: true, transcription }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (e) {
-    console.error("transcribe-checkout error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ success: newStatus === "concluida", transcription }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (e) {
+    console.error("Error:", e);
+    return new Response(
+      JSON.stringify({ error: String(e) }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
-
-async function updateCheckoutStatus(
-  supabaseUrl: string,
-  serviceKey: string,
-  checkoutId: string,
-  status: string
-) {
-  await fetch(`${supabaseUrl}/rest/v1/checkouts?id=eq.${checkoutId}`, {
-    method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${serviceKey}`,
-      apikey: serviceKey,
-      "Content-Type": "application/json",
-      Prefer: "return=minimal",
-    },
-    body: JSON.stringify({ transcription_status: status }),
-  });
-}
