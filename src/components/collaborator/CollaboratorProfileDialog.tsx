@@ -52,7 +52,7 @@ export default function CollaboratorProfileDialog({ collaborator, open, onOpenCh
                   {STATUS_LABELS[c.status]}
                 </Badge>
               </InfoRow>
-              <InfoRow label="Domingo de folga" value={`${c.sunday_n}º`} />
+              <InfoRow label="Domingo de folga" value={c.sunday_n > 0 ? `${c.sunday_n}º` : 'Não definido'} />
               <InfoRow
                 label="Folgas semanais"
                 value={c.folgas_semanais.map(d => DAY_LABELS[d]?.slice(0, 3)).join(', ')}

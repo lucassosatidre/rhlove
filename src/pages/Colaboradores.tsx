@@ -315,7 +315,7 @@ export default function Colaboradores() {
                           {c.collaborator_name}
                         </button>
                         <span className="sm:hidden block text-xs text-muted-foreground">
-                          {c.tipo_escala} · {c.folgas_semanais.map(d => DAY_LABELS[d]?.slice(0, 3)).join(', ')} · Dom {c.sunday_n}º
+                          {c.tipo_escala} · {c.folgas_semanais.map(d => DAY_LABELS[d]?.slice(0, 3)).join(', ')}{c.sunday_n > 0 ? ` · Dom ${c.sunday_n}º` : ''}
                         </span>
                         <span className="sm:hidden block">
                           <Badge variant="secondary" className={`text-[10px] ${statusColor(c.status)}`}>
@@ -327,7 +327,7 @@ export default function Colaboradores() {
                       <TableCell className="hidden sm:table-cell text-xs">
                         {c.folgas_semanais.map(d => DAY_LABELS[d]?.slice(0, 3)).join(', ')}
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell">{c.sunday_n}º</TableCell>
+                      <TableCell className="hidden sm:table-cell">{c.sunday_n > 0 ? `${c.sunday_n}º` : '—'}</TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <Badge variant="secondary" className={`text-xs ${statusColor(c.status)}`}>
                           {STATUS_LABELS[c.status]}
@@ -394,7 +394,7 @@ export default function Colaboradores() {
             <div className="space-y-2">
               <Label>Folgas Semanais</Label>
               <div className="flex flex-wrap gap-3">
-                {DAYS_OF_WEEK.filter(d => d !== 'DOMINGO').map(day => (
+                {DAYS_OF_WEEK.map(day => (
                   <label key={day} className="flex items-center gap-1.5 text-sm cursor-pointer">
                     <Checkbox
                       checked={form.folgas_semanais.includes(day)}
@@ -407,13 +407,21 @@ export default function Colaboradores() {
             </div>
 
             <div className="space-y-2">
-              <Label>Domingo de folga (nº do mês)</Label>
-              <Select value={String(form.sunday_n)} onValueChange={v => setForm(f => ({ ...f, sunday_n: Number(v) }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {[1, 2, 3, 4, 5].map(n => <SelectItem key={n} value={String(n)}>{n}º domingo</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={form.sunday_n > 0}
+                  onCheckedChange={(checked) => setForm(f => ({ ...f, sunday_n: checked ? 1 : 0 }))}
+                />
+                <span className="font-medium">Domingo fixo de folga no mês</span>
+              </label>
+              {form.sunday_n > 0 && (
+                <Select value={String(form.sunday_n)} onValueChange={v => setForm(f => ({ ...f, sunday_n: Number(v) }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5].map(n => <SelectItem key={n} value={String(n)}>{n}º domingo</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="space-y-2">
