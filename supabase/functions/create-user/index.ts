@@ -44,6 +44,27 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
+    // Update email for a user (admin only)
+    if (action === 'update-email') {
+      const { userId, newEmail } = body;
+      if (!userId || !newEmail) {
+        return new Response(JSON.stringify({ error: "userId e newEmail são obrigatórios" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { email: newEmail });
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Reset password for a user (admin only)
     if (action === 'reset-password') {
       const { userId, newPassword } = body;
