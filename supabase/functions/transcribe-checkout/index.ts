@@ -15,6 +15,8 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
 
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
+
     // Create signed URL using REST API directly
     const signRes = await fetch(
       `${supabaseUrl}/storage/v1/object/sign/checkout-audios/${audioPath}`,
@@ -22,6 +24,7 @@ Deno.serve(async (req) => {
         method: "POST",
         headers: {
           Authorization: `Bearer ${serviceKey}`,
+          apikey: anonKey,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ expiresIn: 3600 }),
