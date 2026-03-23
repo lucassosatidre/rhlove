@@ -315,7 +315,7 @@ export default function Colaboradores() {
                           {c.collaborator_name}
                         </button>
                         <span className="sm:hidden block text-xs text-muted-foreground">
-                          {c.tipo_escala} · {c.folgas_semanais.map(d => DAY_LABELS[d]?.slice(0, 3)).join(', ')} · Dom {c.sunday_n}º
+                          {c.tipo_escala} · {c.folgas_semanais.map(d => DAY_LABELS[d]?.slice(0, 3)).join(', ')}{c.sunday_n > 0 ? ` · Dom ${c.sunday_n}º` : ''}
                         </span>
                         <span className="sm:hidden block">
                           <Badge variant="secondary" className={`text-[10px] ${statusColor(c.status)}`}>
