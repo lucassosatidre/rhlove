@@ -20,35 +20,18 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Download audio from storage
-    const { data: audioData, error: dlErr } = await supabase.storage
+    // Create a signed URL instead of downloading the file
+    const { data: urlData, error: urlErr } = await supabase.storage
       .from("checkout-audios")
-      .download(audioPath);
+      .createSignedUrl(audioPath, 3600); // 1 hour
 
-    if (dlErr || !audioData) {
-      throw new Error("Failed to download audio: " + dlErr?.message);
+    if (urlErr || !urlData?.signedUrl) {
+      throw new Error("Failed to create signed URL: " + urlErr?.message);
     }
 
-    // Convert to base64 in chunks to reduce memory pressure
-    const arrayBuffer = await audioData.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    
-    // Manual base64 encoding to avoid importing extra modules
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    let base64 = "";
-    for (let i = 0; i < bytes.length; i += 3) {
-      const b0 = bytes[i];
-      const b1 = i + 1 < bytes.length ? bytes[i + 1] : 0;
-      const b2 = i + 2 < bytes.length ? bytes[i + 2] : 0;
-      base64 += chars[b0 >> 2];
-      base64 += chars[((b0 & 3) << 4) | (b1 >> 4)];
-      base64 += i + 1 < bytes.length ? chars[((b1 & 15) << 2) | (b2 >> 6)] : "=";
-      base64 += i + 2 < bytes.length ? chars[b2 & 63] : "=";
-    }
+    console.log(`Processing checkout ${checkoutId}, audio URL created`);
 
-    console.log(`Audio size: ${bytes.length} bytes, base64 length: ${base64.length}`);
-
-    // Use gemini-2.5-flash-lite for lower resource usage
+    // Use image_url type with the signed URL (Gemini supports media URLs)
     const aiResponse = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -69,10 +52,9 @@ serve(async (req) => {
               role: "user",
               content: [
                 {
-                  type: "input_audio",
-                  input_audio: {
-                    data: base64,
-                    format: "webm",
+                  type: "image_url",
+                  image_url: {
+                    url: urlData.signedUrl,
                   },
                 },
                 {
@@ -120,6 +102,22 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("transcribe-checkout error:", e);
+
+    // Try to mark as error if we have the checkoutId
+    try {
+      const { checkoutId } = await req.clone().json().catch(() => ({}));
+      if (checkoutId) {
+        const supabase = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+        await supabase
+          .from("checkouts")
+          .update({ transcription_status: "erro" })
+          .eq("id", checkoutId);
+      }
+    } catch {}
+
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       {
