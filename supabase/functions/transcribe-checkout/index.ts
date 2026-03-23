@@ -15,29 +15,38 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableKey = Deno.env.get("LOVABLE_API_KEY")!;
 
-    // Create signed URL using REST API directly
-    const signRes = await fetch(
-      `${supabaseUrl}/storage/v1/object/sign/checkout-audios/${audioPath}`,
+    // Download audio directly using the service key
+    const dlRes = await fetch(
+      `${supabaseUrl}/storage/v1/object/checkout-audios/${audioPath}`,
       {
-        method: "POST",
         headers: {
           Authorization: `Bearer ${serviceKey}`,
           apikey: serviceKey,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ expiresIn: 3600 }),
       }
     );
 
-    if (!signRes.ok) {
-      const errBody = await signRes.text();
-      throw new Error("Signed URL failed: " + errBody);
+    if (!dlRes.ok) {
+      const errBody = await dlRes.text();
+      throw new Error("Download failed: " + errBody);
     }
 
-    const { signedURL } = await signRes.json();
-    const fullAudioUrl = `${supabaseUrl}/storage/v1${signedURL}`;
+    // Convert to base64
+    const arrayBuffer = await dlRes.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    
+    // Use btoa with binary string
+    let binary = "";
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      binary += String.fromCharCode(...chunk);
+    }
+    const base64 = btoa(binary);
 
-    // Send URL to AI for transcription
+    console.log(`Audio: ${bytes.length} bytes for checkout ${checkoutId}`);
+
+    // Send to AI for transcription
     const aiResponse = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
@@ -58,8 +67,11 @@ Deno.serve(async (req) => {
               role: "user",
               content: [
                 {
-                  type: "image_url",
-                  image_url: { url: fullAudioUrl },
+                  type: "input_audio",
+                  input_audio: {
+                    data: base64,
+                    format: "webm",
+                  },
                 },
                 {
                   type: "text",
@@ -78,7 +90,7 @@ Deno.serve(async (req) => {
     if (aiResponse.ok) {
       const aiData = await aiResponse.json();
       transcription = aiData.choices?.[0]?.message?.content || "";
-      newStatus = "concluida";
+      newStatus = transcription ? "concluida" : "erro";
     } else {
       console.error("AI error:", aiResponse.status, await aiResponse.text());
     }
