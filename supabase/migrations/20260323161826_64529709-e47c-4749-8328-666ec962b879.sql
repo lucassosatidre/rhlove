@@ -1,0 +1,1 @@
+UPDATE public.usuarios SET email = 'adm@rhlove.com' WHERE id = 'c7cae7f5-8bb5-457e-9ff7-14eb489cdc5e';
