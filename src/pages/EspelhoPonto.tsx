@@ -211,7 +211,10 @@ export default function EspelhoPonto() {
       punch: { entrada: r.entrada, saida: r.saida, saidaInt: r.saidaInt, retornoInt: r.retornoInt },
       hoursWorkedMin: r.hoursMin,
     }));
-    const result = calculateJornada(dayInfos, 423, selected.genero ?? 'M');
+    const chMin = selected.carga_horaria_diaria
+      ? (() => { const [h, m] = selected.carga_horaria_diaria.split(':').map(Number); return h * 60 + (m || 0); })()
+      : 423;
+    const result = calculateJornada(dayInfos, chMin, selected.genero ?? 'M');
     return { jornadaRows: result.rows, jornadaTotals: result.totals };
   }, [rows, selected]);
 

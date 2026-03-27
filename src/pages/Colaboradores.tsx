@@ -501,6 +501,18 @@ export default function Colaboradores() {
               </div>
             )}
 
+            {/* Carga horária diária */}
+            <div className="space-y-1">
+              <Label>Carga Horária Diária (HH:MM)</Label>
+              <Input
+                type="time"
+                value={form.carga_horaria_diaria}
+                onChange={e => setForm(f => ({ ...f, carga_horaria_diaria: e.target.value }))}
+                placeholder="07:03"
+              />
+              <p className="text-[11px] text-muted-foreground">Usado como CH Prevista no espelho de ponto. Padrão: 07:03</p>
+            </div>
+
             {/* Intervalo automático */}
             <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
               <div className="flex items-center justify-between">
