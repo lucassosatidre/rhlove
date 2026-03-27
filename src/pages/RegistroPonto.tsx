@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Upload, FileText, AlertTriangle, Download, Trash2, FileSpreadsheet } from 'lucide-react';
+import { Upload, FileText, AlertTriangle, Download, Trash2, RefreshCw } from 'lucide-react';
 import { DropZone } from '@/components/ui/drop-zone';
 import { toast } from 'sonner';
 import { format, parse } from 'date-fns';
