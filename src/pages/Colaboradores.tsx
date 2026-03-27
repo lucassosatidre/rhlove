@@ -517,16 +517,75 @@ export default function Colaboradores() {
               </div>
             )}
 
-            {/* Carga horária diária */}
-            <div className="space-y-1">
-              <Label>Carga Horária Diária (HH:MM)</Label>
-              <Input
-                type="time"
-                value={form.carga_horaria_diaria}
-                onChange={e => setForm(f => ({ ...f, carga_horaria_diaria: e.target.value }))}
-                placeholder="07:03"
-              />
-              <p className="text-[11px] text-muted-foreground">Usado como CH Prevista no espelho de ponto. Padrão: 07:03</p>
+            {/* Jornada de trabalho */}
+            <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+              <p className="text-sm font-medium">Jornada de Trabalho</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Horário de Entrada</Label>
+                  <Input type="time" value={form.horario_entrada} onChange={e => setForm(f => ({ ...f, horario_entrada: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Horário de Saída</Label>
+                  <Input type="time" value={form.horario_saida} onChange={e => setForm(f => ({ ...f, horario_saida: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">CH Diária (HH:MM)</Label>
+                  <Input type="time" value={form.carga_horaria_diaria} onChange={e => setForm(f => ({ ...f, carga_horaria_diaria: e.target.value }))} />
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground">CH Diária usada como CH Prevista no espelho. Padrão: 07:00</p>
+
+              {/* Jornadas especiais */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Jornadas Especiais por Dia</Label>
+                  <Button type="button" variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setForm(f => ({ ...f, jornadas_especiais: [...f.jornadas_especiais, { dias: [], entrada: '', saida: '', ch: '' }] }))}>
+                    <Plus className="w-3 h-3 mr-1" /> Adicionar
+                  </Button>
+                </div>
+                {form.jornadas_especiais.map((je, idx) => (
+                  <div key={idx} className="border rounded p-2 space-y-2 bg-background">
+                    <div className="flex flex-wrap gap-2">
+                      {(['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'] as const).map(dia => (
+                        <label key={dia} className="flex items-center gap-1 text-[11px] cursor-pointer">
+                          <Checkbox
+                            checked={je.dias.includes(dia)}
+                            onCheckedChange={(checked) => {
+                              const newJE = [...form.jornadas_especiais];
+                              newJE[idx] = { ...newJE[idx], dias: checked ? [...newJE[idx].dias, dia] : newJE[idx].dias.filter(d => d !== dia) };
+                              setForm(f => ({ ...f, jornadas_especiais: newJE }));
+                            }}
+                          />
+                          {dia.charAt(0).toUpperCase() + dia.slice(1, 3)}
+                        </label>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <Input type="time" className="h-7 text-xs" value={je.entrada} onChange={e => { const n = [...form.jornadas_especiais]; n[idx] = { ...n[idx], entrada: e.target.value }; setForm(f => ({ ...f, jornadas_especiais: n })); }} placeholder="Entrada" />
+                      <Input type="time" className="h-7 text-xs" value={je.saida} onChange={e => { const n = [...form.jornadas_especiais]; n[idx] = { ...n[idx], saida: e.target.value }; setForm(f => ({ ...f, jornadas_especiais: n })); }} placeholder="Saída" />
+                      <Input type="time" className="h-7 text-xs" value={je.ch} onChange={e => { const n = [...form.jornadas_especiais]; n[idx] = { ...n[idx], ch: e.target.value }; setForm(f => ({ ...f, jornadas_especiais: n })); }} placeholder="CH" />
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" className="h-5 text-[10px] text-destructive" onClick={() => setForm(f => ({ ...f, jornadas_especiais: f.jornadas_especiais.filter((_, i) => i !== idx) }))}>
+                      Remover
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Aviso prévio redução */}
+              {form.status === 'AVISO_PREVIO' && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Redução diária (Aviso Prévio - Art. 488 CLT)</Label>
+                  <Select value={form.aviso_previo_reducao ? String(form.aviso_previo_reducao) : ''} onValueChange={v => setForm(f => ({ ...f, aviso_previo_reducao: v ? Number(v) : null }))}>
+                    <SelectTrigger className="h-8"><SelectValue placeholder="Sem redução" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="2">2 horas a menos por dia</SelectItem>
+                      <SelectItem value="7">7 dias corridos no final</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
 
             {/* Intervalo automático */}
