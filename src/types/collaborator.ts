@@ -52,4 +52,7 @@ export interface Collaborator {
   weekly_day_off: string;
   created_at: string;
   updated_at: string;
+  intervalo_automatico: boolean;
+  intervalo_inicio: string | null;
+  intervalo_duracao: number | null;
 }

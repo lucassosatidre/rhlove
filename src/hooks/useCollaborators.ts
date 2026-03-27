@@ -58,6 +58,9 @@ function fromDbRow(row: any): Collaborator {
     fim_periodo: row.fim_periodo ?? null,
     pis_matricula: row.pis_matricula ?? null,
     genero: row.genero ?? 'M',
+    intervalo_automatico: row.intervalo_automatico ?? false,
+    intervalo_inicio: row.intervalo_inicio ?? null,
+    intervalo_duracao: row.intervalo_duracao ?? null,
   } as Collaborator;
 }
 
