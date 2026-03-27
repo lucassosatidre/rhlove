@@ -72,6 +72,10 @@ function fromDbRow(row: any): Collaborator {
     intervalo_inicio: row.intervalo_inicio ?? null,
     intervalo_duracao: row.intervalo_duracao ?? null,
     carga_horaria_diaria: row.carga_horaria_diaria ?? null,
+    horario_entrada: row.horario_entrada ?? null,
+    horario_saida: row.horario_saida ?? null,
+    jornadas_especiais: row.jornadas_especiais ? (typeof row.jornadas_especiais === 'string' ? JSON.parse(row.jornadas_especiais) : row.jornadas_especiais) : null,
+    aviso_previo_reducao: row.aviso_previo_reducao ?? null,
   } as Collaborator;
 }
 
