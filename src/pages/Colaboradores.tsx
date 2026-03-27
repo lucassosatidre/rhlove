@@ -407,7 +407,7 @@ export default function Colaboradores() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
                 <Label>Setor</Label>
                 <Select value={form.sector} onValueChange={v => setForm(f => ({ ...f, sector: v }))}>
@@ -423,6 +423,16 @@ export default function Colaboradores() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {TIPO_ESCALA.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Gênero</Label>
+                <Select value={form.genero} onValueChange={v => setForm(f => ({ ...f, genero: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="M">Masculino</SelectItem>
+                    <SelectItem value="F">Feminino</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
