@@ -30,6 +30,9 @@ interface FormData {
   inicio_periodo: string;
   fim_periodo: string;
   pis_matricula: string;
+  intervalo_automatico: boolean;
+  intervalo_inicio: string;
+  intervalo_duracao: number | null;
 }
 
 const emptyForm: FormData = {
