@@ -34,6 +34,7 @@ interface FormData {
   intervalo_automatico: boolean;
   intervalo_inicio: string;
   intervalo_duracao: number | null;
+  carga_horaria_diaria: string;
 }
 
 const emptyForm: FormData = {
@@ -51,6 +52,7 @@ const emptyForm: FormData = {
   intervalo_automatico: false,
   intervalo_inicio: '',
   intervalo_duracao: null,
+  carga_horaria_diaria: '',
 };
 
 export default function Colaboradores() {
@@ -90,6 +92,7 @@ export default function Colaboradores() {
       intervalo_automatico: c.intervalo_automatico ?? false,
       intervalo_inicio: c.intervalo_inicio ?? '',
       intervalo_duracao: c.intervalo_duracao ?? null,
+      carga_horaria_diaria: c.carga_horaria_diaria ?? '',
     });
     setDialogOpen(true);
   };
@@ -109,6 +112,7 @@ export default function Colaboradores() {
     intervalo_automatico: f.intervalo_automatico,
     intervalo_inicio: f.intervalo_inicio || null,
     intervalo_duracao: f.intervalo_duracao,
+    carga_horaria_diaria: f.carga_horaria_diaria || null,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -496,6 +500,18 @@ export default function Colaboradores() {
                 </div>
               </div>
             )}
+
+            {/* Carga horária diária */}
+            <div className="space-y-1">
+              <Label>Carga Horária Diária (HH:MM)</Label>
+              <Input
+                type="time"
+                value={form.carga_horaria_diaria}
+                onChange={e => setForm(f => ({ ...f, carga_horaria_diaria: e.target.value }))}
+                placeholder="07:03"
+              />
+              <p className="text-[11px] text-muted-foreground">Usado como CH Prevista no espelho de ponto. Padrão: 07:03</p>
+            </div>
 
             {/* Intervalo automático */}
             <div className="space-y-3 border rounded-lg p-3 bg-muted/30">

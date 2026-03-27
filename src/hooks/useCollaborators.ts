@@ -16,6 +16,7 @@ export interface CollaboratorInput {
   pis_matricula?: string | null;
   intervalo_automatico?: boolean;
   intervalo_inicio?: string | null;
+  carga_horaria_diaria?: string | null;
   intervalo_duracao?: number | null;
   // legacy
   data_retorno?: string | null;
@@ -40,6 +41,7 @@ function toDbRow(c: CollaboratorInput) {
     intervalo_automatico: c.intervalo_automatico ?? false,
     intervalo_inicio: c.intervalo_inicio || null,
     intervalo_duracao: c.intervalo_duracao ?? null,
+    carga_horaria_diaria: c.carga_horaria_diaria || null,
     data_retorno: c.data_retorno || c.fim_periodo || null,
     data_fim_experiencia: c.data_fim_experiencia || (c.status === 'EXPERIENCIA' ? c.fim_periodo : null) || null,
     data_fim_aviso: c.data_fim_aviso || (c.status === 'AVISO_PREVIO' ? c.fim_periodo : null) || null,
@@ -61,6 +63,7 @@ function fromDbRow(row: any): Collaborator {
     intervalo_automatico: row.intervalo_automatico ?? false,
     intervalo_inicio: row.intervalo_inicio ?? null,
     intervalo_duracao: row.intervalo_duracao ?? null,
+    carga_horaria_diaria: row.carga_horaria_diaria ?? null,
   } as Collaborator;
 }
 
