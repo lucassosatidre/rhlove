@@ -617,7 +617,7 @@ export default function EspelhoPonto() {
                               <TableCell className="text-xs tabular-nums font-medium">{r.hoursMin != null ? formatMinutes(r.hoursMin) : '—'}</TableCell>
                               <TableCell>
                                 <span className="text-xs whitespace-nowrap flex items-center gap-1">
-                                  {r.status}
+                                  {isExtra100 ? <span className="text-pink-600 font-medium">💯 Extra 100% (Art. 386)</span> : r.status}
                                   {r.isAdjusted && <span title="Ajuste manual" className="text-muted-foreground"><Wrench className="w-3 h-3 inline" /></span>}
                                 </span>
                               </TableCell>
