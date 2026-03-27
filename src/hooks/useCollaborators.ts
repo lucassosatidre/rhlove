@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Collaborator, DayOfWeek, TipoEscala, CollaboratorStatus } from '@/types/collaborator';
+import type { Collaborator, DayOfWeek, TipoEscala, CollaboratorStatus, JornadaEspecial } from '@/types/collaborator';
 
 export interface CollaboratorInput {
   collaborator_name: string;

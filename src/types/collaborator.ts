@@ -56,4 +56,15 @@ export interface Collaborator {
   intervalo_inicio: string | null;
   intervalo_duracao: number | null;
   carga_horaria_diaria: string | null;
+  horario_entrada: string | null;
+  horario_saida: string | null;
+  jornadas_especiais: JornadaEspecial[] | null;
+  aviso_previo_reducao: number | null;
+}
+
+export interface JornadaEspecial {
+  dias: string[];
+  entrada: string;
+  saida: string;
+  ch: string;
 }
