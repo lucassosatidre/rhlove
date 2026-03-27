@@ -231,7 +231,7 @@ export default function EspelhoPonto() {
       if (isVacation) { status = '🌴 Férias'; statusEmoji = '🌴'; }
       else if (isAfastamento) { status = '🏥 Afastamento'; statusEmoji = '🏥'; }
       else if (isHoliday) { status = '🎉 Feriado'; statusEmoji = '🎉'; }
-      else if (isFolgaSemanal || isFolgaEvent) { status = '🏖️ Folga'; statusEmoji = '🏖️'; }
+      else if (isFolgaSemanal || isFolgaEvent || isFolgaDomingo) { status = '🏖️ Folga'; statusEmoji = '🏖️'; }
       else if (entrada && saida) { status = '✅ Normal'; statusEmoji = '✅'; }
       else if (entrada && !saida) { status = '⚠️ Saída pendente'; statusEmoji = '⚠️'; }
 
