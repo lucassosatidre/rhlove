@@ -125,6 +125,10 @@ export default function Colaboradores() {
     intervalo_inicio: f.intervalo_inicio || null,
     intervalo_duracao: f.intervalo_duracao,
     carga_horaria_diaria: f.carga_horaria_diaria || null,
+    horario_entrada: f.horario_entrada || null,
+    horario_saida: f.horario_saida || null,
+    jornadas_especiais: f.jornadas_especiais.length > 0 ? f.jornadas_especiais : null,
+    aviso_previo_reducao: f.aviso_previo_reducao,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
