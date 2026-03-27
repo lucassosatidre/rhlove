@@ -201,20 +201,54 @@ export default function EspelhoPonto() {
   // Jornada calculations
   const { jornadaRows, jornadaTotals } = useMemo(() => {
     if (!selected || rows.length === 0) return { jornadaRows: [] as JornadaRow[], jornadaTotals: null };
-    const dayInfos = rows.map(r => ({
-      date: r.date,
-      isFolga: r.isFolga,
-      isVacation: r.isVacation,
-      isAfastamento: r.isAfastamento,
-      isHoliday: r.isHoliday,
-      isFuture: r.isFuture,
-      punch: { entrada: r.entrada, saida: r.saida, saidaInt: r.saidaInt, retornoInt: r.retornoInt },
-      hoursWorkedMin: r.hoursMin,
-    }));
-    const chMin = selected.carga_horaria_diaria
-      ? (() => { const [h, m] = selected.carga_horaria_diaria.split(':').map(Number); return h * 60 + (m || 0); })()
-      : 423;
-    const result = calculateJornada(dayInfos, chMin, selected.genero ?? 'M');
+
+    // Map weekday names for jornadas_especiais lookup
+    const WEEKDAY_NAME_MAP: Record<number, string> = {
+      0: 'domingo', 1: 'segunda', 2: 'terca', 3: 'quarta', 4: 'quinta', 5: 'sexta', 6: 'sabado',
+    };
+
+    const defaultChMin = selected.carga_horaria_diaria
+      ? (() => { const [h, m] = selected.carga_horaria_diaria!.split(':').map(Number); return h * 60 + (m || 0); })()
+      : 420;
+
+    // Aviso prévio reduction in minutes
+    const avisoReducao = (selected.status === 'AVISO_PREVIO' && selected.aviso_previo_reducao === 2)
+      ? 120 : 0;
+
+    const dayInfos = rows.map(r => {
+      // Determine CH for this specific day
+      let chForDay = defaultChMin;
+      const dayOfWeek = getDay(r.dateObj);
+      const dayName = WEEKDAY_NAME_MAP[dayOfWeek];
+
+      if (selected.jornadas_especiais && selected.jornadas_especiais.length > 0) {
+        const especial = selected.jornadas_especiais.find(je => je.dias.includes(dayName));
+        if (especial && especial.ch) {
+          const [eh, em] = especial.ch.split(':').map(Number);
+          chForDay = eh * 60 + (em || 0);
+        }
+      }
+
+      // Apply aviso prévio reduction (only on working days)
+      if (avisoReducao > 0 && !r.isFolga && !r.isVacation && !r.isAfastamento && !r.isHoliday) {
+        chForDay = Math.max(0, chForDay - avisoReducao);
+      }
+
+      return {
+        date: r.date,
+        isFolga: r.isFolga,
+        isVacation: r.isVacation,
+        isAfastamento: r.isAfastamento,
+        isHoliday: r.isHoliday,
+        isFuture: r.isFuture,
+        punch: { entrada: r.entrada, saida: r.saida, saidaInt: r.saidaInt, retornoInt: r.retornoInt },
+        hoursWorkedMin: r.hoursMin,
+        chOverride: chForDay,
+      };
+    });
+
+    // Use per-day CH overrides in calculateJornada
+    const result = calculateJornada(dayInfos, defaultChMin, selected.genero ?? 'M');
     return { jornadaRows: result.rows, jornadaTotals: result.totals };
   }, [rows, selected]);
 
@@ -551,7 +585,12 @@ export default function EspelhoPonto() {
                                   {r.isAdjusted && <span title="Ajuste manual" className="text-muted-foreground"><Wrench className="w-3 h-3 inline" /></span>}
                                 </span>
                               </TableCell>
-                              <TableCell className="text-xs tabular-nums text-center">{fmtHHMM(j?.chPrevista ?? null)}</TableCell>
+                              <TableCell className="text-xs tabular-nums text-center">
+                                {fmtHHMM(j?.chPrevista ?? null)}
+                                {selected?.status === 'AVISO_PREVIO' && selected?.aviso_previo_reducao === 2 && j?.chPrevista != null && j.chPrevista > 0 && (
+                                  <span className="block text-[9px] text-amber-600" title="CH reduzida por Aviso Prévio">⚠️ AP</span>
+                                )}
+                              </TableCell>
                               <TableCell className="text-xs tabular-nums text-center">{fmtHHMM(j?.normais ?? null)}</TableCell>
                               <TableCell className="text-xs tabular-nums text-center text-red-600">{fmtHHMM(j?.faltas ?? null)}</TableCell>
                               <TableCell className="text-xs tabular-nums text-center text-amber-600">{fmtHHMM(j?.atraso ?? null)}</TableCell>

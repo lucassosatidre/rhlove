@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Collaborator, DayOfWeek, TipoEscala, CollaboratorStatus } from '@/types/collaborator';
+import type { Collaborator, DayOfWeek, TipoEscala, CollaboratorStatus, JornadaEspecial } from '@/types/collaborator';
 
 export interface CollaboratorInput {
   collaborator_name: string;
@@ -18,6 +18,10 @@ export interface CollaboratorInput {
   intervalo_inicio?: string | null;
   carga_horaria_diaria?: string | null;
   intervalo_duracao?: number | null;
+  horario_entrada?: string | null;
+  horario_saida?: string | null;
+  jornadas_especiais?: JornadaEspecial[] | null;
+  aviso_previo_reducao?: number | null;
   // legacy
   data_retorno?: string | null;
   data_fim_experiencia?: string | null;
@@ -42,6 +46,10 @@ function toDbRow(c: CollaboratorInput) {
     intervalo_inicio: c.intervalo_inicio || null,
     intervalo_duracao: c.intervalo_duracao ?? null,
     carga_horaria_diaria: c.carga_horaria_diaria || null,
+    horario_entrada: c.horario_entrada || null,
+    horario_saida: c.horario_saida || null,
+    jornadas_especiais: c.jornadas_especiais ? JSON.stringify(c.jornadas_especiais) : null,
+    aviso_previo_reducao: c.aviso_previo_reducao ?? null,
     data_retorno: c.data_retorno || c.fim_periodo || null,
     data_fim_experiencia: c.data_fim_experiencia || (c.status === 'EXPERIENCIA' ? c.fim_periodo : null) || null,
     data_fim_aviso: c.data_fim_aviso || (c.status === 'AVISO_PREVIO' ? c.fim_periodo : null) || null,
@@ -64,6 +72,10 @@ function fromDbRow(row: any): Collaborator {
     intervalo_inicio: row.intervalo_inicio ?? null,
     intervalo_duracao: row.intervalo_duracao ?? null,
     carga_horaria_diaria: row.carga_horaria_diaria ?? null,
+    horario_entrada: row.horario_entrada ?? null,
+    horario_saida: row.horario_saida ?? null,
+    jornadas_especiais: row.jornadas_especiais ? (typeof row.jornadas_especiais === 'string' ? JSON.parse(row.jornadas_especiais) : row.jornadas_especiais) : null,
+    aviso_previo_reducao: row.aviso_previo_reducao ?? null,
   } as Collaborator;
 }
 
