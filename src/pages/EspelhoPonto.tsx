@@ -129,6 +129,7 @@ export default function EspelhoPonto() {
     hoursMin: number | null;
     status: string;
     statusEmoji: string;
+    isAdjusted: boolean;
   };
 
   const rows: DayRow[] = useMemo(() => {
