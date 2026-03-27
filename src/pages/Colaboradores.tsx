@@ -86,6 +86,9 @@ export default function Colaboradores() {
       inicio_periodo: c.inicio_periodo ?? '',
       fim_periodo: c.fim_periodo ?? '',
       pis_matricula: c.pis_matricula ?? '',
+      intervalo_automatico: c.intervalo_automatico ?? false,
+      intervalo_inicio: c.intervalo_inicio ?? '',
+      intervalo_duracao: c.intervalo_duracao ?? null,
     });
     setDialogOpen(true);
   };
