@@ -74,6 +74,16 @@ export default function EspelhoPonto() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedCollaboratorId, setSelectedCollaboratorId] = useState<string | null>(null);
   const [searchName, setSearchName] = useState('');
+  const { usuario } = useAuth();
+  const canEdit = usuario?.perfil === 'admin' || usuario?.perfil === 'gestor';
+
+  // Adjustment dialog state
+  const [adjustmentOpen, setAdjustmentOpen] = useState(false);
+  const [adjustmentRow, setAdjustmentRow] = useState<{
+    date: string; dateObj: Date;
+    entrada: string | null; saidaInt: string | null;
+    retornoInt: string | null; saida: string | null;
+  } | null>(null);
 
   const { data: collaborators = [] } = useCollaborators();
   const { data: punchRecords = [] } = usePunchRecords();
