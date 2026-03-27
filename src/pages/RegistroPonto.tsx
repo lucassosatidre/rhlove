@@ -7,225 +7,226 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Upload, FileText, AlertTriangle, Download, Trash2, RefreshCw } from 'lucide-react';
-import { DropZone } from '@/components/ui/drop-zone';
+import { Upload, AlertTriangle, Download, RefreshCw, Clock, LogOut, Coffee, Timer, TimerOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import { useCollaborators } from '@/hooks/useCollaborators';
+import { usePunchRecords } from '@/hooks/usePunchRecords';
 import { UpdatePunchesDialog } from '@/components/ponto/UpdatePunchesDialog';
 
-interface PunchRecord {
-  pis: string;
-  date: string;
-  time: string;
-}
+type InconsistencyType = 'incomplete' | 'saida_pendente' | 'sem_intervalo' | 'jornada_longa' | 'jornada_curta';
 
-interface DaySummary {
-  pis: string;
+interface Inconsistency {
+  collaboratorId: string;
   collaboratorName: string;
+  pis: string;
   date: string;
-  totalPunches: number;
-  punches: string[];
-  isOdd: boolean;
+  entrada: string | null;
+  saidaIntervalo: string | null;
+  retornoIntervalo: string | null;
+  saida: string | null;
+  filledCount: number;
+  types: InconsistencyType[];
+  workedMinutes: number | null;
 }
 
-interface ImportSession {
-  id: string;
-  fileName: string;
-  importedAt: string;
-  records: PunchRecord[];
+const TYPE_LABELS: Record<InconsistencyType, string> = {
+  incomplete: 'Batidas incompletas',
+  saida_pendente: 'Saída pendente',
+  sem_intervalo: 'Sem intervalo',
+  jornada_longa: 'Jornada > 14h',
+  jornada_curta: 'Jornada < 2h',
+};
+
+const TYPE_ICONS: Record<InconsistencyType, typeof AlertTriangle> = {
+  incomplete: AlertTriangle,
+  saida_pendente: LogOut,
+  sem_intervalo: Coffee,
+  jornada_longa: Timer,
+  jornada_curta: TimerOff,
+};
+
+function toMin(t: string): number {
+  const [h, m] = t.split(':').map(Number);
+  return h * 60 + m;
 }
 
-const STORAGE_KEY = 'estrela-rh-punch-imports';
-
-function loadSessions(): ImportSession[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
+function calcWorkedMinutes(entrada: string | null, saida: string | null, saidaInt: string | null, retornoInt: string | null): number | null {
+  if (!entrada || !saida) return null;
+  let entMin = toMin(entrada);
+  let saiMin = toMin(saida);
+  if (saiMin < 180 && entMin > saiMin) saiMin += 1440; // overnight
+  let total = saiMin - entMin;
+  if (saidaInt && retornoInt) {
+    let siMin = toMin(saidaInt);
+    let riMin = toMin(retornoInt);
+    if (riMin < siMin) riMin += 1440;
+    total -= (riMin - siMin);
+  }
+  return total > 0 ? total : 0;
 }
 
-function saveSessions(sessions: ImportSession[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
-}
+function detectInconsistencies(record: { collaborator_id: string; collaborator_name: string; date: string; entrada: string | null; saida: string | null; saida_intervalo: string | null; retorno_intervalo: string | null; }, pis: string): Inconsistency | null {
+  const { entrada, saida, saida_intervalo, retorno_intervalo } = record;
+  const fields = [entrada, saida_intervalo, retorno_intervalo, saida];
+  const filled = fields.filter(f => f && f !== '').length;
 
-function parseAFDLine(line: string): PunchRecord | null {
-  if (line.length < 34) return null;
-  const type = line.charAt(9);
-  if (type !== '3') return null;
+  if (filled === 0) return null; // no punches, not an inconsistency from import
 
-  const dateStr = line.substring(10, 18);
-  const timeStr = line.substring(18, 22);
-  const pis = line.substring(22, 34).trim();
+  const types: InconsistencyType[] = [];
 
-  const day = dateStr.substring(0, 2);
-  const month = dateStr.substring(2, 4);
-  const year = dateStr.substring(4, 8);
-  const isoDate = `${year}-${month}-${day}`;
-
-  const hour = timeStr.substring(0, 2);
-  const min = timeStr.substring(2, 4);
-  const formattedTime = `${hour}:${min}`;
-
-  if (!pis || isNaN(parseInt(day)) || isNaN(parseInt(month))) return null;
-
-  return { pis, date: isoDate, time: formattedTime };
-}
-
-function processRecords(records: PunchRecord[], pisToName: Record<string, string>): DaySummary[] {
-  const grouped: Record<string, PunchRecord[]> = {};
-
-  for (const r of records) {
-    const key = `${r.pis}|${r.date}`;
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(r);
+  // Incomplete: some fields filled, others missing (but not all 4 filled)
+  if (filled > 0 && filled < 4) {
+    if (entrada && !saida) {
+      types.push('saida_pendente');
+    } else if (entrada && saida && !saida_intervalo && !retorno_intervalo) {
+      types.push('sem_intervalo');
+    } else {
+      types.push('incomplete');
+    }
   }
 
-  const summaries: DaySummary[] = [];
-  for (const [key, recs] of Object.entries(grouped)) {
-    const [pis, date] = key.split('|');
-    const punches = recs.map(r => r.time).sort();
-    summaries.push({
-      pis,
-      collaboratorName: pisToName[pis] || '',
-      date,
-      totalPunches: punches.length,
-      punches,
-      isOdd: punches.length % 2 !== 0,
-    });
+  // Worked hours checks
+  const worked = calcWorkedMinutes(entrada, saida, saida_intervalo, retorno_intervalo);
+  if (worked !== null) {
+    if (worked > 14 * 60) types.push('jornada_longa');
+    if (worked < 2 * 60 && worked > 0) types.push('jornada_curta');
   }
 
-  summaries.sort((a, b) => {
-    const dateCmp = b.date.localeCompare(a.date);
-    if (dateCmp !== 0) return dateCmp;
-    const nameA = a.collaboratorName || a.pis;
-    const nameB = b.collaboratorName || b.pis;
-    return nameA.localeCompare(nameB);
-  });
+  if (types.length === 0) return null;
 
-  return summaries;
+  return {
+    collaboratorId: record.collaborator_id,
+    collaboratorName: record.collaborator_name,
+    pis,
+    date: record.date,
+    entrada,
+    saidaIntervalo: saida_intervalo,
+    retornoIntervalo: retorno_intervalo,
+    saida,
+    filledCount: filled,
+    types,
+    workedMinutes: worked,
+  };
+}
+
+function formatMinutesHHMM(min: number | null): string {
+  if (min === null) return '—';
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
 export default function RegistroPonto() {
-  const [sessions, setSessions] = useState<ImportSession[]>(loadSessions);
-  const [onlyOdd, setOnlyOdd] = useState(true);
-  const [filterPis, setFilterPis] = useState('all');
+  const [onlyInconsistent, setOnlyInconsistent] = useState(true);
+  const [filterCollab, setFilterCollab] = useState('all');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const { data: collaborators = [] } = useCollaborators();
+  const { data: punchRecords = [] } = usePunchRecords();
 
-  // Build PIS -> Name map from collaborators (normalize to 12 digits with leading zeros)
-  const pisToName = useMemo(() => {
+  // Build collaborator_id -> PIS map
+  const collabPisMap = useMemo(() => {
     const map: Record<string, string> = {};
     for (const c of collaborators) {
-      if (c.pis_matricula) {
-        // Store both original and zero-padded versions for matching
-        map[c.pis_matricula] = c.collaborator_name;
-        map[c.pis_matricula.padStart(12, '0')] = c.collaborator_name;
-      }
+      map[c.id] = c.pis_matricula || '';
     }
     return map;
   }, [collaborators]);
 
-  const allRecords = useMemo(() => sessions.flatMap(s => s.records), [sessions]);
-
-  const summaries = useMemo(() => processRecords(allRecords, pisToName), [allRecords, pisToName]);
-
-  const uniquePis = useMemo(() => {
-    const set = new Set(summaries.map(s => s.pis));
-    return Array.from(set).sort();
-  }, [summaries]);
-
-  const filtered = useMemo(() => {
-    let result = summaries;
-    if (onlyOdd) result = result.filter(s => s.isOdd);
-    if (filterPis && filterPis !== 'all') result = result.filter(s => s.pis === filterPis);
-    if (filterDateFrom) result = result.filter(s => s.date >= filterDateFrom);
-    if (filterDateTo) result = result.filter(s => s.date <= filterDateTo);
-    return result;
-  }, [summaries, onlyOdd, filterPis, filterDateFrom, filterDateTo]);
-
-  const handleFileImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const text = evt.target?.result as string;
-      const lines = text.split(/\r?\n/);
-      const records: PunchRecord[] = [];
-
-      for (const line of lines) {
-        const record = parseAFDLine(line);
-        if (record) records.push(record);
-      }
-
-      if (records.length === 0) {
-        toast.error('Nenhum registro de batida encontrado no arquivo.');
-        return;
-      }
-
-      const newSession: ImportSession = {
-        id: crypto.randomUUID(),
-        fileName: file.name,
-        importedAt: new Date().toISOString(),
-        records,
+  // Analyze all punch records for inconsistencies
+  const allAnalysis = useMemo(() => {
+    return punchRecords.map(r => {
+      const pis = collabPisMap[r.collaborator_id] || '';
+      const inconsistency = detectInconsistencies(r, pis);
+      return {
+        record: r,
+        pis,
+        inconsistency,
       };
+    });
+  }, [punchRecords, collabPisMap]);
 
-      const updated = [newSession, ...sessions];
-      setSessions(updated);
-      saveSessions(updated);
+  const inconsistencies = useMemo(() => allAnalysis.filter(a => a.inconsistency).map(a => a.inconsistency!), [allAnalysis]);
 
-      const oddCount = processRecords(records, pisToName).filter(s => s.isOdd).length;
-      toast.success(`${records.length} batidas importadas. ${oddCount} inconsistência(s) encontrada(s).`);
-    };
-    reader.readAsText(file, 'latin1');
-    e.target.value = '';
-  }, [sessions, pisToName]);
+  // Unique collaborators with records
+  const uniqueCollabs = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of punchRecords) {
+      if (!map.has(r.collaborator_id)) map.set(r.collaborator_id, r.collaborator_name);
+    }
+    return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [punchRecords]);
 
-  const clearAllSessions = useCallback(() => {
-    setSessions([]);
-    saveSessions([]);
-    toast.info('Histórico de importações limpo.');
-  }, []);
+  // Items to display
+  const displayItems = useMemo(() => {
+    let items: Inconsistency[];
+    if (onlyInconsistent) {
+      items = inconsistencies;
+    } else {
+      // Show all records as items
+      items = allAnalysis.map(a => a.inconsistency || {
+        collaboratorId: a.record.collaborator_id,
+        collaboratorName: a.record.collaborator_name,
+        pis: a.pis,
+        date: a.record.date,
+        entrada: a.record.entrada,
+        saidaIntervalo: a.record.saida_intervalo,
+        retornoIntervalo: a.record.retorno_intervalo,
+        saida: a.record.saida,
+        filledCount: [a.record.entrada, a.record.saida_intervalo, a.record.retorno_intervalo, a.record.saida].filter(f => f && f !== '').length,
+        types: [] as InconsistencyType[],
+        workedMinutes: calcWorkedMinutes(a.record.entrada, a.record.saida, a.record.saida_intervalo, a.record.retorno_intervalo),
+      });
+    }
 
-  const removeSession = useCallback((id: string) => {
-    const updated = sessions.filter(s => s.id !== id);
-    setSessions(updated);
-    saveSessions(updated);
-    toast.info('Importação removida.');
-  }, [sessions]);
+    if (filterCollab && filterCollab !== 'all') items = items.filter(i => i.collaboratorId === filterCollab);
+    if (filterDateFrom) items = items.filter(i => i.date >= filterDateFrom);
+    if (filterDateTo) items = items.filter(i => i.date <= filterDateTo);
+
+    items.sort((a, b) => {
+      const d = b.date.localeCompare(a.date);
+      return d !== 0 ? d : a.collaboratorName.localeCompare(b.collaboratorName);
+    });
+
+    return items;
+  }, [onlyInconsistent, inconsistencies, allAnalysis, filterCollab, filterDateFrom, filterDateTo]);
 
   const exportToExcel = useCallback(() => {
-    if (filtered.length === 0) {
+    if (displayItems.length === 0) {
       toast.warning('Nenhum dado para exportar.');
       return;
     }
-    const rows = filtered.map(s => ({
+    const rows = displayItems.map(s => ({
       'Colaborador': s.collaboratorName || '-',
-      'PIS / Matrícula': s.pis,
+      'PIS / Matrícula': s.pis || '-',
       'Data': format(parse(s.date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy'),
-      'Total Batidas': s.totalPunches,
-      'Horários': s.punches.join(', '),
-      'Status': s.isOdd ? 'Batidas ímpares' : 'OK',
+      'Entrada': s.entrada || '—',
+      'Saída Int.': s.saidaIntervalo || '—',
+      'Retorno Int.': s.retornoIntervalo || '—',
+      'Saída': s.saida || '—',
+      'Horas Trab.': formatMinutesHHMM(s.workedMinutes),
+      'Status': s.types.length > 0 ? s.types.map(t => TYPE_LABELS[t]).join(', ') : 'OK',
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Registro Ponto');
     XLSX.writeFile(wb, `registro-ponto-${format(new Date(), 'yyyyMMdd-HHmm')}.xlsx`);
     toast.success('Arquivo exportado.');
-  }, [filtered]);
+  }, [displayItems]);
 
   const formatDate = (iso: string) => {
     try {
-      return format(parse(iso, 'yyyy-MM-dd', new Date()), "dd/MM/yyyy (EEEE)", { locale: ptBR });
+      return format(parse(iso, 'yyyy-MM-dd', new Date()), "dd/MM/yyyy (EEE)", { locale: ptBR });
     } catch { return iso; }
   };
 
-  const oddTotal = summaries.filter(s => s.isOdd).length;
+  const totalRecords = punchRecords.length;
+  const totalCollabs = uniqueCollabs.length;
+  const totalInconsistencies = inconsistencies.length;
 
   return (
     <div className="space-y-6">
@@ -238,7 +239,7 @@ export default function RegistroPonto() {
           <Button variant="default" onClick={() => setUpdateDialogOpen(true)}>
             <RefreshCw className="w-4 h-4 mr-2" /> Atualizar Batidas
           </Button>
-          <Button variant="outline" onClick={exportToExcel} disabled={filtered.length === 0}>
+          <Button variant="outline" onClick={exportToExcel} disabled={displayItems.length === 0}>
             <Download className="w-4 h-4 mr-2" /> Excel
           </Button>
         </div>
@@ -254,26 +255,26 @@ export default function RegistroPonto() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Importações</p>
-            <p className="text-2xl font-bold">{sessions.length}</p>
+            <p className="text-xs text-muted-foreground">Total de Registros</p>
+            <p className="text-2xl font-bold">{totalRecords}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total de Batidas</p>
-            <p className="text-2xl font-bold">{allRecords.length}</p>
+            <p className="text-xs text-muted-foreground">Colaboradores</p>
+            <p className="text-2xl font-bold">{totalCollabs}</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Colaboradores (PIS)</p>
-            <p className="text-2xl font-bold">{uniquePis.length}</p>
-          </CardContent>
-        </Card>
-        <Card className={oddTotal > 0 ? 'border-destructive/50 bg-destructive/5' : ''}>
+        <Card className={totalInconsistencies > 0 ? 'border-destructive/50 bg-destructive/5' : ''}>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Inconsistências</p>
-            <p className="text-2xl font-bold text-destructive">{oddTotal}</p>
+            <p className="text-2xl font-bold text-destructive">{totalInconsistencies}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Registros OK</p>
+            <p className="text-2xl font-bold text-green-600">{totalRecords - totalInconsistencies}</p>
           </CardContent>
         </Card>
       </div>
@@ -291,72 +292,42 @@ export default function RegistroPonto() {
               <Input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} className="w-40" />
             </div>
             <div className="space-y-1">
-              <Label className="text-xs">Colaborador (PIS)</Label>
-              <Select value={filterPis} onValueChange={setFilterPis}>
+              <Label className="text-xs">Colaborador</Label>
+              <Select value={filterCollab} onValueChange={setFilterCollab}>
                 <SelectTrigger className="w-52">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  {uniquePis.map(p => (
-                    <SelectItem key={p} value={p}>{pisToName[p] ? `${pisToName[p]} (${p})` : p}</SelectItem>
+                  {uniqueCollabs.map(([id, name]) => (
+                    <SelectItem key={id} value={id}>{name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="flex items-center gap-2 pb-0.5">
-              <Switch checked={onlyOdd} onCheckedChange={setOnlyOdd} id="only-odd" />
-              <Label htmlFor="only-odd" className="text-xs cursor-pointer">Apenas inconsistências</Label>
+              <Switch checked={onlyInconsistent} onCheckedChange={setOnlyInconsistent} id="only-inconsistent" />
+              <Label htmlFor="only-inconsistent" className="text-xs cursor-pointer">Apenas inconsistências</Label>
             </div>
           </div>
         </CardContent>
       </Card>
-
-      {/* Import history */}
-      {sessions.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium">Histórico de Importações</CardTitle>
-              <Button variant="ghost" size="sm" onClick={clearAllSessions} className="text-xs text-destructive hover:text-destructive">
-                <Trash2 className="w-3 h-3 mr-1" /> Limpar tudo
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="flex flex-wrap gap-2">
-              {sessions.map(s => (
-                <Badge key={s.id} variant="secondary" className="gap-1.5 pr-1">
-                  <FileText className="w-3 h-3" />
-                  {s.fileName}
-                  <span className="text-[10px] text-muted-foreground ml-1">
-                    ({s.records.length} bat.)
-                  </span>
-                  <button onClick={() => removeSession(s.id)} className="ml-1 p-0.5 rounded hover:bg-destructive/20">
-                    <Trash2 className="w-3 h-3 text-destructive" />
-                  </button>
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Results table */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-destructive" />
-            {onlyOdd ? 'Inconsistências Encontradas' : 'Todos os Registros'}
-            <Badge variant="outline" className="ml-2">{filtered.length}</Badge>
+            {onlyInconsistent ? 'Inconsistências Encontradas' : 'Todos os Registros'}
+            <Badge variant="outline" className="ml-2">{displayItems.length}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {filtered.length === 0 ? (
+          {displayItems.length === 0 ? (
             <div className="p-8 text-center text-muted-foreground">
-              {allRecords.length === 0
+              {totalRecords === 0
                 ? <div className="space-y-2"><Upload className="w-8 h-8 mx-auto opacity-40" /><p>Importe um arquivo de ponto para começar a análise.</p></div>
-                : <p>Nenhuma inconsistência encontrada com os filtros atuais.</p>
+                : <p>{onlyInconsistent ? 'Nenhuma inconsistência encontrada!' : 'Nenhum registro encontrado com os filtros atuais.'}</p>
               }
             </div>
           ) : (
@@ -365,28 +336,37 @@ export default function RegistroPonto() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Colaborador</TableHead>
-                    <TableHead>PIS / Matrícula</TableHead>
                     <TableHead>Data</TableHead>
-                    <TableHead className="text-center">Batidas</TableHead>
-                    <TableHead>Horários</TableHead>
+                    <TableHead>Entrada</TableHead>
+                    <TableHead>Saída Int.</TableHead>
+                    <TableHead>Ret. Int.</TableHead>
+                    <TableHead>Saída</TableHead>
+                    <TableHead>Horas</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((s, i) => (
-                    <TableRow key={`${s.pis}-${s.date}-${i}`}>
-                      <TableCell className="text-sm font-medium">
-                        {s.collaboratorName || <span className="text-muted-foreground italic">Não vinculado</span>}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">{s.pis}</TableCell>
+                  {displayItems.map((s, i) => (
+                    <TableRow key={`${s.collaboratorId}-${s.date}-${i}`}>
+                      <TableCell className="text-sm font-medium">{s.collaboratorName}</TableCell>
                       <TableCell className="text-sm whitespace-nowrap">{formatDate(s.date)}</TableCell>
-                      <TableCell className="text-center font-bold">{s.totalPunches}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{s.punches.join(', ')}</TableCell>
+                      <TableCell className="text-xs font-mono">{s.entrada || '—'}</TableCell>
+                      <TableCell className="text-xs font-mono">{s.saidaIntervalo || '—'}</TableCell>
+                      <TableCell className="text-xs font-mono">{s.retornoIntervalo || '—'}</TableCell>
+                      <TableCell className="text-xs font-mono">{s.saida || '—'}</TableCell>
+                      <TableCell className="text-xs font-mono">{formatMinutesHHMM(s.workedMinutes)}</TableCell>
                       <TableCell>
-                        {s.isOdd ? (
-                          <Badge variant="destructive" className="text-[10px]">
-                            <AlertTriangle className="w-3 h-3 mr-1" /> Batidas ímpares
-                          </Badge>
+                        {s.types.length > 0 ? (
+                          <div className="flex flex-col gap-0.5">
+                            {s.types.map(t => {
+                              const Icon = TYPE_ICONS[t];
+                              return (
+                                <Badge key={t} variant="destructive" className="text-[10px] w-fit">
+                                  <Icon className="w-3 h-3 mr-1" /> {TYPE_LABELS[t]}
+                                </Badge>
+                              );
+                            })}
+                          </div>
                         ) : (
                           <Badge variant="secondary" className="text-[10px]">OK</Badge>
                         )}
