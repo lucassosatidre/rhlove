@@ -18,6 +18,10 @@ export interface CollaboratorInput {
   intervalo_inicio?: string | null;
   carga_horaria_diaria?: string | null;
   intervalo_duracao?: number | null;
+  horario_entrada?: string | null;
+  horario_saida?: string | null;
+  jornadas_especiais?: JornadaEspecial[] | null;
+  aviso_previo_reducao?: number | null;
   // legacy
   data_retorno?: string | null;
   data_fim_experiencia?: string | null;
