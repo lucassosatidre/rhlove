@@ -26,6 +26,7 @@ interface FormData {
   folgas_semanais: DayOfWeek[];
   sunday_n: number;
   status: CollaboratorStatus;
+  genero: string;
   inicio_na_empresa: string;
   data_desligamento: string;
   inicio_periodo: string;
