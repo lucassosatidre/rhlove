@@ -47,6 +47,9 @@ const emptyForm: FormData = {
   inicio_periodo: '',
   fim_periodo: '',
   pis_matricula: '',
+  intervalo_automatico: false,
+  intervalo_inicio: '',
+  intervalo_duracao: null,
 };
 
 export default function Colaboradores() {
