@@ -585,7 +585,12 @@ export default function EspelhoPonto() {
                                   {r.isAdjusted && <span title="Ajuste manual" className="text-muted-foreground"><Wrench className="w-3 h-3 inline" /></span>}
                                 </span>
                               </TableCell>
-                              <TableCell className="text-xs tabular-nums text-center">{fmtHHMM(j?.chPrevista ?? null)}</TableCell>
+                              <TableCell className="text-xs tabular-nums text-center">
+                                {fmtHHMM(j?.chPrevista ?? null)}
+                                {selected?.status === 'AVISO_PREVIO' && selected?.aviso_previo_reducao === 2 && j?.chPrevista != null && j.chPrevista > 0 && (
+                                  <span className="block text-[9px] text-amber-600" title="CH reduzida por Aviso Prévio">⚠️ AP</span>
+                                )}
+                              </TableCell>
                               <TableCell className="text-xs tabular-nums text-center">{fmtHHMM(j?.normais ?? null)}</TableCell>
                               <TableCell className="text-xs tabular-nums text-center text-red-600">{fmtHHMM(j?.faltas ?? null)}</TableCell>
                               <TableCell className="text-xs tabular-nums text-center text-amber-600">{fmtHHMM(j?.atraso ?? null)}</TableCell>
