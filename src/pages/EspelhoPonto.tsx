@@ -5,10 +5,12 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Download, FileText, Calendar, Clock, AlertCircle, CheckCircle2, ChevronDown, Fingerprint } from 'lucide-react';
+import { Search, Download, FileText, Calendar, Clock, AlertCircle, CheckCircle2, ChevronDown, Fingerprint, Pencil, Plus, Wrench } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 const RegistroPonto = lazy(() => import('@/pages/RegistroPonto'));
 import { format, getDaysInMonth, startOfMonth, addDays, getDay, parse } from 'date-fns';
+import { useAuth } from '@/contexts/AuthContext';
+import { PunchAdjustmentDialog } from '@/components/ponto/PunchAdjustmentDialog';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import { useCollaborators } from '@/hooks/useCollaborators';
@@ -72,6 +74,16 @@ export default function EspelhoPonto() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedCollaboratorId, setSelectedCollaboratorId] = useState<string | null>(null);
   const [searchName, setSearchName] = useState('');
+  const { usuario } = useAuth();
+  const canEdit = usuario?.perfil === 'admin' || usuario?.perfil === 'gestor';
+
+  // Adjustment dialog state
+  const [adjustmentOpen, setAdjustmentOpen] = useState(false);
+  const [adjustmentRow, setAdjustmentRow] = useState<{
+    date: string; dateObj: Date;
+    entrada: string | null; saidaInt: string | null;
+    retornoInt: string | null; saida: string | null;
+  } | null>(null);
 
   const { data: collaborators = [] } = useCollaborators();
   const { data: punchRecords = [] } = usePunchRecords();
@@ -117,6 +129,7 @@ export default function EspelhoPonto() {
     hoursMin: number | null;
     status: string;
     statusEmoji: string;
+    isAdjusted: boolean;
   };
 
   const rows: DayRow[] = useMemo(() => {
@@ -212,7 +225,8 @@ export default function EspelhoPonto() {
       else if (entrada && saida) { status = '✅ Normal'; statusEmoji = '✅'; }
       else if (entrada && !saida) { status = '⚠️ Saída pendente'; statusEmoji = '⚠️'; }
 
-      result.push({ date: iso, dateObj, weekday, entrada, saidaInt, retornoInt, saida, hoursMin, status, statusEmoji });
+      const isAdjusted = punch ? !!(punch as any).adjusted_at : false;
+      result.push({ date: iso, dateObj, weekday, entrada, saidaInt, retornoInt, saida, hoursMin, status, statusEmoji, isAdjusted });
     }
     return result;
   }, [selected, selectedMonth, selectedYear, daysInMonth, punchRecords, scheduleEvents, vacations, afastamentos, holidaySet]);
@@ -389,11 +403,13 @@ export default function EspelhoPonto() {
                           <TableHead>Saída</TableHead>
                           <TableHead>Horas Trab.</TableHead>
                           <TableHead>Status</TableHead>
+                          {canEdit && <TableHead className="w-10 print:hidden"></TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {rows.map(r => {
                           const isWeekend = [0, 6].includes(getDay(r.dateObj));
+                          const isFalta = r.status === '❌ Falta';
                           return (
                             <TableRow key={r.date} className={isWeekend ? 'bg-muted/30' : ''}>
                               <TableCell className="text-xs font-medium whitespace-nowrap tabular-nums">
@@ -407,8 +423,36 @@ export default function EspelhoPonto() {
                                 {r.hoursMin != null ? formatMinutes(r.hoursMin) : '—'}
                               </TableCell>
                               <TableCell>
-                                <span className="text-xs whitespace-nowrap">{r.status}</span>
+                                <span className="text-xs whitespace-nowrap flex items-center gap-1">
+                                  {r.status}
+                                  {r.isAdjusted && (
+                                    <span title="Ajuste manual" className="text-muted-foreground">
+                                      <Wrench className="w-3 h-3 inline" />
+                                    </span>
+                                  )}
+                                </span>
                               </TableCell>
+                              {canEdit && (
+                                <TableCell className="print:hidden">
+                                  {isFalta ? (
+                                    <button
+                                      onClick={() => { setAdjustmentRow({ date: r.date, dateObj: r.dateObj, entrada: null, saidaInt: null, retornoInt: null, saida: null }); setAdjustmentOpen(true); }}
+                                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                                      title="Adicionar batida"
+                                    >
+                                      <Plus className="w-3.5 h-3.5" />
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => { setAdjustmentRow({ date: r.date, dateObj: r.dateObj, entrada: r.entrada, saidaInt: r.saidaInt, retornoInt: r.retornoInt, saida: r.saida }); setAdjustmentOpen(true); }}
+                                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                                      title="Editar batida"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </TableCell>
+                              )}
                             </TableRow>
                           );
                         })}
@@ -441,6 +485,21 @@ export default function EspelhoPonto() {
       </Collapsible>
 
       <PrintFooter />
+
+      {selected && adjustmentRow && (
+        <PunchAdjustmentDialog
+          open={adjustmentOpen}
+          onOpenChange={setAdjustmentOpen}
+          collaboratorId={selected.id}
+          collaboratorName={selected.collaborator_name}
+          date={adjustmentRow.date}
+          dateObj={adjustmentRow.dateObj}
+          entrada={adjustmentRow.entrada}
+          saidaInt={adjustmentRow.saidaInt}
+          retornoInt={adjustmentRow.retornoInt}
+          saida={adjustmentRow.saida}
+        />
+      )}
     </div>
   );
 }

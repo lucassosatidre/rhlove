@@ -10,6 +10,9 @@ export interface PunchRecord {
   saida: string | null;
   saida_intervalo: string | null;
   retorno_intervalo: string | null;
+  adjusted_by: string | null;
+  adjusted_at: string | null;
+  adjustment_reason: string | null;
 }
 
 export interface PunchRecordUpsert {
