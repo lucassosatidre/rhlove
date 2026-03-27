@@ -112,6 +112,7 @@ export default function Colaboradores() {
     intervalo_automatico: f.intervalo_automatico,
     intervalo_inicio: f.intervalo_inicio || null,
     intervalo_duracao: f.intervalo_duracao,
+    carga_horaria_diaria: f.carga_horaria_diaria || null,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

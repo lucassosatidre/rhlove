@@ -63,6 +63,7 @@ function fromDbRow(row: any): Collaborator {
     intervalo_automatico: row.intervalo_automatico ?? false,
     intervalo_inicio: row.intervalo_inicio ?? null,
     intervalo_duracao: row.intervalo_duracao ?? null,
+    carga_horaria_diaria: row.carga_horaria_diaria ?? null,
   } as Collaborator;
 }
 
