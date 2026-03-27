@@ -1,12 +1,14 @@
-import { useState, useMemo, useEffect, lazy, Suspense } from 'react';
+import { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Download, FileText, Calendar, Clock, AlertCircle, CheckCircle2, ChevronDown, Fingerprint, Pencil, Plus, Wrench, Banknote } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Search, Download, FileText, Calendar, Clock, AlertCircle, CheckCircle2, ChevronDown, Fingerprint, Pencil, Plus, Wrench, Banknote, AlertTriangle } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { InlineTimeCell } from '@/components/ponto/InlineTimeCell';
 const RegistroPonto = lazy(() => import('@/pages/RegistroPonto'));
 import { format, getDaysInMonth, getDay } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,6 +18,8 @@ import * as XLSX from 'xlsx';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { usePunchRecords } from '@/hooks/usePunchRecords';
 import { useScheduleEvents } from '@/hooks/useScheduleEvents';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
 import { useAfastamentos } from '@/hooks/useAfastamentos';
 import { useBankHoursBalance, useUpsertBankHoursBalance } from '@/hooks/useBankHoursBalance';
@@ -77,7 +81,8 @@ export default function EspelhoPonto() {
   const [searchName, setSearchName] = useState('');
   const { usuario } = useAuth();
   const canEdit = usuario?.perfil === 'admin' || usuario?.perfil === 'gestor';
-
+  const [showOnlyInconsistencies, setShowOnlyInconsistencies] = useState(false);
+  const queryClient = useQueryClient();
   const [adjustmentOpen, setAdjustmentOpen] = useState(false);
   const [adjustmentRow, setAdjustmentRow] = useState<{
     date: string; dateObj: Date;
@@ -221,6 +226,75 @@ export default function EspelhoPonto() {
       accumulated_balance: accumulatedBalance,
     });
   }, [selected?.id, selectedMonth, selectedYear, accumulatedBalance]);
+
+  // Inline save handler
+  const handleInlineSave = useCallback(async (row: typeof rows[0], field: 'entrada' | 'saida_intervalo' | 'retorno_intervalo' | 'saida', newValue: string | null) => {
+    if (!selected) return;
+    const fieldMap = { entrada: 'entrada', saida_intervalo: 'saidaInt', retorno_intervalo: 'retornoInt', saida: 'saida' } as const;
+    const currentValues = {
+      entrada: row.entrada,
+      saida_intervalo: row.saidaInt,
+      retorno_intervalo: row.retornoInt,
+      saida: row.saida,
+    };
+    currentValues[field] = newValue;
+
+    // Sort non-null times in ascending order
+    const times = [currentValues.entrada, currentValues.saida_intervalo, currentValues.retorno_intervalo, currentValues.saida].filter(Boolean) as string[];
+    times.sort();
+    // Re-assign in order: entrada (smallest), saida_intervalo, retorno_intervalo, saida (largest)
+    const sorted = { entrada: null as string | null, saida_intervalo: null as string | null, retorno_intervalo: null as string | null, saida: null as string | null };
+    if (times.length >= 1) sorted.entrada = times[0];
+    if (times.length >= 2) sorted.saida_intervalo = times[1];
+    if (times.length >= 3) sorted.retorno_intervalo = times[2];
+    if (times.length >= 4) sorted.saida = times[3];
+    // If only 1 time, keep in original field position
+    if (times.length === 1) {
+      sorted.entrada = null; sorted.saida_intervalo = null; sorted.retorno_intervalo = null; sorted.saida = null;
+      sorted[field] = times[0];
+    }
+
+    const allEmpty = !sorted.entrada && !sorted.saida_intervalo && !sorted.retorno_intervalo && !sorted.saida;
+
+    try {
+      if (allEmpty) {
+        await supabase.from('punch_records').delete().eq('collaborator_id', selected.id).eq('date', row.date);
+      } else {
+        const record = {
+          collaborator_id: selected.id,
+          collaborator_name: selected.collaborator_name,
+          date: row.date,
+          ...sorted,
+          adjusted_by: usuario?.id ?? null,
+          adjusted_at: new Date().toISOString(),
+          adjustment_reason: 'Edição inline',
+        };
+        await supabase.from('punch_records').upsert(record as any, { onConflict: 'collaborator_id,date' });
+      }
+      await queryClient.invalidateQueries({ queryKey: ['punch_records'] });
+    } catch (err: any) {
+      toast.error('Erro ao salvar: ' + (err.message ?? 'desconhecido'));
+    }
+  }, [selected, usuario, queryClient]);
+
+  // Inconsistency detection
+  const isInconsistentDay = useCallback((r: typeof rows[0]) => {
+    if (r.isFuture || r.isFolga || r.isVacation || r.isAfastamento || r.isHoliday) return false;
+    if (r.status === '❌ Falta') return true;
+    if (r.status === '⚠️ Saída pendente') return true;
+    const filled = [r.entrada, r.saidaInt, r.retornoInt, r.saida].filter(Boolean).length;
+    if (filled > 0 && filled < 4) return true;
+    if (r.hoursMin != null && r.hoursMin > 14 * 60) return true;
+    if (r.hoursMin != null && r.hoursMin > 0 && r.hoursMin < 2 * 60) return true;
+    return false;
+  }, []);
+
+  const inconsistencyCount = useMemo(() => rows.filter(isInconsistentDay).length, [rows, isInconsistentDay]);
+
+  const displayRows = useMemo(() => {
+    if (!showOnlyInconsistencies) return rows;
+    return rows.filter(isInconsistentDay);
+  }, [rows, showOnlyInconsistencies, isInconsistentDay]);
 
   const totalWorked = rows.filter(r => r.status === '✅ Normal').length;
   const totalFaltas = rows.filter(r => r.status === '❌ Falta').length;
@@ -383,6 +457,19 @@ export default function EspelhoPonto() {
                 <p className="text-xs text-muted-foreground">{MONTHS[selectedMonth].label} / {selectedYear} · Dias trabalhados: {totalWorked} · Faltas: {totalFaltas} · Horas: {formatMinutes(totalHoursMin)}</p>
               </div>
 
+              {/* Inconsistency filter */}
+              <div className="flex items-center gap-3 print:hidden">
+                <div className="flex items-center gap-2">
+                  <Switch checked={showOnlyInconsistencies} onCheckedChange={setShowOnlyInconsistencies} id="inconsistency-filter" />
+                  <label htmlFor="inconsistency-filter" className="text-sm cursor-pointer">Apenas inconsistências</label>
+                </div>
+                {inconsistencyCount > 0 && (
+                  <Badge variant="destructive" className="text-xs">
+                    <AlertTriangle className="w-3 h-3 mr-1" /> {inconsistencyCount}
+                  </Badge>
+                )}
+              </div>
+
               {/* Main table */}
               <Card>
                 <CardContent className="p-0">
@@ -411,20 +498,28 @@ export default function EspelhoPonto() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {rows.map((r, i) => {
-                          const j = jornadaRows[i];
+                        {displayRows.map((r) => {
+                          const origIdx = rows.indexOf(r);
+                          const j = jornadaRows[origIdx];
                           const isWeekend = [0, 6].includes(getDay(r.dateObj));
-                          const isFalta = r.status === '❌ Falta';
                           const saldo = j ? fmtSaldo(j.saldoBH) : { text: '', className: '' };
                           return (
                             <TableRow key={r.date} className={isWeekend ? 'bg-muted/30' : ''}>
                               <TableCell className="text-xs font-medium whitespace-nowrap tabular-nums sticky left-0 bg-background z-10">
                                 {format(r.dateObj, 'dd/MM')} <span className="text-muted-foreground">{r.weekday}</span>
                               </TableCell>
-                              <TableCell className="text-xs tabular-nums">{r.entrada ?? '—'}</TableCell>
-                              <TableCell className="text-xs tabular-nums">{r.saidaInt ?? '—'}</TableCell>
-                              <TableCell className="text-xs tabular-nums">{r.retornoInt ?? '—'}</TableCell>
-                              <TableCell className="text-xs tabular-nums">{r.saida ?? '—'}</TableCell>
+                              <TableCell className="text-xs tabular-nums p-1">
+                                <InlineTimeCell value={r.entrada} canEdit={canEdit} onSave={v => handleInlineSave(r, 'entrada', v)} />
+                              </TableCell>
+                              <TableCell className="text-xs tabular-nums p-1">
+                                <InlineTimeCell value={r.saidaInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida_intervalo', v)} />
+                              </TableCell>
+                              <TableCell className="text-xs tabular-nums p-1">
+                                <InlineTimeCell value={r.retornoInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'retorno_intervalo', v)} />
+                              </TableCell>
+                              <TableCell className="text-xs tabular-nums p-1">
+                                <InlineTimeCell value={r.saida} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida', v)} />
+                              </TableCell>
                               <TableCell className="text-xs tabular-nums font-medium">{r.hoursMin != null ? formatMinutes(r.hoursMin) : '—'}</TableCell>
                               <TableCell>
                                 <span className="text-xs whitespace-nowrap flex items-center gap-1">
@@ -444,17 +539,10 @@ export default function EspelhoPonto() {
                               <TableCell className={`text-xs tabular-nums text-center font-medium ${saldo.className}`}>{saldo.text}</TableCell>
                               {canEdit && (
                                 <TableCell className="print:hidden">
-                                  {isFalta ? (
-                                    <button onClick={() => { setAdjustmentRow({ date: r.date, dateObj: r.dateObj, entrada: null, saidaInt: null, retornoInt: null, saida: null }); setAdjustmentOpen(true); }}
-                                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Adicionar batida">
-                                      <Plus className="w-3.5 h-3.5" />
-                                    </button>
-                                  ) : (
-                                    <button onClick={() => { setAdjustmentRow({ date: r.date, dateObj: r.dateObj, entrada: r.entrada, saidaInt: r.saidaInt, retornoInt: r.retornoInt, saida: r.saida }); setAdjustmentOpen(true); }}
-                                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Editar batida">
-                                      <Pencil className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
+                                  <button onClick={() => { setAdjustmentRow({ date: r.date, dateObj: r.dateObj, entrada: r.entrada, saidaInt: r.saidaInt, retornoInt: r.retornoInt, saida: r.saida }); setAdjustmentOpen(true); }}
+                                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Editar batida (modal)">
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
                                 </TableCell>
                               )}
                             </TableRow>
