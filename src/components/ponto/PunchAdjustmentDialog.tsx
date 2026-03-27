@@ -97,7 +97,7 @@ export function PunchAdjustmentDialog({
     try {
       await deleteRecord();
       toast.success('Batidas do dia removidas.');
-      qc.invalidateQueries({ queryKey: ['punch_records'] });
+      await qc.invalidateQueries({ queryKey: ['punch_records'] });
       onOpenChange(false);
     } catch (err: any) {
       toast.error('Erro ao limpar: ' + (err.message ?? 'desconhecido'));
