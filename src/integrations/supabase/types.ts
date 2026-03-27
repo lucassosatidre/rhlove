@@ -129,6 +129,44 @@ export type Database = {
           },
         ]
       }
+      bank_hours_balance: {
+        Row: {
+          accumulated_balance: number
+          collaborator_id: string
+          created_at: string
+          id: string
+          month: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          accumulated_balance?: number
+          collaborator_id: string
+          created_at?: string
+          id?: string
+          month: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          accumulated_balance?: number
+          collaborator_id?: string
+          created_at?: string
+          id?: string
+          month?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_hours_balance_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checkouts: {
         Row: {
           audio_path: string | null
@@ -181,6 +219,7 @@ export type Database = {
           data_retorno: string | null
           fim_periodo: string | null
           folgas_semanais: string[]
+          genero: string
           id: string
           inicio_na_empresa: string | null
           inicio_periodo: string | null
@@ -201,6 +240,7 @@ export type Database = {
           data_retorno?: string | null
           fim_periodo?: string | null
           folgas_semanais?: string[]
+          genero?: string
           id?: string
           inicio_na_empresa?: string | null
           inicio_periodo?: string | null
@@ -221,6 +261,7 @@ export type Database = {
           data_retorno?: string | null
           fim_periodo?: string | null
           folgas_semanais?: string[]
+          genero?: string
           id?: string
           inicio_na_empresa?: string | null
           inicio_periodo?: string | null
