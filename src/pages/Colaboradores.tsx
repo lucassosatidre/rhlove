@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Upload, Download, Eye, CreditCard } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { DropZone } from '@/components/ui/drop-zone';
 import * as XLSX from 'xlsx';
 import CollaboratorProfileDialog from '@/components/collaborator/CollaboratorProfileDialog';
