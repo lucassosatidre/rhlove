@@ -114,8 +114,7 @@ export default function RegistroPonto() {
   const [filterPis, setFilterPis] = useState('all');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
-  const [excelDialogOpen, setExcelDialogOpen] = useState(false);
-  const [afdDialogOpen, setAfdDialogOpen] = useState(false);
+  const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const { data: collaborators = [] } = useCollaborators();
 
   // Build PIS -> Name map from collaborators (normalize to 12 digits with leading zeros)
