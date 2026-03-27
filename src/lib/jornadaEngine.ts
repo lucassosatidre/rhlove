@@ -180,7 +180,7 @@ export function calculateJornada(
     }
 
     // Normal working day
-    row.chPrevista = chPrevistaMin;
+    row.chPrevista = day.chOverride ?? chPrevistaMin;
 
     if (day.hoursWorkedMin === null || day.hoursWorkedMin === 0) {
       if (!day.punch.entrada) {
