@@ -52,6 +52,7 @@ const emptyForm: FormData = {
   intervalo_automatico: false,
   intervalo_inicio: '',
   intervalo_duracao: null,
+  carga_horaria_diaria: '',
 };
 
 export default function Colaboradores() {
