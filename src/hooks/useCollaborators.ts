@@ -16,6 +16,7 @@ export interface CollaboratorInput {
   pis_matricula?: string | null;
   intervalo_automatico?: boolean;
   intervalo_inicio?: string | null;
+  carga_horaria_diaria?: string | null;
   intervalo_duracao?: number | null;
   // legacy
   data_retorno?: string | null;
