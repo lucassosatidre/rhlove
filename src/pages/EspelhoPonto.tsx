@@ -225,7 +225,8 @@ export default function EspelhoPonto() {
       else if (entrada && saida) { status = '✅ Normal'; statusEmoji = '✅'; }
       else if (entrada && !saida) { status = '⚠️ Saída pendente'; statusEmoji = '⚠️'; }
 
-      result.push({ date: iso, dateObj, weekday, entrada, saidaInt, retornoInt, saida, hoursMin, status, statusEmoji });
+      const isAdjusted = punch ? !!(punch as any).adjusted_at : false;
+      result.push({ date: iso, dateObj, weekday, entrada, saidaInt, retornoInt, saida, hoursMin, status, statusEmoji, isAdjusted });
     }
     return result;
   }, [selected, selectedMonth, selectedYear, daysInMonth, punchRecords, scheduleEvents, vacations, afastamentos, holidaySet]);
