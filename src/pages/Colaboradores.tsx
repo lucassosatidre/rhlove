@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useCollaborators, useCreateCollaborator, useUpdateCollaborator, useDeleteCollaborator, useBulkInsertCollaborators } from '@/hooks/useCollaborators';
 import type { CollaboratorInput } from '@/hooks/useCollaborators';
-import { DAYS_OF_WEEK, DAY_LABELS, SECTORS, STATUS_OPTIONS, STATUS_LABELS, TIPO_ESCALA, type Collaborator, type DayOfWeek, type TipoEscala, type CollaboratorStatus } from '@/types/collaborator';
+import { DAYS_OF_WEEK, DAY_LABELS, SECTORS, STATUS_OPTIONS, STATUS_LABELS, TIPO_ESCALA, type Collaborator, type DayOfWeek, type TipoEscala, type CollaboratorStatus, type JornadaEspecial } from '@/types/collaborator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
