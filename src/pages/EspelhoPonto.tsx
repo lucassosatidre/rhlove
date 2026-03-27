@@ -457,6 +457,19 @@ export default function EspelhoPonto() {
                 <p className="text-xs text-muted-foreground">{MONTHS[selectedMonth].label} / {selectedYear} · Dias trabalhados: {totalWorked} · Faltas: {totalFaltas} · Horas: {formatMinutes(totalHoursMin)}</p>
               </div>
 
+              {/* Inconsistency filter */}
+              <div className="flex items-center gap-3 print:hidden">
+                <div className="flex items-center gap-2">
+                  <Switch checked={showOnlyInconsistencies} onCheckedChange={setShowOnlyInconsistencies} id="inconsistency-filter" />
+                  <label htmlFor="inconsistency-filter" className="text-sm cursor-pointer">Apenas inconsistências</label>
+                </div>
+                {inconsistencyCount > 0 && (
+                  <Badge variant="destructive" className="text-xs">
+                    <AlertTriangle className="w-3 h-3 mr-1" /> {inconsistencyCount}
+                  </Badge>
+                )}
+              </div>
+
               {/* Main table */}
               <Card>
                 <CardContent className="p-0">
@@ -485,20 +498,28 @@ export default function EspelhoPonto() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {rows.map((r, i) => {
-                          const j = jornadaRows[i];
+                        {displayRows.map((r) => {
+                          const origIdx = rows.indexOf(r);
+                          const j = jornadaRows[origIdx];
                           const isWeekend = [0, 6].includes(getDay(r.dateObj));
-                          const isFalta = r.status === '❌ Falta';
                           const saldo = j ? fmtSaldo(j.saldoBH) : { text: '', className: '' };
                           return (
                             <TableRow key={r.date} className={isWeekend ? 'bg-muted/30' : ''}>
                               <TableCell className="text-xs font-medium whitespace-nowrap tabular-nums sticky left-0 bg-background z-10">
                                 {format(r.dateObj, 'dd/MM')} <span className="text-muted-foreground">{r.weekday}</span>
                               </TableCell>
-                              <TableCell className="text-xs tabular-nums">{r.entrada ?? '—'}</TableCell>
-                              <TableCell className="text-xs tabular-nums">{r.saidaInt ?? '—'}</TableCell>
-                              <TableCell className="text-xs tabular-nums">{r.retornoInt ?? '—'}</TableCell>
-                              <TableCell className="text-xs tabular-nums">{r.saida ?? '—'}</TableCell>
+                              <TableCell className="text-xs tabular-nums p-1">
+                                <InlineTimeCell value={r.entrada} canEdit={canEdit} onSave={v => handleInlineSave(r, 'entrada', v)} />
+                              </TableCell>
+                              <TableCell className="text-xs tabular-nums p-1">
+                                <InlineTimeCell value={r.saidaInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida_intervalo', v)} />
+                              </TableCell>
+                              <TableCell className="text-xs tabular-nums p-1">
+                                <InlineTimeCell value={r.retornoInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'retorno_intervalo', v)} />
+                              </TableCell>
+                              <TableCell className="text-xs tabular-nums p-1">
+                                <InlineTimeCell value={r.saida} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida', v)} />
+                              </TableCell>
                               <TableCell className="text-xs tabular-nums font-medium">{r.hoursMin != null ? formatMinutes(r.hoursMin) : '—'}</TableCell>
                               <TableCell>
                                 <span className="text-xs whitespace-nowrap flex items-center gap-1">
@@ -518,17 +539,10 @@ export default function EspelhoPonto() {
                               <TableCell className={`text-xs tabular-nums text-center font-medium ${saldo.className}`}>{saldo.text}</TableCell>
                               {canEdit && (
                                 <TableCell className="print:hidden">
-                                  {isFalta ? (
-                                    <button onClick={() => { setAdjustmentRow({ date: r.date, dateObj: r.dateObj, entrada: null, saidaInt: null, retornoInt: null, saida: null }); setAdjustmentOpen(true); }}
-                                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Adicionar batida">
-                                      <Plus className="w-3.5 h-3.5" />
-                                    </button>
-                                  ) : (
-                                    <button onClick={() => { setAdjustmentRow({ date: r.date, dateObj: r.dateObj, entrada: r.entrada, saidaInt: r.saidaInt, retornoInt: r.retornoInt, saida: r.saida }); setAdjustmentOpen(true); }}
-                                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Editar batida">
-                                      <Pencil className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
+                                  <button onClick={() => { setAdjustmentRow({ date: r.date, dateObj: r.dateObj, entrada: r.entrada, saidaInt: r.saidaInt, retornoInt: r.retornoInt, saida: r.saida }); setAdjustmentOpen(true); }}
+                                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Editar batida (modal)">
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
                                 </TableCell>
                               )}
                             </TableRow>
