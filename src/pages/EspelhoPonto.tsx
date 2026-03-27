@@ -1,12 +1,14 @@
-import { useState, useMemo, useEffect, lazy, Suspense } from 'react';
+import { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Download, FileText, Calendar, Clock, AlertCircle, CheckCircle2, ChevronDown, Fingerprint, Pencil, Plus, Wrench, Banknote } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Search, Download, FileText, Calendar, Clock, AlertCircle, CheckCircle2, ChevronDown, Fingerprint, Pencil, Plus, Wrench, Banknote, AlertTriangle } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { InlineTimeCell } from '@/components/ponto/InlineTimeCell';
 const RegistroPonto = lazy(() => import('@/pages/RegistroPonto'));
 import { format, getDaysInMonth, getDay } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
