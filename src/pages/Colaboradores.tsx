@@ -119,6 +119,7 @@ export default function Colaboradores() {
     folgas_semanais: f.folgas_semanais,
     sunday_n: f.sunday_n,
     status: f.status,
+    genero: f.genero,
     inicio_na_empresa: f.inicio_na_empresa || null,
     data_desligamento: f.data_desligamento || null,
     inicio_periodo: f.inicio_periodo || null,
