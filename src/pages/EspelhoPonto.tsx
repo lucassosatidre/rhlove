@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Download, FileText, Calendar, Clock, AlertCircle, CheckCircle2, ChevronDown, Fingerprint, Pencil, Plus, Wrench, Banknote } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 const RegistroPonto = lazy(() => import('@/pages/RegistroPonto'));
-import { format, getDaysInMonth, addDays, getDay } from 'date-fns';
+import { format, getDaysInMonth, getDay } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { PunchAdjustmentDialog } from '@/components/ponto/PunchAdjustmentDialog';
 import { ptBR } from 'date-fns/locale';
@@ -136,36 +136,13 @@ export default function EspelhoPonto() {
       const wd = WEEKDAY_MAP[getDay(dateObj)];
       const weekday = format(dateObj, 'EEE', { locale: ptBR });
 
+      // punch_records already stores dates with the 03:00 rule applied
+      // (00:00-02:59 punches belong to previous day), so just look up directly
       const punch = punchMap.get(iso);
-      let entrada = punch?.entrada ?? null;
-      let saida = punch?.saida ?? null;
-      let saidaInt = punch?.saida_intervalo ?? null;
-      let retornoInt = punch?.retorno_intervalo ?? null;
-
-      const entradaHour = entrada ? parseInt(entrada.split(':')[0]) : -1;
-      const saidaIntHour = saidaInt ? parseInt(saidaInt.split(':')[0]) : -1;
-      const isShifted = entradaHour >= 0 && entradaHour < 3 && saidaIntHour >= 12;
-
-      if (isShifted) {
-        const prevRow = result.find(r => r.date === format(addDays(dateObj, -1), 'yyyy-MM-dd'));
-        if (prevRow && prevRow.saida !== null) {
-          const prevSaidaHour = parseInt(prevRow.saida.split(':')[0]);
-          if (prevSaidaHour >= 20 && entradaHour < 3) {
-            prevRow.saida = entrada;
-            prevRow.hoursMin = calcHours(prevRow.entrada, prevRow.saida, prevRow.saidaInt, prevRow.retornoInt);
-          }
-        }
-        entrada = saidaInt; saidaInt = retornoInt; retornoInt = saida; saida = null;
-        const nextDayIso = format(addDays(dateObj, 1), 'yyyy-MM-dd');
-        const nextPunch = punchMap.get(nextDayIso);
-        if (nextPunch?.entrada) {
-          const nextEntradaHour = parseInt(nextPunch.entrada.split(':')[0]);
-          const nextSaidaIntHour = nextPunch.saida_intervalo ? parseInt(nextPunch.saida_intervalo.split(':')[0]) : -1;
-          if (nextEntradaHour >= 0 && nextEntradaHour < 3 && nextSaidaIntHour >= 12) {
-            saida = nextPunch.entrada;
-          }
-        }
-      }
+      const entrada = punch?.entrada ?? null;
+      const saida = punch?.saida ?? null;
+      const saidaInt = punch?.saida_intervalo ?? null;
+      const retornoInt = punch?.retorno_intervalo ?? null;
 
       const hoursMin = calcHours(entrada, saida, saidaInt, retornoInt);
       const today = new Date(); today.setHours(0, 0, 0, 0);

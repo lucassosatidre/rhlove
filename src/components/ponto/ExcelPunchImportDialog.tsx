@@ -161,15 +161,27 @@ export function ExcelPunchImportDialog({ open, onOpenChange, collaborators }: Pr
   const handleImport = useCallback(async () => {
     if (!validRows.length) return;
 
-    const records: PunchRecordUpsert[] = validRows.map(r => ({
-      collaborator_id: r.collaborator!.id,
-      collaborator_name: r.collaborator!.collaborator_name,
-      date: r.date,
-      entrada: r.entrada || null,
-      saida: r.saida || null,
-      saida_intervalo: r.saidaIntervalo || null,
-      retorno_intervalo: r.retornoIntervalo || null,
-    }));
+    const records: PunchRecordUpsert[] = validRows.map(r => {
+      // Apply 03:00 rule: if entrada is between 00:00-02:59, assign to previous day
+      let assignedDate = r.date;
+      if (r.entrada) {
+        const entradaHour = parseInt(r.entrada.split(':')[0]);
+        if (entradaHour >= 0 && entradaHour < 3) {
+          const d = new Date(r.date + 'T12:00:00');
+          d.setDate(d.getDate() - 1);
+          assignedDate = d.toISOString().slice(0, 10);
+        }
+      }
+      return {
+        collaborator_id: r.collaborator!.id,
+        collaborator_name: r.collaborator!.collaborator_name,
+        date: assignedDate,
+        entrada: r.entrada || null,
+        saida: r.saida || null,
+        saida_intervalo: r.saidaIntervalo || null,
+        retorno_intervalo: r.retornoIntervalo || null,
+      };
+    });
 
     try {
       await upsert.mutateAsync(records);
