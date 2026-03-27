@@ -14,8 +14,7 @@ import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import { useCollaborators } from '@/hooks/useCollaborators';
-import { ExcelPunchImportDialog } from '@/components/ponto/ExcelPunchImportDialog';
-import { AFDPunchImportDialog } from '@/components/ponto/AFDPunchImportDialog';
+import { UpdatePunchesDialog } from '@/components/ponto/UpdatePunchesDialog';
 
 interface PunchRecord {
   pis: string;
