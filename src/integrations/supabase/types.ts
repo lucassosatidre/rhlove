@@ -618,6 +618,9 @@ export type Database = {
       }
       punch_records: {
         Row: {
+          adjusted_at: string | null
+          adjusted_by: string | null
+          adjustment_reason: string | null
           collaborator_id: string
           collaborator_name: string
           created_at: string
@@ -630,6 +633,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          adjusted_at?: string | null
+          adjusted_by?: string | null
+          adjustment_reason?: string | null
           collaborator_id: string
           collaborator_name: string
           created_at?: string
@@ -642,6 +648,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          adjusted_at?: string | null
+          adjusted_by?: string | null
+          adjustment_reason?: string | null
           collaborator_id?: string
           collaborator_name?: string
           created_at?: string
