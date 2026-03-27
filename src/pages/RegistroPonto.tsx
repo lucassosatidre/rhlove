@@ -235,11 +235,8 @@ export default function RegistroPonto() {
           <p className="text-sm text-muted-foreground">Análise de inconsistências em batidas de ponto</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="default" onClick={() => setAfdDialogOpen(true)}>
-            <Upload className="w-4 h-4 mr-2" /> Importar AFD
-          </Button>
-          <Button variant="secondary" onClick={() => setExcelDialogOpen(true)}>
-            <FileSpreadsheet className="w-4 h-4 mr-2" /> Importar Ponto
+          <Button variant="default" onClick={() => setUpdateDialogOpen(true)}>
+            <RefreshCw className="w-4 h-4 mr-2" /> Atualizar Batidas
           </Button>
           <Button variant="outline" onClick={exportToExcel} disabled={filtered.length === 0}>
             <Download className="w-4 h-4 mr-2" /> Excel
