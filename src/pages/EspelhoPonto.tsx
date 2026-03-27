@@ -485,6 +485,21 @@ export default function EspelhoPonto() {
       </Collapsible>
 
       <PrintFooter />
+
+      {selected && adjustmentRow && (
+        <PunchAdjustmentDialog
+          open={adjustmentOpen}
+          onOpenChange={setAdjustmentOpen}
+          collaboratorId={selected.id}
+          collaboratorName={selected.collaborator_name}
+          date={adjustmentRow.date}
+          dateObj={adjustmentRow.dateObj}
+          entrada={adjustmentRow.entrada}
+          saidaInt={adjustmentRow.saidaInt}
+          retornoInt={adjustmentRow.retornoInt}
+          saida={adjustmentRow.saida}
+        />
+      )}
     </div>
   );
 }
