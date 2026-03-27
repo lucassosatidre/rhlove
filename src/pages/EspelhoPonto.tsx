@@ -104,6 +104,24 @@ export default function EspelhoPonto() {
     [collaborators, selectedCollaboratorId]
   );
 
+  // Fetch sunday_tracking for current month
+  const { data: sundayTracking } = useQuery({
+    queryKey: ['sunday_tracking', selectedCollaboratorId, selectedMonth, selectedYear],
+    queryFn: async () => {
+      if (!selectedCollaboratorId) return null;
+      const { data, error } = await supabase
+        .from('sunday_tracking')
+        .select('*')
+        .eq('collaborator_id', selectedCollaboratorId)
+        .eq('month', selectedMonth + 1)
+        .eq('year', selectedYear)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: string; consecutive_sundays_from_previous: number } | null;
+    },
+    enabled: !!selectedCollaboratorId,
+  });
+
   const { data: bankBalances = [] } = useBankHoursBalance(selectedCollaboratorId);
   const upsertBalance = useUpsertBankHoursBalance();
 
