@@ -211,6 +211,7 @@ export type Database = {
       }
       collaborators: {
         Row: {
+          aviso_previo_reducao: number | null
           carga_horaria_diaria: string | null
           collaborator_name: string
           created_at: string
@@ -221,12 +222,15 @@ export type Database = {
           fim_periodo: string | null
           folgas_semanais: string[]
           genero: string
+          horario_entrada: string | null
+          horario_saida: string | null
           id: string
           inicio_na_empresa: string | null
           inicio_periodo: string | null
           intervalo_automatico: boolean
           intervalo_duracao: number | null
           intervalo_inicio: string | null
+          jornadas_especiais: Json | null
           pis_matricula: string | null
           sector: string
           status: string
@@ -236,6 +240,7 @@ export type Database = {
           weekly_day_off: string
         }
         Insert: {
+          aviso_previo_reducao?: number | null
           carga_horaria_diaria?: string | null
           collaborator_name: string
           created_at?: string
@@ -246,12 +251,15 @@ export type Database = {
           fim_periodo?: string | null
           folgas_semanais?: string[]
           genero?: string
+          horario_entrada?: string | null
+          horario_saida?: string | null
           id?: string
           inicio_na_empresa?: string | null
           inicio_periodo?: string | null
           intervalo_automatico?: boolean
           intervalo_duracao?: number | null
           intervalo_inicio?: string | null
+          jornadas_especiais?: Json | null
           pis_matricula?: string | null
           sector: string
           status?: string
@@ -261,6 +269,7 @@ export type Database = {
           weekly_day_off?: string
         }
         Update: {
+          aviso_previo_reducao?: number | null
           carga_horaria_diaria?: string | null
           collaborator_name?: string
           created_at?: string
@@ -271,12 +280,15 @@ export type Database = {
           fim_periodo?: string | null
           folgas_semanais?: string[]
           genero?: string
+          horario_entrada?: string | null
+          horario_saida?: string | null
           id?: string
           inicio_na_empresa?: string | null
           inicio_periodo?: string | null
           intervalo_automatico?: boolean
           intervalo_duracao?: number | null
           intervalo_inicio?: string | null
+          jornadas_especiais?: Json | null
           pis_matricula?: string | null
           sector?: string
           status?: string
