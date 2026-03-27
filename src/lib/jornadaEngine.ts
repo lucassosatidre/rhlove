@@ -127,21 +127,30 @@ export function calculateJornada(
       continue;
     }
 
-    // Check Art. 386 (consecutive Sundays for women) BEFORE folga check
+    // Check Art. 386 (consecutive Sundays for women)
     const dateObj = new Date(day.date + 'T12:00:00');
     const isSunday = dateObj.getDay() === 0;
-    const isExtra100Day = genero === 'F' && isSunday && isConsecutiveSunday(day.date, days);
 
-    if (isExtra100Day && day.hoursWorkedMin && day.hoursWorkedMin > 0) {
-      // All hours count as Extra 100%, no CH prevista
-      row.extra100 = day.hoursWorkedMin;
-      row.adNoturno = calcNightMinutes(day.punch);
-      if (row.adNoturno > 0) {
-        row.not100 = row.adNoturno;
+    if (genero === 'F' && isSunday) {
+      // Folga Sunday (scheduled off and didn't work) → reset counter
+      if (day.isFolga && (!day.hoursWorkedMin || day.hoursWorkedMin === 0)) {
+        sundayCounter = 0;
+      } else {
+        // Worked or was supposed to work (falta counts as scheduled work for counter)
+        sundayCounter++;
+        if (sundayCounter >= 2 && day.hoursWorkedMin && day.hoursWorkedMin > 0) {
+          // Extra 100% day
+          row.extra100 = day.hoursWorkedMin;
+          row.adNoturno = calcNightMinutes(day.punch);
+          if (row.adNoturno > 0) {
+            row.not100 = row.adNoturno;
+          }
+          row.saldoBH = 0;
+          sundayCounter = 0; // reset after paying 100%
+          jornadaRows.push(row);
+          continue;
+        }
       }
-      row.saldoBH = 0; // doesn't affect bank
-      jornadaRows.push(row);
-      continue;
     }
 
     // Days off, vacation, leave, holiday → no CH prevista
