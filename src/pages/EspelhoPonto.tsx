@@ -403,11 +403,13 @@ export default function EspelhoPonto() {
                           <TableHead>Saída</TableHead>
                           <TableHead>Horas Trab.</TableHead>
                           <TableHead>Status</TableHead>
+                          {canEdit && <TableHead className="w-10 print:hidden"></TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {rows.map(r => {
                           const isWeekend = [0, 6].includes(getDay(r.dateObj));
+                          const isFalta = r.status === '❌ Falta';
                           return (
                             <TableRow key={r.date} className={isWeekend ? 'bg-muted/30' : ''}>
                               <TableCell className="text-xs font-medium whitespace-nowrap tabular-nums">
@@ -421,8 +423,36 @@ export default function EspelhoPonto() {
                                 {r.hoursMin != null ? formatMinutes(r.hoursMin) : '—'}
                               </TableCell>
                               <TableCell>
-                                <span className="text-xs whitespace-nowrap">{r.status}</span>
+                                <span className="text-xs whitespace-nowrap flex items-center gap-1">
+                                  {r.status}
+                                  {r.isAdjusted && (
+                                    <span title="Ajuste manual" className="text-muted-foreground">
+                                      <Wrench className="w-3 h-3 inline" />
+                                    </span>
+                                  )}
+                                </span>
                               </TableCell>
+                              {canEdit && (
+                                <TableCell className="print:hidden">
+                                  {isFalta ? (
+                                    <button
+                                      onClick={() => { setAdjustmentRow({ date: r.date, dateObj: r.dateObj, entrada: null, saidaInt: null, retornoInt: null, saida: null }); setAdjustmentOpen(true); }}
+                                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                                      title="Adicionar batida"
+                                    >
+                                      <Plus className="w-3.5 h-3.5" />
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => { setAdjustmentRow({ date: r.date, dateObj: r.dateObj, entrada: r.entrada, saidaInt: r.saidaInt, retornoInt: r.retornoInt, saida: r.saida }); setAdjustmentOpen(true); }}
+                                      className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground"
+                                      title="Editar batida"
+                                    >
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                </TableCell>
+                              )}
                             </TableRow>
                           );
                         })}
