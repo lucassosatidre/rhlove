@@ -224,7 +224,7 @@ export function calculateJornada(
     totals.saldoBH += r.saldoBH ?? 0;
   }
 
-  return { rows: jornadaRows, totals };
+  return { rows: jornadaRows, totals, consecutiveSundaysEnd: sundayCounter };
 }
 
 /** Format minutes as HH:MM */
