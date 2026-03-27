@@ -50,6 +50,7 @@ interface DayInfo {
   isFuture: boolean;
   punch: PunchDay;
   hoursWorkedMin: number | null;
+  chOverride?: number;
 }
 
 function toMin(t: string): number {
