@@ -97,38 +97,14 @@ function calcNightMinutes(punch: PunchDay): number {
   return nightReal;
 }
 
-/**
- * Check if a collaborator (female) worked on 2+ consecutive Sundays.
- * Returns true if the given Sunday date is the 2nd+ consecutive worked Sunday.
- * Only checks if there is a punch (actual work), regardless of scheduled folga.
- */
-function isConsecutiveSunday(
-  dateStr: string,
-  allDays: DayInfo[],
-): boolean {
-  const idx = allDays.findIndex(d => d.date === dateStr);
-  if (idx < 0) return false;
-
-  const current = allDays[idx];
-  if (!current.punch.entrada) return false; // didn't work
-
-  // Look backwards for the previous Sunday (7 days ago)
-  const prevIdx = idx - 7;
-  if (prevIdx < 0) return false;
-
-  const prevSunday = allDays[prevIdx];
-  if (!prevSunday) return false;
-
-  // Only check if previous Sunday was actually worked (has punch)
-  return !!prevSunday.punch.entrada;
-}
-
 export function calculateJornada(
   days: DayInfo[],
   chPrevistaMin: number = DEFAULT_CH_PREVISTA,
   genero: string = 'M',
-): { rows: JornadaRow[]; totals: JornadaTotals } {
+  consecutiveSundaysFromPrevious: number = 0,
+): { rows: JornadaRow[]; totals: JornadaTotals; consecutiveSundaysEnd: number } {
   const jornadaRows: JornadaRow[] = [];
+  let sundayCounter = genero === 'F' ? consecutiveSundaysFromPrevious : 0;
 
   for (const day of days) {
     const row: JornadaRow = {
