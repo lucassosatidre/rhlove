@@ -9,16 +9,16 @@ const TOLERANCE_MIN = 10;
 
 export interface JornadaRow {
   date: string;
-  chPrevista: number | null;     // planned workload (min)
-  normais: number | null;        // normal hours worked (min)
-  faltas: number | null;         // absence deficit (min)
-  atraso: number | null;         // tolerated lateness (min)
-  adiantamento: number | null;   // tolerated early extra (min)
-  extraBH: number | null;        // overtime for hour bank (min)
-  extra100: number | null;       // 100% overtime Art.386 (min)
-  adNoturno: number | null;      // night premium (min, reduced)
-  not100: number | null;         // night portion of extra100 (min)
-  saldoBH: number | null;        // daily balance (min)
+  chPrevista: number | null;
+  normais: number | null;
+  faltas: number | null;
+  atraso: number | null;
+  adiantamento: number | null;
+  extraBH: number | null;
+  extra100: number | null;
+  adNoturno: number | null;
+  not100: number | null;
+  saldoBH: number | null;
 }
 
 export interface JornadaTotals {
@@ -58,21 +58,22 @@ function toMin(t: string): number {
 }
 
 /**
- * Calculate night work minutes (after 22:00) with reduced hour factor.
- * Night hour = 52min30s real = 1h counted → factor 60/52.5 ≈ 1.1428
+ * Calculate night work minutes (after 22:00).
+ * Returns REAL minutes worked after 22:00, excluding break time.
+ * Does NOT apply the reduced hour factor (60/52.5) — that's for payroll only.
  */
 function calcNightMinutes(punch: PunchDay): number {
   if (!punch.entrada || !punch.saida) return 0;
 
   const NIGHT_START = 22 * 60; // 22:00 in minutes
-  
+
   const adjustOvernight = (min: number, ref: number) =>
     min < 180 && ref > min ? min + 1440 : min;
 
   const entradaMin = toMin(punch.entrada);
   const saidaMin = adjustOvernight(toMin(punch.saida), entradaMin);
 
-  // Build work segments: [entrada, saidaInt] and [retornoInt, saida]
+  // Build work segments excluding break
   type Seg = [number, number];
   const segments: Seg[] = [];
 
@@ -92,19 +93,18 @@ function calcNightMinutes(punch: PunchDay): number {
     nightReal += end - nightStart;
   }
 
-  // Apply reduced hour: real minutes × (60/52.5)
-  return nightReal > 0 ? Math.round(nightReal * (60 / 52.5)) : 0;
+  return nightReal;
 }
 
 /**
  * Check if a collaborator (female) worked on 2+ consecutive Sundays.
  * Returns true if the given Sunday date is the 2nd+ consecutive worked Sunday.
+ * Only checks if there is a punch (actual work), regardless of scheduled folga.
  */
 function isConsecutiveSunday(
   dateStr: string,
   allDays: DayInfo[],
 ): boolean {
-  // Find index of this day
   const idx = allDays.findIndex(d => d.date === dateStr);
   if (idx < 0) return false;
 
@@ -113,13 +113,13 @@ function isConsecutiveSunday(
 
   // Look backwards for the previous Sunday (7 days ago)
   const prevIdx = idx - 7;
-  if (prevIdx < 0) return false; // can't check previous month yet
+  if (prevIdx < 0) return false;
 
   const prevSunday = allDays[prevIdx];
   if (!prevSunday) return false;
 
-  // Check if previous Sunday was also a worked day (has punch)
-  return !!prevSunday.punch.entrada && !prevSunday.isFolga && !prevSunday.isVacation && !prevSunday.isAfastamento;
+  // Only check if previous Sunday was actually worked (has punch)
+  return !!prevSunday.punch.entrada;
 }
 
 export function calculateJornada(
@@ -150,19 +150,7 @@ export function calculateJornada(
       continue;
     }
 
-    // Days off, vacation, leave, holiday → no CH prevista
-    if (day.isFolga || day.isVacation || day.isAfastamento || day.isHoliday) {
-      // If worked on a holiday/folga, count as extra
-      if (day.hoursWorkedMin && day.hoursWorkedMin > 0) {
-        row.extraBH = day.hoursWorkedMin;
-        row.saldoBH = day.hoursWorkedMin;
-        row.adNoturno = calcNightMinutes(day.punch);
-      }
-      jornadaRows.push(row);
-      continue;
-    }
-
-    // Check Art. 386 (consecutive Sundays for women)
+    // Check Art. 386 (consecutive Sundays for women) BEFORE folga check
     const dateObj = new Date(day.date + 'T12:00:00');
     const isSunday = dateObj.getDay() === 0;
     const isExtra100Day = genero === 'F' && isSunday && isConsecutiveSunday(day.date, days);
@@ -172,9 +160,20 @@ export function calculateJornada(
       row.extra100 = day.hoursWorkedMin;
       row.adNoturno = calcNightMinutes(day.punch);
       if (row.adNoturno > 0) {
-        row.not100 = row.adNoturno; // night portion of extra 100%
+        row.not100 = row.adNoturno;
       }
       row.saldoBH = 0; // doesn't affect bank
+      jornadaRows.push(row);
+      continue;
+    }
+
+    // Days off, vacation, leave, holiday → no CH prevista
+    if (day.isFolga || day.isVacation || day.isAfastamento || day.isHoliday) {
+      if (day.hoursWorkedMin && day.hoursWorkedMin > 0) {
+        row.extraBH = day.hoursWorkedMin;
+        row.saldoBH = day.hoursWorkedMin;
+        row.adNoturno = calcNightMinutes(day.punch);
+      }
       jornadaRows.push(row);
       continue;
     }
@@ -183,7 +182,6 @@ export function calculateJornada(
     row.chPrevista = chPrevistaMin;
 
     if (day.hoursWorkedMin === null || day.hoursWorkedMin === 0) {
-      // Complete absence
       if (!day.punch.entrada) {
         row.faltas = chPrevistaMin;
         row.saldoBH = -chPrevistaMin;
@@ -193,13 +191,12 @@ export function calculateJornada(
     }
 
     const worked = day.hoursWorkedMin;
-    const diff = worked - chPrevistaMin; // positive = extra, negative = deficit
+    const diff = worked - chPrevistaMin;
 
     row.normais = Math.min(worked, chPrevistaMin);
     row.adNoturno = calcNightMinutes(day.punch);
 
     if (diff >= 0) {
-      // Worked >= CH
       if (diff <= TOLERANCE_MIN) {
         row.adiantamento = diff > 0 ? diff : null;
         row.saldoBH = 0;
@@ -208,7 +205,6 @@ export function calculateJornada(
         row.saldoBH = diff;
       }
     } else {
-      // Worked < CH
       const absDiff = Math.abs(diff);
       if (absDiff <= TOLERANCE_MIN) {
         row.atraso = absDiff > 0 ? absDiff : null;
