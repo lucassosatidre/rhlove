@@ -259,6 +259,7 @@ export function UpdatePunchesDialog({ open, onOpenChange, collaborators }: Props
       ];
       if (emptySheets.length > 0) parts.push(`⚠️ ${emptySheets.length} abas ignoradas`);
       if (preservedDays > 0) parts.push(`🔧 ${preservedDays} dias preservados (ajuste manual)`);
+      if (autoIntervalDays > 0) parts.push(`🤖 ${autoIntervalDays} dias com intervalo automático`);
 
       toast.success(parts.join(' · '));
       onOpenChange(false);
