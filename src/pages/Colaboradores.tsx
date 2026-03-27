@@ -34,6 +34,7 @@ interface FormData {
   intervalo_automatico: boolean;
   intervalo_inicio: string;
   intervalo_duracao: number | null;
+  carga_horaria_diaria: string;
 }
 
 const emptyForm: FormData = {
