@@ -9,6 +9,7 @@ export interface CollaboratorInput {
   folgas_semanais: DayOfWeek[];
   sunday_n: number;
   status: CollaboratorStatus;
+  genero?: string;
   inicio_na_empresa?: string | null;
   data_desligamento?: string | null;
   inicio_periodo?: string | null;
