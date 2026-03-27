@@ -181,20 +181,21 @@ export function calculateJornada(
 
     // Normal working day
     row.chPrevista = day.chOverride ?? chPrevistaMin;
+    const dayCH = row.chPrevista!;
 
     if (day.hoursWorkedMin === null || day.hoursWorkedMin === 0) {
       if (!day.punch.entrada) {
-        row.faltas = chPrevistaMin;
-        row.saldoBH = -chPrevistaMin;
+        row.faltas = dayCH;
+        row.saldoBH = -dayCH;
       }
       jornadaRows.push(row);
       continue;
     }
 
     const worked = day.hoursWorkedMin;
-    const diff = worked - chPrevistaMin;
+    const diff = worked - dayCH;
 
-    row.normais = Math.min(worked, chPrevistaMin);
+    row.normais = Math.min(worked, dayCH);
     row.adNoturno = calcNightMinutes(day.punch);
 
     if (diff >= 0) {
