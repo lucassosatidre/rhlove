@@ -26,6 +26,7 @@ interface FormData {
   folgas_semanais: DayOfWeek[];
   sunday_n: number;
   status: CollaboratorStatus;
+  genero: string;
   inicio_na_empresa: string;
   data_desligamento: string;
   inicio_periodo: string;
@@ -48,6 +49,7 @@ const emptyForm: FormData = {
   folgas_semanais: ['SEGUNDA'],
   sunday_n: 1,
   status: 'ATIVO',
+  genero: 'M',
   inicio_na_empresa: new Date().toISOString().slice(0, 10),
   data_desligamento: '',
   inicio_periodo: '',
@@ -92,6 +94,7 @@ export default function Colaboradores() {
       folgas_semanais: c.folgas_semanais,
       sunday_n: c.sunday_n,
       status: c.status,
+      genero: c.genero ?? 'M',
       inicio_na_empresa: c.inicio_na_empresa ?? '',
       data_desligamento: c.data_desligamento ?? '',
       inicio_periodo: c.inicio_periodo ?? '',
@@ -116,6 +119,7 @@ export default function Colaboradores() {
     folgas_semanais: f.folgas_semanais,
     sunday_n: f.sunday_n,
     status: f.status,
+    genero: f.genero,
     inicio_na_empresa: f.inicio_na_empresa || null,
     data_desligamento: f.data_desligamento || null,
     inicio_periodo: f.inicio_periodo || null,
@@ -403,7 +407,7 @@ export default function Colaboradores() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-2">
                 <Label>Setor</Label>
                 <Select value={form.sector} onValueChange={v => setForm(f => ({ ...f, sector: v }))}>
@@ -419,6 +423,16 @@ export default function Colaboradores() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {TIPO_ESCALA.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Gênero</Label>
+                <Select value={form.genero} onValueChange={v => setForm(f => ({ ...f, genero: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="M">Masculino</SelectItem>
+                    <SelectItem value="F">Feminino</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -97,38 +97,14 @@ function calcNightMinutes(punch: PunchDay): number {
   return nightReal;
 }
 
-/**
- * Check if a collaborator (female) worked on 2+ consecutive Sundays.
- * Returns true if the given Sunday date is the 2nd+ consecutive worked Sunday.
- * Only checks if there is a punch (actual work), regardless of scheduled folga.
- */
-function isConsecutiveSunday(
-  dateStr: string,
-  allDays: DayInfo[],
-): boolean {
-  const idx = allDays.findIndex(d => d.date === dateStr);
-  if (idx < 0) return false;
-
-  const current = allDays[idx];
-  if (!current.punch.entrada) return false; // didn't work
-
-  // Look backwards for the previous Sunday (7 days ago)
-  const prevIdx = idx - 7;
-  if (prevIdx < 0) return false;
-
-  const prevSunday = allDays[prevIdx];
-  if (!prevSunday) return false;
-
-  // Only check if previous Sunday was actually worked (has punch)
-  return !!prevSunday.punch.entrada;
-}
-
 export function calculateJornada(
   days: DayInfo[],
   chPrevistaMin: number = DEFAULT_CH_PREVISTA,
   genero: string = 'M',
-): { rows: JornadaRow[]; totals: JornadaTotals } {
+  consecutiveSundaysFromPrevious: number = 0,
+): { rows: JornadaRow[]; totals: JornadaTotals; consecutiveSundaysEnd: number } {
   const jornadaRows: JornadaRow[] = [];
+  let sundayCounter = genero === 'F' ? consecutiveSundaysFromPrevious : 0;
 
   for (const day of days) {
     const row: JornadaRow = {
@@ -151,21 +127,30 @@ export function calculateJornada(
       continue;
     }
 
-    // Check Art. 386 (consecutive Sundays for women) BEFORE folga check
+    // Check Art. 386 (consecutive Sundays for women)
     const dateObj = new Date(day.date + 'T12:00:00');
     const isSunday = dateObj.getDay() === 0;
-    const isExtra100Day = genero === 'F' && isSunday && isConsecutiveSunday(day.date, days);
 
-    if (isExtra100Day && day.hoursWorkedMin && day.hoursWorkedMin > 0) {
-      // All hours count as Extra 100%, no CH prevista
-      row.extra100 = day.hoursWorkedMin;
-      row.adNoturno = calcNightMinutes(day.punch);
-      if (row.adNoturno > 0) {
-        row.not100 = row.adNoturno;
+    if (genero === 'F' && isSunday) {
+      // Folga Sunday (scheduled off and didn't work) → reset counter
+      if (day.isFolga && (!day.hoursWorkedMin || day.hoursWorkedMin === 0)) {
+        sundayCounter = 0;
+      } else {
+        // Worked or was supposed to work (falta counts as scheduled work for counter)
+        sundayCounter++;
+        if (sundayCounter >= 2 && day.hoursWorkedMin && day.hoursWorkedMin > 0) {
+          // Extra 100% day
+          row.extra100 = day.hoursWorkedMin;
+          row.adNoturno = calcNightMinutes(day.punch);
+          if (row.adNoturno > 0) {
+            row.not100 = row.adNoturno;
+          }
+          row.saldoBH = 0;
+          sundayCounter = 0; // reset after paying 100%
+          jornadaRows.push(row);
+          continue;
+        }
       }
-      row.saldoBH = 0; // doesn't affect bank
-      jornadaRows.push(row);
-      continue;
     }
 
     // Days off, vacation, leave, holiday → no CH prevista
@@ -239,7 +224,7 @@ export function calculateJornada(
     totals.saldoBH += r.saldoBH ?? 0;
   }
 
-  return { rows: jornadaRows, totals };
+  return { rows: jornadaRows, totals, consecutiveSundaysEnd: sundayCounter };
 }
 
 /** Format minutes as HH:MM */

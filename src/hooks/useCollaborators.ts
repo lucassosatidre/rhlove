@@ -9,6 +9,7 @@ export interface CollaboratorInput {
   folgas_semanais: DayOfWeek[];
   sunday_n: number;
   status: CollaboratorStatus;
+  genero?: string;
   inicio_na_empresa?: string | null;
   data_desligamento?: string | null;
   inicio_periodo?: string | null;
@@ -36,6 +37,7 @@ function toDbRow(c: CollaboratorInput) {
     folgas_semanais: c.folgas_semanais,
     sunday_n: c.sunday_n,
     status: c.status,
+    genero: c.genero || 'M',
     weekly_day_off: c.folgas_semanais[0]?.toLowerCase() ?? 'segunda',
     inicio_na_empresa: c.inicio_na_empresa || null,
     data_desligamento: c.data_desligamento || null,

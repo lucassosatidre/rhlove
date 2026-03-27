@@ -104,6 +104,24 @@ export default function EspelhoPonto() {
     [collaborators, selectedCollaboratorId]
   );
 
+  // Fetch sunday_tracking for current month
+  const { data: sundayTracking } = useQuery({
+    queryKey: ['sunday_tracking', selectedCollaboratorId, selectedMonth, selectedYear],
+    queryFn: async () => {
+      if (!selectedCollaboratorId) return null;
+      const { data, error } = await supabase
+        .from('sunday_tracking')
+        .select('*')
+        .eq('collaborator_id', selectedCollaboratorId)
+        .eq('month', selectedMonth + 1)
+        .eq('year', selectedYear)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: string; consecutive_sundays_from_previous: number } | null;
+    },
+    enabled: !!selectedCollaboratorId,
+  });
+
   const { data: bankBalances = [] } = useBankHoursBalance(selectedCollaboratorId);
   const upsertBalance = useUpsertBankHoursBalance();
 
@@ -199,8 +217,8 @@ export default function EspelhoPonto() {
   }, [selected, selectedMonth, selectedYear, daysInMonth, punchRecords, scheduleEvents, vacations, afastamentos, holidaySet]);
 
   // Jornada calculations
-  const { jornadaRows, jornadaTotals } = useMemo(() => {
-    if (!selected || rows.length === 0) return { jornadaRows: [] as JornadaRow[], jornadaTotals: null };
+  const { jornadaRows, jornadaTotals, consecutiveSundaysEnd } = useMemo(() => {
+    if (!selected || rows.length === 0) return { jornadaRows: [] as JornadaRow[], jornadaTotals: null, consecutiveSundaysEnd: 0 };
 
     // Map weekday names for jornadas_especiais lookup
     const WEEKDAY_NAME_MAP: Record<number, string> = {
@@ -247,10 +265,12 @@ export default function EspelhoPonto() {
       };
     });
 
-    // Use per-day CH overrides in calculateJornada
-    const result = calculateJornada(dayInfos, defaultChMin, selected.genero ?? 'M');
-    return { jornadaRows: result.rows, jornadaTotals: result.totals };
-  }, [rows, selected]);
+    const consecutiveFromPrev = (selected.genero === 'F' && sundayTracking)
+      ? sundayTracking.consecutive_sundays_from_previous : 0;
+
+    const result = calculateJornada(dayInfos, defaultChMin, selected.genero ?? 'M', consecutiveFromPrev);
+    return { jornadaRows: result.rows, jornadaTotals: result.totals, consecutiveSundaysEnd: result.consecutiveSundaysEnd };
+  }, [rows, selected, sundayTracking]);
 
   // Previous month accumulated balance
   const prevMonthBalance = useMemo(() => {
@@ -277,6 +297,21 @@ export default function EspelhoPonto() {
     });
   }, [selected?.id, selectedMonth, selectedYear, accumulatedBalance]);
 
+  // Auto-save sunday tracking for next month (Art. 386)
+  useEffect(() => {
+    if (!selected || selected.genero !== 'F' || !jornadaTotals) return;
+    const nextMonth = selectedMonth + 1 > 11 ? 1 : selectedMonth + 2;
+    const nextYear = selectedMonth + 1 > 11 ? selectedYear + 1 : selectedYear;
+    supabase.from('sunday_tracking').upsert(
+      {
+        collaborator_id: selected.id,
+        month: nextMonth,
+        year: nextYear,
+        consecutive_sundays_from_previous: consecutiveSundaysEnd,
+      } as any,
+      { onConflict: 'collaborator_id,month,year' }
+    ).then();
+  }, [selected?.id, selectedMonth, selectedYear, consecutiveSundaysEnd, jornadaTotals]);
   // Inline save handler
   const handleInlineSave = useCallback(async (row: typeof rows[0], field: 'entrada' | 'saida_intervalo' | 'retorno_intervalo' | 'saida', newValue: string | null) => {
     if (!selected) return;
@@ -552,9 +587,10 @@ export default function EspelhoPonto() {
                           const origIdx = rows.indexOf(r);
                           const j = jornadaRows[origIdx];
                           const isWeekend = [0, 6].includes(getDay(r.dateObj));
+                          const isExtra100 = !!(j?.extra100 && j.extra100 > 0);
                           const saldo = j ? fmtSaldo(j.saldoBH) : { text: '', className: '' };
                           return (
-                            <TableRow key={r.date} className={isWeekend ? 'bg-muted/30' : ''}>
+                            <TableRow key={r.date} className={isExtra100 ? 'bg-pink-50 dark:bg-pink-950/20' : isWeekend ? 'bg-muted/30' : ''}>
                               <TableCell className="text-xs font-medium whitespace-nowrap tabular-nums sticky left-0 bg-background z-10">
                                 {format(r.dateObj, 'dd/MM')} <span className="text-muted-foreground">{r.weekday}</span>
                               </TableCell>
@@ -581,7 +617,7 @@ export default function EspelhoPonto() {
                               <TableCell className="text-xs tabular-nums font-medium">{r.hoursMin != null ? formatMinutes(r.hoursMin) : '—'}</TableCell>
                               <TableCell>
                                 <span className="text-xs whitespace-nowrap flex items-center gap-1">
-                                  {r.status}
+                                  {isExtra100 ? <span className="text-pink-600 font-medium">💯 Extra 100% (Art. 386)</span> : r.status}
                                   {r.isAdjusted && <span title="Ajuste manual" className="text-muted-foreground"><Wrench className="w-3 h-3 inline" /></span>}
                                 </span>
                               </TableCell>

@@ -890,6 +890,44 @@ export type Database = {
           },
         ]
       }
+      sunday_tracking: {
+        Row: {
+          collaborator_id: string
+          consecutive_sundays_from_previous: number
+          created_at: string
+          id: string
+          month: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          collaborator_id: string
+          consecutive_sundays_from_previous?: number
+          created_at?: string
+          id?: string
+          month: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          collaborator_id?: string
+          consecutive_sundays_from_previous?: number
+          created_at?: string
+          id?: string
+          month?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sunday_tracking_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_comments: {
         Row: {
           comment: string
