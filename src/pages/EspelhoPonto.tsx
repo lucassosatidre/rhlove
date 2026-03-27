@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Download, FileText, Calendar, Clock, AlertCircle, CheckCircle2, ChevronDown, Fingerprint, Pencil, Plus, Wrench, Banknote } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 const RegistroPonto = lazy(() => import('@/pages/RegistroPonto'));
-import { format, getDaysInMonth, addDays, getDay } from 'date-fns';
+import { format, getDaysInMonth, getDay } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 import { PunchAdjustmentDialog } from '@/components/ponto/PunchAdjustmentDialog';
 import { ptBR } from 'date-fns/locale';
