@@ -57,6 +57,10 @@ const emptyForm: FormData = {
   intervalo_inicio: '',
   intervalo_duracao: null,
   carga_horaria_diaria: '',
+  horario_entrada: '',
+  horario_saida: '',
+  jornadas_especiais: [],
+  aviso_previo_reducao: null,
 };
 
 export default function Colaboradores() {
