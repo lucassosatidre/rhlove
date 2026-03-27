@@ -214,6 +214,16 @@ export default function EspelhoPonto() {
         a.collaborator_id === selected.id && iso >= a.data_inicio && iso <= a.data_fim
       );
       const isFolgaSemanal = selected.folgas_semanais?.includes(wd);
+      // Check sunday_n: if today is a Sunday and matches the N-th Sunday of the month
+      let isFolgaDomingo = false;
+      if (selected.sunday_n > 0 && getDay(dateObj) === 0) {
+        // Count which Sunday of the month this is
+        let sundayCount = 0;
+        for (let day = 1; day <= d; day++) {
+          if (getDay(new Date(selectedYear, selectedMonth, day)) === 0) sundayCount++;
+        }
+        if (sundayCount === selected.sunday_n) isFolgaDomingo = true;
+      }
       const isFolgaEvent = scheduleEvents.some(e =>
         e.collaborator_id === selected.id && e.event_date === iso && (e.event_type === 'TROCA_FOLGA' || e.event_type === 'MUDANCA_FOLGA') && e.status === 'ATIVO'
       );
