@@ -139,12 +139,13 @@ export function calculateJornada(
         // Worked or was supposed to work (falta counts as scheduled work for counter)
         sundayCounter++;
         if (sundayCounter >= 2 && day.hoursWorkedMin && day.hoursWorkedMin > 0) {
-          // Extra 100% day
-          row.extra100 = day.hoursWorkedMin;
-          row.adNoturno = calcNightMinutes(day.punch);
-          if (row.adNoturno > 0) {
-            row.not100 = row.adNoturno;
-          }
+          // Extra 100% day — split into diurnal (before 22h) and nocturnal (after 22h)
+          const nightMin = calcNightMinutes(day.punch);
+          const diurnalMin = day.hoursWorkedMin - nightMin;
+          row.extra100 = diurnalMin > 0 ? diurnalMin : 0;
+          row.not100 = nightMin > 0 ? nightMin : null;
+          // Ad. Noturno stays null — already counted in Not. 100%
+          row.adNoturno = null;
           row.saldoBH = 0;
           sundayCounter = 0; // reset after paying 100%
           jornadaRows.push(row);
