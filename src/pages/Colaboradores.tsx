@@ -522,12 +522,14 @@ export default function Colaboradores() {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Duração (minutos)</Label>
-                    <Select value={String(form.intervalo_duracao ?? '')} onValueChange={v => setForm(f => ({ ...f, intervalo_duracao: Number(v) }))}>
-                      <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
-                      <SelectContent>
-                        {[15, 20, 30, 45, 60].map(n => <SelectItem key={n} value={String(n)}>{n} min</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={form.intervalo_duracao ?? ''}
+                      onChange={e => setForm(f => ({ ...f, intervalo_duracao: e.target.value ? Number(e.target.value) : null }))}
+                      placeholder="minutos"
+                    />
                   </div>
                 </div>
               )}
