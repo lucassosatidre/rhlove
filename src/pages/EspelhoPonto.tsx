@@ -227,6 +227,75 @@ export default function EspelhoPonto() {
     });
   }, [selected?.id, selectedMonth, selectedYear, accumulatedBalance]);
 
+  // Inline save handler
+  const handleInlineSave = useCallback(async (row: typeof rows[0], field: 'entrada' | 'saida_intervalo' | 'retorno_intervalo' | 'saida', newValue: string | null) => {
+    if (!selected) return;
+    const fieldMap = { entrada: 'entrada', saida_intervalo: 'saidaInt', retorno_intervalo: 'retornoInt', saida: 'saida' } as const;
+    const currentValues = {
+      entrada: row.entrada,
+      saida_intervalo: row.saidaInt,
+      retorno_intervalo: row.retornoInt,
+      saida: row.saida,
+    };
+    currentValues[field] = newValue;
+
+    // Sort non-null times in ascending order
+    const times = [currentValues.entrada, currentValues.saida_intervalo, currentValues.retorno_intervalo, currentValues.saida].filter(Boolean) as string[];
+    times.sort();
+    // Re-assign in order: entrada (smallest), saida_intervalo, retorno_intervalo, saida (largest)
+    const sorted = { entrada: null as string | null, saida_intervalo: null as string | null, retorno_intervalo: null as string | null, saida: null as string | null };
+    if (times.length >= 1) sorted.entrada = times[0];
+    if (times.length >= 2) sorted.saida_intervalo = times[1];
+    if (times.length >= 3) sorted.retorno_intervalo = times[2];
+    if (times.length >= 4) sorted.saida = times[3];
+    // If only 1 time, keep in original field position
+    if (times.length === 1) {
+      sorted.entrada = null; sorted.saida_intervalo = null; sorted.retorno_intervalo = null; sorted.saida = null;
+      sorted[field] = times[0];
+    }
+
+    const allEmpty = !sorted.entrada && !sorted.saida_intervalo && !sorted.retorno_intervalo && !sorted.saida;
+
+    try {
+      if (allEmpty) {
+        await supabase.from('punch_records').delete().eq('collaborator_id', selected.id).eq('date', row.date);
+      } else {
+        const record = {
+          collaborator_id: selected.id,
+          collaborator_name: selected.collaborator_name,
+          date: row.date,
+          ...sorted,
+          adjusted_by: usuario?.id ?? null,
+          adjusted_at: new Date().toISOString(),
+          adjustment_reason: 'Edição inline',
+        };
+        await supabase.from('punch_records').upsert(record as any, { onConflict: 'collaborator_id,date' });
+      }
+      await queryClient.invalidateQueries({ queryKey: ['punch_records'] });
+    } catch (err: any) {
+      toast.error('Erro ao salvar: ' + (err.message ?? 'desconhecido'));
+    }
+  }, [selected, usuario, queryClient]);
+
+  // Inconsistency detection
+  const isInconsistentDay = useCallback((r: typeof rows[0]) => {
+    if (r.isFuture || r.isFolga || r.isVacation || r.isAfastamento || r.isHoliday) return false;
+    if (r.status === '❌ Falta') return true;
+    if (r.status === '⚠️ Saída pendente') return true;
+    const filled = [r.entrada, r.saidaInt, r.retornoInt, r.saida].filter(Boolean).length;
+    if (filled > 0 && filled < 4) return true;
+    if (r.hoursMin != null && r.hoursMin > 14 * 60) return true;
+    if (r.hoursMin != null && r.hoursMin > 0 && r.hoursMin < 2 * 60) return true;
+    return false;
+  }, []);
+
+  const inconsistencyCount = useMemo(() => rows.filter(isInconsistentDay).length, [rows, isInconsistentDay]);
+
+  const displayRows = useMemo(() => {
+    if (!showOnlyInconsistencies) return rows;
+    return rows.filter(isInconsistentDay);
+  }, [rows, showOnlyInconsistencies, isInconsistentDay]);
+
   const totalWorked = rows.filter(r => r.status === '✅ Normal').length;
   const totalFaltas = rows.filter(r => r.status === '❌ Falta').length;
   const totalHoursMin = rows.reduce((acc, r) => acc + (r.hoursMin ?? 0), 0);
