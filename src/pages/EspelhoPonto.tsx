@@ -265,10 +265,12 @@ export default function EspelhoPonto() {
       };
     });
 
-    // Use per-day CH overrides in calculateJornada
-    const result = calculateJornada(dayInfos, defaultChMin, selected.genero ?? 'M');
-    return { jornadaRows: result.rows, jornadaTotals: result.totals };
-  }, [rows, selected]);
+    const consecutiveFromPrev = (selected.genero === 'F' && sundayTracking)
+      ? sundayTracking.consecutive_sundays_from_previous : 0;
+
+    const result = calculateJornada(dayInfos, defaultChMin, selected.genero ?? 'M', consecutiveFromPrev);
+    return { jornadaRows: result.rows, jornadaTotals: result.totals, consecutiveSundaysEnd: result.consecutiveSundaysEnd };
+  }, [rows, selected, sundayTracking]);
 
   // Previous month accumulated balance
   const prevMonthBalance = useMemo(() => {
