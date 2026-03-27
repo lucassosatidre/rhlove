@@ -81,7 +81,8 @@ export default function EspelhoPonto() {
   const [searchName, setSearchName] = useState('');
   const { usuario } = useAuth();
   const canEdit = usuario?.perfil === 'admin' || usuario?.perfil === 'gestor';
-
+  const [showOnlyInconsistencies, setShowOnlyInconsistencies] = useState(false);
+  const queryClient = useQueryClient();
   const [adjustmentOpen, setAdjustmentOpen] = useState(false);
   const [adjustmentRow, setAdjustmentRow] = useState<{
     date: string; dateObj: Date;
