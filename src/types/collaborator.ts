@@ -55,4 +55,5 @@ export interface Collaborator {
   intervalo_automatico: boolean;
   intervalo_inicio: string | null;
   intervalo_duracao: number | null;
+  carga_horaria_diaria: string | null;
 }
