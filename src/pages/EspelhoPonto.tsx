@@ -525,10 +525,18 @@ export default function EspelhoPonto() {
                                 <InlineTimeCell value={r.entrada} canEdit={canEdit} onSave={v => handleInlineSave(r, 'entrada', v)} />
                               </TableCell>
                               <TableCell className="text-xs tabular-nums p-1">
-                                <InlineTimeCell value={r.saidaInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida_intervalo', v)} />
+                                {r.isAutoInterval ? (
+                                  <span className="italic text-muted-foreground" title="Intervalo automático">🤖 {r.saidaInt}</span>
+                                ) : (
+                                  <InlineTimeCell value={r.saidaInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida_intervalo', v)} />
+                                )}
                               </TableCell>
                               <TableCell className="text-xs tabular-nums p-1">
-                                <InlineTimeCell value={r.retornoInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'retorno_intervalo', v)} />
+                                {r.isAutoInterval ? (
+                                  <span className="italic text-muted-foreground" title="Intervalo automático">🤖 {r.retornoInt}</span>
+                                ) : (
+                                  <InlineTimeCell value={r.retornoInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'retorno_intervalo', v)} />
+                                )}
                               </TableCell>
                               <TableCell className="text-xs tabular-nums p-1">
                                 <InlineTimeCell value={r.saida} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida', v)} />
