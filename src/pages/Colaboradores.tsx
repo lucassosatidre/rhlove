@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Upload, Download, Eye, CreditCard } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { DropZone } from '@/components/ui/drop-zone';
 import * as XLSX from 'xlsx';
 import CollaboratorProfileDialog from '@/components/collaborator/CollaboratorProfileDialog';
@@ -30,6 +31,9 @@ interface FormData {
   inicio_periodo: string;
   fim_periodo: string;
   pis_matricula: string;
+  intervalo_automatico: boolean;
+  intervalo_inicio: string;
+  intervalo_duracao: number | null;
 }
 
 const emptyForm: FormData = {
@@ -44,6 +48,9 @@ const emptyForm: FormData = {
   inicio_periodo: '',
   fim_periodo: '',
   pis_matricula: '',
+  intervalo_automatico: false,
+  intervalo_inicio: '',
+  intervalo_duracao: null,
 };
 
 export default function Colaboradores() {
@@ -80,6 +87,9 @@ export default function Colaboradores() {
       inicio_periodo: c.inicio_periodo ?? '',
       fim_periodo: c.fim_periodo ?? '',
       pis_matricula: c.pis_matricula ?? '',
+      intervalo_automatico: c.intervalo_automatico ?? false,
+      intervalo_inicio: c.intervalo_inicio ?? '',
+      intervalo_duracao: c.intervalo_duracao ?? null,
     });
     setDialogOpen(true);
   };
@@ -96,6 +106,9 @@ export default function Colaboradores() {
     inicio_periodo: f.inicio_periodo || null,
     fim_periodo: f.fim_periodo || null,
     pis_matricula: f.pis_matricula || null,
+    intervalo_automatico: f.intervalo_automatico,
+    intervalo_inicio: f.intervalo_inicio || null,
+    intervalo_duracao: f.intervalo_duracao,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -483,6 +496,42 @@ export default function Colaboradores() {
                 </div>
               </div>
             )}
+
+            {/* Intervalo automático */}
+            <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Intervalo Automático</p>
+                  <p className="text-[11px] text-muted-foreground">Para colaboradores que não batem ponto no intervalo</p>
+                </div>
+                <Switch
+                  checked={form.intervalo_automatico}
+                  onCheckedChange={v => setForm(f => ({ ...f, intervalo_automatico: v }))}
+                />
+              </div>
+              {form.intervalo_automatico && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Horário de saída p/ intervalo</Label>
+                    <Input
+                      type="time"
+                      value={form.intervalo_inicio}
+                      onChange={e => setForm(f => ({ ...f, intervalo_inicio: e.target.value }))}
+                      placeholder="19:00"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Duração (minutos)</Label>
+                    <Select value={String(form.intervalo_duracao ?? '')} onValueChange={v => setForm(f => ({ ...f, intervalo_duracao: Number(v) }))}>
+                      <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                      <SelectContent>
+                        {[15, 20, 30, 45, 60].map(n => <SelectItem key={n} value={String(n)}>{n} min</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>

@@ -223,6 +223,9 @@ export type Database = {
           id: string
           inicio_na_empresa: string | null
           inicio_periodo: string | null
+          intervalo_automatico: boolean
+          intervalo_duracao: number | null
+          intervalo_inicio: string | null
           pis_matricula: string | null
           sector: string
           status: string
@@ -244,6 +247,9 @@ export type Database = {
           id?: string
           inicio_na_empresa?: string | null
           inicio_periodo?: string | null
+          intervalo_automatico?: boolean
+          intervalo_duracao?: number | null
+          intervalo_inicio?: string | null
           pis_matricula?: string | null
           sector: string
           status?: string
@@ -265,6 +271,9 @@ export type Database = {
           id?: string
           inicio_na_empresa?: string | null
           inicio_periodo?: string | null
+          intervalo_automatico?: boolean
+          intervalo_duracao?: number | null
+          intervalo_inicio?: string | null
           pis_matricula?: string | null
           sector?: string
           status?: string

@@ -201,6 +201,7 @@ export function UpdatePunchesDialog({ open, onOpenChange, collaborators }: Props
 
       let importedDays = 0;
       let preservedDays = 0;
+      let autoIntervalDays = 0;
       const records: any[] = [];
 
       for (const sheet of matchedSheets) {
@@ -211,13 +212,28 @@ export function UpdatePunchesDialog({ open, onOpenChange, collaborators }: Props
             preservedDays++;
             continue;
           }
+
+          let saidaInt = day.saidaIntervalo;
+          let retornoInt = day.retornoIntervalo;
+
+          // Auto-fill interval for collaborators with intervalo_automatico
+          if (collab.intervalo_automatico && collab.intervalo_inicio && collab.intervalo_duracao) {
+            if (day.entrada && day.saida && !saidaInt && !retornoInt) {
+              saidaInt = collab.intervalo_inicio;
+              const [ih, im] = collab.intervalo_inicio.split(':').map(Number);
+              const totalMin = ih * 60 + im + collab.intervalo_duracao;
+              retornoInt = `${String(Math.floor(totalMin / 60) % 24).padStart(2, '0')}:${String(totalMin % 60).padStart(2, '0')}`;
+              autoIntervalDays++;
+            }
+          }
+
           records.push({
             collaborator_id: collab.id,
             collaborator_name: collab.collaborator_name,
             date: day.date,
             entrada: day.entrada,
-            saida_intervalo: day.saidaIntervalo,
-            retorno_intervalo: day.retornoIntervalo,
+            saida_intervalo: saidaInt,
+            retorno_intervalo: retornoInt,
             saida: day.saida,
           });
           importedDays++;
@@ -243,6 +259,7 @@ export function UpdatePunchesDialog({ open, onOpenChange, collaborators }: Props
       ];
       if (emptySheets.length > 0) parts.push(`⚠️ ${emptySheets.length} abas ignoradas`);
       if (preservedDays > 0) parts.push(`🔧 ${preservedDays} dias preservados (ajuste manual)`);
+      if (autoIntervalDays > 0) parts.push(`🤖 ${autoIntervalDays} dias com intervalo automático`);
 
       toast.success(parts.join(' · '));
       onOpenChange(false);

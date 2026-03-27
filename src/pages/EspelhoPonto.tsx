@@ -126,6 +126,7 @@ export default function EspelhoPonto() {
     entrada: string | null; saidaInt: string | null; retornoInt: string | null; saida: string | null;
     hoursMin: number | null; status: string; statusEmoji: string; isAdjusted: boolean;
     isFolga: boolean; isVacation: boolean; isAfastamento: boolean; isHoliday: boolean; isFuture: boolean;
+    isAutoInterval: boolean;
   };
 
   const rows: DayRow[] = useMemo(() => {
@@ -144,10 +145,22 @@ export default function EspelhoPonto() {
       // punch_records already stores dates with the 03:00 rule applied
       // (00:00-02:59 punches belong to previous day), so just look up directly
       const punch = punchMap.get(iso);
-      const entrada = punch?.entrada ?? null;
-      const saida = punch?.saida ?? null;
-      const saidaInt = punch?.saida_intervalo ?? null;
-      const retornoInt = punch?.retorno_intervalo ?? null;
+      let entrada = punch?.entrada ?? null;
+      let saida = punch?.saida ?? null;
+      let saidaInt = punch?.saida_intervalo ?? null;
+      let retornoInt = punch?.retorno_intervalo ?? null;
+
+      // Auto-interval: if collaborator has intervalo_automatico and day has only entrada+saida (no interval)
+      let isAutoInterval = false;
+      if (selected.intervalo_automatico && selected.intervalo_inicio && selected.intervalo_duracao) {
+        if (entrada && saida && !saidaInt && !retornoInt) {
+          saidaInt = selected.intervalo_inicio;
+          const [ih, im] = selected.intervalo_inicio.split(':').map(Number);
+          const totalMin = ih * 60 + im + selected.intervalo_duracao;
+          retornoInt = `${String(Math.floor(totalMin / 60) % 24).padStart(2, '0')}:${String(totalMin % 60).padStart(2, '0')}`;
+          isAutoInterval = true;
+        }
+      }
 
       const hoursMin = calcHours(entrada, saida, saidaInt, retornoInt);
       const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -180,7 +193,7 @@ export default function EspelhoPonto() {
       else if (entrada && !saida) { status = '⚠️ Saída pendente'; statusEmoji = '⚠️'; }
 
       const isAdjusted = punch ? !!(punch as any).adjusted_at : false;
-      result.push({ date: iso, dateObj, weekday, entrada, saidaInt, retornoInt, saida, hoursMin, status, statusEmoji, isAdjusted, isFolga, isVacation, isAfastamento, isHoliday, isFuture });
+      result.push({ date: iso, dateObj, weekday, entrada, saidaInt, retornoInt, saida, hoursMin, status, statusEmoji, isAdjusted, isFolga, isVacation, isAfastamento, isHoliday, isFuture, isAutoInterval });
     }
     return result;
   }, [selected, selectedMonth, selectedYear, daysInMonth, punchRecords, scheduleEvents, vacations, afastamentos, holidaySet]);
@@ -512,10 +525,18 @@ export default function EspelhoPonto() {
                                 <InlineTimeCell value={r.entrada} canEdit={canEdit} onSave={v => handleInlineSave(r, 'entrada', v)} />
                               </TableCell>
                               <TableCell className="text-xs tabular-nums p-1">
-                                <InlineTimeCell value={r.saidaInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida_intervalo', v)} />
+                                {r.isAutoInterval ? (
+                                  <span className="italic text-muted-foreground" title="Intervalo automático">🤖 {r.saidaInt}</span>
+                                ) : (
+                                  <InlineTimeCell value={r.saidaInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida_intervalo', v)} />
+                                )}
                               </TableCell>
                               <TableCell className="text-xs tabular-nums p-1">
-                                <InlineTimeCell value={r.retornoInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'retorno_intervalo', v)} />
+                                {r.isAutoInterval ? (
+                                  <span className="italic text-muted-foreground" title="Intervalo automático">🤖 {r.retornoInt}</span>
+                                ) : (
+                                  <InlineTimeCell value={r.retornoInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'retorno_intervalo', v)} />
+                                )}
                               </TableCell>
                               <TableCell className="text-xs tabular-nums p-1">
                                 <InlineTimeCell value={r.saida} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida', v)} />
