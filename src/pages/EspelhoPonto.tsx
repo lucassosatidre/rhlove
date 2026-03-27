@@ -297,6 +297,21 @@ export default function EspelhoPonto() {
     });
   }, [selected?.id, selectedMonth, selectedYear, accumulatedBalance]);
 
+  // Auto-save sunday tracking for next month (Art. 386)
+  useEffect(() => {
+    if (!selected || selected.genero !== 'F' || !jornadaTotals) return;
+    const nextMonth = selectedMonth + 1 > 11 ? 1 : selectedMonth + 2;
+    const nextYear = selectedMonth + 1 > 11 ? selectedYear + 1 : selectedYear;
+    supabase.from('sunday_tracking').upsert(
+      {
+        collaborator_id: selected.id,
+        month: nextMonth,
+        year: nextYear,
+        consecutive_sundays_from_previous: consecutiveSundaysEnd,
+      } as any,
+      { onConflict: 'collaborator_id,month,year' }
+    ).then();
+  }, [selected?.id, selectedMonth, selectedYear, consecutiveSundaysEnd, jornadaTotals]);
   // Inline save handler
   const handleInlineSave = useCallback(async (row: typeof rows[0], field: 'entrada' | 'saida_intervalo' | 'retorno_intervalo' | 'saida', newValue: string | null) => {
     if (!selected) return;
