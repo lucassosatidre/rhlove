@@ -587,9 +587,10 @@ export default function EspelhoPonto() {
                           const origIdx = rows.indexOf(r);
                           const j = jornadaRows[origIdx];
                           const isWeekend = [0, 6].includes(getDay(r.dateObj));
+                          const isExtra100 = !!(j?.extra100 && j.extra100 > 0);
                           const saldo = j ? fmtSaldo(j.saldoBH) : { text: '', className: '' };
                           return (
-                            <TableRow key={r.date} className={isWeekend ? 'bg-muted/30' : ''}>
+                            <TableRow key={r.date} className={isExtra100 ? 'bg-pink-50 dark:bg-pink-950/20' : isWeekend ? 'bg-muted/30' : ''}>
                               <TableCell className="text-xs font-medium whitespace-nowrap tabular-nums sticky left-0 bg-background z-10">
                                 {format(r.dateObj, 'dd/MM')} <span className="text-muted-foreground">{r.weekday}</span>
                               </TableCell>
