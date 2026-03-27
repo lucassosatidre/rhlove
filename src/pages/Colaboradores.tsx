@@ -497,6 +497,42 @@ export default function Colaboradores() {
               </div>
             )}
 
+            {/* Intervalo automático */}
+            <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Intervalo Automático</p>
+                  <p className="text-[11px] text-muted-foreground">Para colaboradores que não batem ponto no intervalo</p>
+                </div>
+                <Switch
+                  checked={form.intervalo_automatico}
+                  onCheckedChange={v => setForm(f => ({ ...f, intervalo_automatico: v }))}
+                />
+              </div>
+              {form.intervalo_automatico && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Horário de saída p/ intervalo</Label>
+                    <Input
+                      type="time"
+                      value={form.intervalo_inicio}
+                      onChange={e => setForm(f => ({ ...f, intervalo_inicio: e.target.value }))}
+                      placeholder="19:00"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Duração (minutos)</Label>
+                    <Select value={String(form.intervalo_duracao ?? '')} onValueChange={v => setForm(f => ({ ...f, intervalo_duracao: Number(v) }))}>
+                      <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
+                      <SelectContent>
+                        {[15, 20, 30, 45, 60].map(n => <SelectItem key={n} value={String(n)}>{n} min</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
               <Button type="submit">{editingId ? 'Salvar' : 'Cadastrar'}</Button>
