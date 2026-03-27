@@ -101,6 +101,10 @@ export default function Colaboradores() {
       intervalo_inicio: c.intervalo_inicio ?? '',
       intervalo_duracao: c.intervalo_duracao ?? null,
       carga_horaria_diaria: c.carga_horaria_diaria ?? '',
+      horario_entrada: c.horario_entrada ?? '',
+      horario_saida: c.horario_saida ?? '',
+      jornadas_especiais: c.jornadas_especiais ?? [],
+      aviso_previo_reducao: c.aviso_previo_reducao ?? null,
     });
     setDialogOpen(true);
   };
