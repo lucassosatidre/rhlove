@@ -217,8 +217,8 @@ export default function EspelhoPonto() {
   }, [selected, selectedMonth, selectedYear, daysInMonth, punchRecords, scheduleEvents, vacations, afastamentos, holidaySet]);
 
   // Jornada calculations
-  const { jornadaRows, jornadaTotals } = useMemo(() => {
-    if (!selected || rows.length === 0) return { jornadaRows: [] as JornadaRow[], jornadaTotals: null };
+  const { jornadaRows, jornadaTotals, consecutiveSundaysEnd } = useMemo(() => {
+    if (!selected || rows.length === 0) return { jornadaRows: [] as JornadaRow[], jornadaTotals: null, consecutiveSundaysEnd: 0 };
 
     // Map weekday names for jornadas_especiais lookup
     const WEEKDAY_NAME_MAP: Record<number, string> = {
