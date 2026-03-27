@@ -37,11 +37,32 @@ function removeAccents(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 
+// Alias mapping: sheet name keywords → collaborator name keywords
+const NAME_ALIASES: Record<string, string[]> = {
+  'joedilson': ['dinho', 'joedilson'],
+  'jeniffer': ['jeniffer'],
+  'kayalane': ['kaylane', 'kaylan'],
+  'lucas menezes': ['lucas menezes'],
+};
+
 function matchCollaborator(sheetName: string, collaborators: Collaborator[]): Collaborator | null {
   const norm = removeAccents(sheetName.trim()).toLowerCase();
   // Exact match
   const exact = collaborators.find(c => removeAccents(c.collaborator_name).toLowerCase() === norm);
   if (exact) return exact;
+
+  // Check aliases
+  for (const [aliasKey, targets] of Object.entries(NAME_ALIASES)) {
+    if (norm.includes(aliasKey)) {
+      const found = collaborators.filter(c => {
+        const cn = removeAccents(c.collaborator_name).toLowerCase();
+        return targets.some(t => cn.includes(t));
+      });
+      if (found.length === 1) return found[0];
+      if (found.length > 1) return found[0]; // pick first match
+    }
+  }
+
   // Partial: sheet name contains collaborator name or vice-versa
   const partial = collaborators.filter(c => {
     const cn = removeAccents(c.collaborator_name).toLowerCase();
