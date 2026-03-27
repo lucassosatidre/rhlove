@@ -14,6 +14,9 @@ export interface CollaboratorInput {
   inicio_periodo?: string | null;
   fim_periodo?: string | null;
   pis_matricula?: string | null;
+  intervalo_automatico?: boolean;
+  intervalo_inicio?: string | null;
+  intervalo_duracao?: number | null;
   // legacy
   data_retorno?: string | null;
   data_fim_experiencia?: string | null;
