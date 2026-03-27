@@ -25,14 +25,25 @@ export interface PunchRecordUpsert {
   retorno_intervalo?: string | null;
 }
 
-export function usePunchRecords() {
+export function usePunchRecords(month?: number, year?: number) {
   return useQuery({
-    queryKey: ['punch_records'],
+    queryKey: ['punch_records', month, year],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('punch_records')
         .select('*')
         .order('date', { ascending: false });
+
+      if (month !== undefined && year !== undefined) {
+        const start = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+        const endDate = new Date(year, month + 1, 0);
+        const end = `${year}-${String(month + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+        query = query.gte('date', start).lte('date', end);
+      } else {
+        query = query.limit(5000);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as PunchRecord[];
     },
