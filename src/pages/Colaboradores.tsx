@@ -92,6 +92,7 @@ export default function Colaboradores() {
       intervalo_automatico: c.intervalo_automatico ?? false,
       intervalo_inicio: c.intervalo_inicio ?? '',
       intervalo_duracao: c.intervalo_duracao ?? null,
+      carga_horaria_diaria: c.carga_horaria_diaria ?? '',
     });
     setDialogOpen(true);
   };
