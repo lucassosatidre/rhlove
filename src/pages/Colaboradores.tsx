@@ -35,6 +35,10 @@ interface FormData {
   intervalo_inicio: string;
   intervalo_duracao: number | null;
   carga_horaria_diaria: string;
+  horario_entrada: string;
+  horario_saida: string;
+  jornadas_especiais: JornadaEspecial[];
+  aviso_previo_reducao: number | null;
 }
 
 const emptyForm: FormData = {
