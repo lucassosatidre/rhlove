@@ -126,6 +126,7 @@ export default function EspelhoPonto() {
     entrada: string | null; saidaInt: string | null; retornoInt: string | null; saida: string | null;
     hoursMin: number | null; status: string; statusEmoji: string; isAdjusted: boolean;
     isFolga: boolean; isVacation: boolean; isAfastamento: boolean; isHoliday: boolean; isFuture: boolean;
+    isAutoInterval: boolean;
   };
 
   const rows: DayRow[] = useMemo(() => {
