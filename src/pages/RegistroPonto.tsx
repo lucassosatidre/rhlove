@@ -244,15 +244,9 @@ export default function RegistroPonto() {
         </div>
       </div>
 
-      <ExcelPunchImportDialog
-        open={excelDialogOpen}
-        onOpenChange={setExcelDialogOpen}
-        collaborators={collaborators}
-      />
-
-      <AFDPunchImportDialog
-        open={afdDialogOpen}
-        onOpenChange={setAfdDialogOpen}
+      <UpdatePunchesDialog
+        open={updateDialogOpen}
+        onOpenChange={setUpdateDialogOpen}
         collaborators={collaborators}
       />
 
