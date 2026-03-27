@@ -105,6 +105,9 @@ export default function Colaboradores() {
     inicio_periodo: f.inicio_periodo || null,
     fim_periodo: f.fim_periodo || null,
     pis_matricula: f.pis_matricula || null,
+    intervalo_automatico: f.intervalo_automatico,
+    intervalo_inicio: f.intervalo_inicio || null,
+    intervalo_duracao: f.intervalo_duracao,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
