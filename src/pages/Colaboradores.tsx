@@ -49,6 +49,7 @@ const emptyForm: FormData = {
   folgas_semanais: ['SEGUNDA'],
   sunday_n: 1,
   status: 'ATIVO',
+  genero: 'M',
   inicio_na_empresa: new Date().toISOString().slice(0, 10),
   data_desligamento: '',
   inicio_periodo: '',
