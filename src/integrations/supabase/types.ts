@@ -211,6 +211,7 @@ export type Database = {
       }
       collaborators: {
         Row: {
+          carga_horaria_diaria: string | null
           collaborator_name: string
           created_at: string
           data_desligamento: string | null
@@ -235,6 +236,7 @@ export type Database = {
           weekly_day_off: string
         }
         Insert: {
+          carga_horaria_diaria?: string | null
           collaborator_name: string
           created_at?: string
           data_desligamento?: string | null
@@ -259,6 +261,7 @@ export type Database = {
           weekly_day_off?: string
         }
         Update: {
+          carga_horaria_diaria?: string | null
           collaborator_name?: string
           created_at?: string
           data_desligamento?: string | null
