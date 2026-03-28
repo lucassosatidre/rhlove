@@ -1,0 +1,1 @@
+ALTER TABLE public.collaborators ADD COLUMN IF NOT EXISTS controla_ponto boolean NOT NULL DEFAULT true;

@@ -60,6 +60,7 @@ export interface Collaborator {
   horario_saida: string | null;
   jornadas_especiais: JornadaEspecial[] | null;
   aviso_previo_reducao: number | null;
+  controla_ponto: boolean;
 }
 
 export interface JornadaEspecial {
