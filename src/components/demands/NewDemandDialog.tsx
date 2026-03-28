@@ -66,7 +66,7 @@ export default function NewDemandDialog({ open, onOpenChange }: NewDemandDialogP
       toast.error('Preencha os campos obrigatórios (Tipo e Título).');
       return;
     }
-    if (needsAssignee && !assignedTo) {
+    if (assigneeRequired && !assignedTo) {
       toast.error('Selecione o destinatário.');
       return;
     }
