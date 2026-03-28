@@ -1,0 +1,1 @@
+ALTER TABLE public.usuarios ADD COLUMN collaborator_id uuid REFERENCES public.collaborators(id) ON DELETE SET NULL;
