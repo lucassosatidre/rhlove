@@ -26,6 +26,8 @@ import { useQuery } from '@tanstack/react-query';
 import type { Collaborator, DayOfWeek } from '@/types/collaborator';
 import PrintHeader, { PrintFooter } from '@/components/PrintHeader';
 import { UpdatePunchesDialog } from '@/components/ponto/UpdatePunchesDialog';
+import { assignPunchSlots, calculatePattern } from '@/lib/punchInference';
+import type { PunchRecord } from '@/hooks/usePunchRecords';
 
 const WEEKDAY_MAP: Record<number, DayOfWeek> = {
   0: 'DOMINGO', 1: 'SEGUNDA', 2: 'TERCA', 3: 'QUARTA', 4: 'QUINTA', 5: 'SEXTA', 6: 'SABADO',
@@ -461,16 +463,31 @@ export default function EspelhoPonto() {
     } as any, { onConflict: 'collaborator_id,month,year' }).then();
   }, [selected?.id, selectedMonth, selectedYear, consecutiveSundaysEnd, jornadaTotals]);
 
+  // Build pattern cache per collaborator from punchRecords
+  const patternCache = useMemo(() => {
+    const cache = new Map<string, ReturnType<typeof calculatePattern>>();
+    const byCollab = new Map<string, PunchRecord[]>();
+    for (const pr of punchRecords) {
+      if (!byCollab.has(pr.collaborator_id)) byCollab.set(pr.collaborator_id, []);
+      byCollab.get(pr.collaborator_id)!.push(pr);
+    }
+    for (const [cid, recs] of byCollab) {
+      // Sort by date desc for most recent first
+      recs.sort((a, b) => b.date.localeCompare(a.date));
+      cache.set(cid, calculatePattern(recs));
+    }
+    return cache;
+  }, [punchRecords]);
+
   // Inline save handler
   const handleInlineSave = useCallback(async (row: UnifiedRow, field: 'entrada' | 'saida_intervalo' | 'retorno_intervalo' | 'saida', newValue: string | null) => {
     const collab = collabMap.get(row.collaboratorId);
     if (!collab) return;
     const currentValues = { entrada: row.entrada, saida_intervalo: row.saidaInt, retorno_intervalo: row.retornoInt, saida: row.saida };
     currentValues[field] = newValue;
-    const times = [currentValues.entrada, currentValues.saida_intervalo, currentValues.retorno_intervalo, currentValues.saida].filter(Boolean) as string[];
-    const osk = (t: string) => { const h = parseInt(t.split(':')[0]); return h < 3 ? parseInt(t.replace(':', '')) + 2400 : parseInt(t.replace(':', '')); };
-    times.sort((a, b) => osk(a) - osk(b));
-    const sorted = { entrada: times[0] ?? null, saida_intervalo: times[1] ?? null, retorno_intervalo: times[2] ?? null, saida: times[3] ?? null } as Record<string, string | null>;
+    const rawTimes = [currentValues.entrada, currentValues.saida_intervalo, currentValues.retorno_intervalo, currentValues.saida].filter((t): t is string => !!t && t.trim() !== '');
+    const pattern = patternCache.get(row.collaboratorId) ?? null;
+    const sorted = assignPunchSlots(rawTimes, pattern);
     const allEmpty = !sorted.entrada && !sorted.saida_intervalo && !sorted.retorno_intervalo && !sorted.saida;
     try {
       if (allEmpty) {
@@ -486,7 +503,7 @@ export default function EspelhoPonto() {
     } catch (err: any) {
       toast.error('Erro ao salvar: ' + (err.message ?? 'desconhecido'));
     }
-  }, [collabMap, usuario, queryClient]);
+  }, [collabMap, usuario, queryClient, patternCache]);
 
   const totalWorked = singleCollabRows.filter(r => r.status === '✅ Normal').length;
   const totalFaltas = singleCollabRows.filter(r => r.status.includes('Falta')).length;
@@ -848,6 +865,7 @@ export default function EspelhoPonto() {
           date={adjustmentRow.date} dateObj={adjustmentRow.dateObj}
           entrada={adjustmentRow.entrada} saidaInt={adjustmentRow.saidaInt}
           retornoInt={adjustmentRow.retornoInt} saida={adjustmentRow.saida}
+          punchPattern={adjCollabId ? patternCache.get(adjCollabId) ?? null : null}
         />
       )}
     </div>
