@@ -773,7 +773,10 @@ export default function EspelhoPonto() {
                           {showJornada ? (
                             <InlineTimeCell value={r.entrada} canEdit={canEdit} onSave={v => handleInlineSave(r, 'entrada', v)} />
                           ) : (
-                            <span className="text-[11px] font-mono">{r.entrada || '—'}</span>
+                            <span className={`text-[11px] font-mono ${!r.entrada && canEdit ? 'cursor-pointer hover:text-primary' : ''}`}
+                              onClick={() => { if (!r.entrada && canEdit) openAdjustment(r); }}>
+                              {r.entrada || '—'}
+                            </span>
                           )}
                         </TableCell>
                         <TableCell className="text-xs tabular-nums p-1">
@@ -784,7 +787,10 @@ export default function EspelhoPonto() {
                               <InlineTimeCell value={r.saidaInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida_intervalo', v)} />
                             )
                           ) : (
-                            <span className="text-[11px] font-mono">{r.saidaInt || '—'}</span>
+                            <span className={`text-[11px] font-mono ${!r.saidaInt && canEdit ? 'cursor-pointer hover:text-primary' : ''}`}
+                              onClick={() => { if (!r.saidaInt && canEdit) openAdjustment(r); }}>
+                              {r.saidaInt || '—'}
+                            </span>
                           )}
                         </TableCell>
                         <TableCell className="text-xs tabular-nums p-1">
@@ -795,14 +801,20 @@ export default function EspelhoPonto() {
                               <InlineTimeCell value={r.retornoInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'retorno_intervalo', v)} />
                             )
                           ) : (
-                            <span className="text-[11px] font-mono">{r.retornoInt || '—'}</span>
+                            <span className={`text-[11px] font-mono ${!r.retornoInt && canEdit ? 'cursor-pointer hover:text-primary' : ''}`}
+                              onClick={() => { if (!r.retornoInt && canEdit) openAdjustment(r); }}>
+                              {r.retornoInt || '—'}
+                            </span>
                           )}
                         </TableCell>
                         <TableCell className="text-xs tabular-nums p-1">
                           {showJornada ? (
                             <InlineTimeCell value={r.saida} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida', v)} />
                           ) : (
-                            <span className="text-[11px] font-mono">{r.saida || '—'}</span>
+                            <span className={`text-[11px] font-mono ${!r.saida && canEdit ? 'cursor-pointer hover:text-primary' : ''}`}
+                              onClick={() => { if (!r.saida && canEdit) openAdjustment(r); }}>
+                              {r.saida || '—'}
+                            </span>
                           )}
                         </TableCell>
                         <TableCell className="text-[11px] tabular-nums font-medium py-1">{r.hoursMin != null ? formatMinutes(r.hoursMin) : '—'}</TableCell>
