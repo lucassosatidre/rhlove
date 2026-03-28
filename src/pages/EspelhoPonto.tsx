@@ -308,7 +308,7 @@ export default function EspelhoPonto() {
 
       // Detect inconsistency tags for working days
       let tags: InconsistencyTag[] = [];
-      if (!isFuture && !isFolga && !isVacation && !(isAfastamento || isAtestado) && !isHoliday && !isCompensacao) {
+      if (!isFuture && !isFolga && !isVacation && !(isAfastamento || isAtestado) && !isCompensacao) {
         tags = detectTags(entrada, saida, saidaInt, retornoInt);
         // Falta is also an inconsistency
         if (status === '❌ Falta') tags = ['batida_pendente'];
