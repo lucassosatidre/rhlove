@@ -532,27 +532,22 @@ export default function EspelhoPonto() {
     return { totalRegistros, totalCollabs, totalInconsistencias: incCount, totalOk: totalRegistros - incCount };
   }, [punchRecords, activeCollabs, sectorFilter, selectedCollaboratorId]);
 
-  // Export Excel
+  // Export Excel — exports exactly what's visible in the table
   const exportExcel = () => {
-    if (!selected || singleCollabRows.length === 0) return;
-    const data = singleCollabRows.map((r, i) => {
-      const j = jornadaRows[i];
-      return {
-        'Data': format(r.dateObj, 'dd/MM/yyyy'), 'Dia': r.weekday,
-        'Entrada': r.entrada ?? '', 'Saída Int.': r.saidaInt ?? '',
-        'Retorno Int.': r.retornoInt ?? '', 'Saída': r.saida ?? '',
-        'Horas Trab.': r.hoursMin != null ? formatMinutes(r.hoursMin) : '', 'Status': r.status,
-        'CH Prevista': fmtHHMM(j?.chPrevista ?? null), 'Normais': fmtHHMM(j?.normais ?? null),
-        'Faltas': fmtHHMM(j?.faltas ?? null), 'Atraso': fmtHHMM(j?.atraso ?? null),
-        'Extra BH': fmtHHMM(j?.extraBH ?? null), 'Extra 100%': fmtHHMM(j?.extra100 ?? null),
-        'Ad. Noturno': fmtHHMM(j?.adNoturno ?? null), 'Not. 100%': fmtHHMM(j?.not100 ?? null),
-        'Saldo BH': j?.saldoBH != null && j.saldoBH !== 0 ? fmtSaldo(j.saldoBH).text : '',
-      };
-    });
+    if (displayRows.length === 0) return;
+    const data = displayRows.map(r => ({
+      'Colaborador': r.collaboratorName,
+      'Data': format(r.dateObj, 'dd/MM/yyyy'),
+      'Entrada': r.entrada ?? '',
+      'Saída Intervalo': r.saidaInt ?? '',
+      'Retorno Intervalo': r.retornoInt ?? '',
+      'Saída': r.saida ?? '',
+      'Status': r.status,
+    }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Espelho');
-    XLSX.writeFile(wb, `espelho-${selected.collaborator_name}-${MONTHS[selectedMonth].label}-${selectedYear}.xlsx`);
+    XLSX.writeFile(wb, `espelho-ponto-${MONTHS[selectedMonth].label}-${selectedYear}.xlsx`);
   };
 
   const openAdjustment = (row: UnifiedRow) => {
