@@ -85,7 +85,7 @@ export function useCreateDemand() {
     mutationFn: async (demand: Partial<Demand> & { created_by: string }) => {
       const { data, error } = await supabase
         .from('demands' as any)
-        .insert({ ...demand, status: 'aberta' } as any)
+        .insert({ ...demand, status: 'em_andamento' } as any)
         .select()
         .single();
       if (error) throw error;

@@ -3,32 +3,34 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Send, Clock, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUpdateDemandStatus, useDemandComments, useDemandHistory, useUsuarios, type Demand } from '@/hooks/useDemands';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-const STATUS_OPTIONS = [
-  { value: 'aberta', label: 'Aberta' },
-  { value: 'em_andamento', label: 'Em andamento' },
-  { value: 'aguardando_aprovacao', label: 'Aguardando aprovação' },
-  { value: 'concluida', label: 'Concluída' },
-  { value: 'cancelada', label: 'Cancelada' },
-];
-
-const STATUS_COLORS: Record<string, string> = {
-  aberta: 'bg-muted text-muted-foreground',
-  em_andamento: 'bg-blue-100 text-blue-700',
-  aguardando_aprovacao: 'bg-yellow-100 text-yellow-700',
-  concluida: 'bg-green-100 text-green-700',
-  cancelada: 'bg-red-100 text-red-700',
+const STATUS_BADGE: Record<string, { label: string; className: string }> = {
+  em_andamento: { label: '🟡 Em andamento', className: 'bg-yellow-100 text-yellow-700' },
+  concluida: { label: '✅ Concluído', className: 'bg-green-100 text-green-700' },
+  aberta: { label: '🟡 Em andamento', className: 'bg-yellow-100 text-yellow-700' },
+  aguardando_aprovacao: { label: '🟡 Em andamento', className: 'bg-yellow-100 text-yellow-700' },
+  cancelada: { label: '✅ Concluído', className: 'bg-green-100 text-green-700' },
 };
 
 const TYPE_LABELS: Record<string, string> = {
   manutencao: '🔧 Manutenção', compra: '🛒 Compra', tarefa: '✅ Tarefa',
-  acompanhamento: '👁️ Acompanhamento', ordem: '📋 Ordem', melhoria: '💡 Melhoria',
+  acompanhamento: '✅ Tarefa', ordem: '✅ Tarefa', melhoria: '✅ Tarefa',
+};
+
+const PRIORITY_LABELS: Record<string, string> = {
+  imp_urg: '🔴 Importante e Urgente',
+  imp_nao_urg: '🟠 Importante mas não Urgente',
+  urg_nao_imp: '🟡 Urgente mas não Importante',
+  nao_urg_nao_imp: '⚪ Não Urgente e Não Importante',
+  urgente: '🔴 Importante e Urgente',
+  alta: '🟠 Importante mas não Urgente',
+  media: '🟡 Urgente mas não Importante',
+  baixa: '⚪ Não Urgente e Não Importante',
 };
 
 function getPublicUrl(path: string) {
@@ -52,14 +54,27 @@ export default function DemandDetailDialog({ demand, open, onOpenChange }: Deman
   const [sending, setSending] = useState(false);
 
   const userMap = new Map(usuarios.map(u => [u.id, u.nome]));
+  const isDone = ['concluida', 'cancelada'].includes(demand.status);
+  const statusBadge = STATUS_BADGE[demand.status] ?? STATUS_BADGE.em_andamento;
 
-  const handleStatusChange = (newStatus: string) => {
-    if (!usuario || newStatus === demand.status) return;
+  const handleConclude = () => {
+    if (!usuario) return;
     updateStatus.mutate({
       demandId: demand.id, oldStatus: demand.status,
-      newStatus, userId: usuario.id,
+      newStatus: 'concluida', userId: usuario.id,
     }, {
-      onSuccess: () => toast.success('Status atualizado!'),
+      onSuccess: () => toast.success('Demanda concluída!'),
+      onError: (e: any) => toast.error(e.message),
+    });
+  };
+
+  const handleReopen = () => {
+    if (!usuario) return;
+    updateStatus.mutate({
+      demandId: demand.id, oldStatus: demand.status,
+      newStatus: 'em_andamento', userId: usuario.id,
+    }, {
+      onSuccess: () => toast.success('Demanda reaberta!'),
       onError: (e: any) => toast.error(e.message),
     });
   };
@@ -77,7 +92,7 @@ export default function DemandDetailDialog({ demand, open, onOpenChange }: Deman
     }
   };
 
-  const isOverdue = demand.due_date && demand.due_date < new Date().toISOString().slice(0, 10) && !['concluida', 'cancelada'].includes(demand.status);
+  const isOverdue = demand.due_date && demand.due_date < new Date().toISOString().slice(0, 10) && !isDone;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -90,8 +105,8 @@ export default function DemandDetailDialog({ demand, open, onOpenChange }: Deman
           {/* Meta */}
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline" className="text-xs">{TYPE_LABELS[demand.type] || demand.type}</Badge>
-            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[demand.status] || ''}`}>
-              {STATUS_OPTIONS.find(s => s.value === demand.status)?.label || demand.status}
+            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusBadge.className}`}>
+              {statusBadge.label}
             </span>
             {isOverdue && <Badge variant="destructive" className="text-[10px]">⚠️ Atrasada</Badge>}
           </div>
@@ -105,10 +120,9 @@ export default function DemandDetailDialog({ demand, open, onOpenChange }: Deman
             {demand.item_name && <div><span className="text-muted-foreground text-xs">Item</span><p className="font-medium">{demand.item_name}</p></div>}
             {demand.stock_quantity && <div><span className="text-muted-foreground text-xs">Qtd estoque</span><p className="font-medium">{demand.stock_quantity}</p></div>}
             <div><span className="text-muted-foreground text-xs">Criado em</span><p className="font-medium">{new Date(demand.created_at).toLocaleDateString('pt-BR')}</p></div>
-            <div><span className="text-muted-foreground text-xs">Prioridade</span><p className="font-medium capitalize">{demand.priority}</p></div>
+            <div><span className="text-muted-foreground text-xs">Prioridade</span><p className="font-medium">{PRIORITY_LABELS[demand.priority] ?? demand.priority}</p></div>
           </div>
 
-          {/* Description */}
           {demand.description && (
             <div>
               <span className="text-xs text-muted-foreground">Descrição</span>
@@ -136,16 +150,19 @@ export default function DemandDetailDialog({ demand, open, onOpenChange }: Deman
             </div>
           )}
 
-          {/* Status change */}
-          {usuario && (demand.created_by === usuario.id || demand.assigned_to === usuario.id) && !['concluida', 'cancelada'].includes(demand.status) && (
-            <div>
-              <span className="text-xs text-muted-foreground">Alterar status</span>
-              <Select value={demand.status} onValueChange={handleStatusChange}>
-                <SelectTrigger className="w-48 h-8 text-sm mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+          {/* Action buttons */}
+          {usuario && (demand.created_by === usuario.id || demand.assigned_to === usuario.id) && (
+            <div className="flex gap-2">
+              {!isDone && (
+                <Button size="sm" onClick={handleConclude} className="bg-green-600 hover:bg-green-700 text-white">
+                  ✅ Concluir demanda
+                </Button>
+              )}
+              {isDone && (
+                <Button size="sm" variant="outline" onClick={handleReopen}>
+                  🔄 Reabrir demanda
+                </Button>
+              )}
             </div>
           )}
 
