@@ -121,6 +121,20 @@ export function useUpdateDemandStatus() {
   });
 }
 
+export function useUpdateDemand() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ demandId, updates }: { demandId: string; updates: Partial<Demand> }) => {
+      const { error } = await supabase
+        .from('demands' as any)
+        .update(updates as any)
+        .eq('id', demandId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['demands'] }),
+  });
+}
+
 export function useDemandComments(demandId: string) {
   const qc = useQueryClient();
   const commentsQuery = useQuery({

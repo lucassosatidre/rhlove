@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Eye, Check } from 'lucide-react';
+import { Plus, Eye, Check, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -7,6 +7,7 @@ import { useDemands, useUpdateDemandStatus, useUsuarios, type Demand } from '@/h
 import { useAuth } from '@/contexts/AuthContext';
 import NewDemandDialog from '@/components/demands/NewDemandDialog';
 import DemandDetailDialog from '@/components/demands/DemandDetailDialog';
+import EditDemandDialog from '@/components/demands/EditDemandDialog';
 import { toast } from 'sonner';
 
 const TYPE_OPTIONS = [
@@ -32,7 +33,6 @@ const PRIORITY_OPTIONS = [
 
 const PRIORITY_ORDER: Record<string, number> = {
   imp_urg: 0, imp_nao_urg: 1, urg_nao_imp: 2, nao_urg_nao_imp: 3,
-  // Legacy fallbacks
   urgente: 0, alta: 1, media: 2, baixa: 3,
 };
 
@@ -41,7 +41,6 @@ const PRIORITY_BADGE: Record<string, { label: string; className: string }> = {
   imp_nao_urg: { label: '🟠 Imp. não Urg.', className: 'bg-orange-100 text-orange-700 border-orange-200' },
   urg_nao_imp: { label: '🟡 Urg. não Imp.', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
   nao_urg_nao_imp: { label: '⚪ Não Urg/Imp', className: 'bg-muted text-muted-foreground border-border' },
-  // Legacy
   urgente: { label: '🔴 Imp. + Urg.', className: 'bg-red-100 text-red-700 border-red-200' },
   alta: { label: '🟠 Imp. não Urg.', className: 'bg-orange-100 text-orange-700 border-orange-200' },
   media: { label: '🟡 Urg. não Imp.', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
@@ -56,7 +55,6 @@ const TYPE_ICON: Record<string, string> = {
 const STATUS_BADGE: Record<string, { label: string; className: string }> = {
   em_andamento: { label: '🟡 Em andamento', className: 'bg-yellow-100 text-yellow-700' },
   concluida: { label: '✅ Concluído', className: 'bg-green-100 text-green-700' },
-  // Legacy
   aberta: { label: '🟡 Em andamento', className: 'bg-yellow-100 text-yellow-700' },
   aguardando_aprovacao: { label: '🟡 Em andamento', className: 'bg-yellow-100 text-yellow-700' },
   cancelada: { label: '✅ Concluído', className: 'bg-green-100 text-green-700' },
@@ -69,11 +67,14 @@ export default function Demandas() {
   const updateStatus = useUpdateDemandStatus();
   const [newOpen, setNewOpen] = useState(false);
   const [selectedDemand, setSelectedDemand] = useState<Demand | null>(null);
+  const [editDemand, setEditDemand] = useState<Demand | null>(null);
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
 
+  const isAdmin = usuario?.perfil === 'admin';
   const userMap = useMemo(() => new Map(usuarios.map(u => [u.id, u.nome])), [usuarios]);
+  const today = new Date().toISOString().slice(0, 10);
 
   const demands = useMemo(() => {
     let list = allDemands;
@@ -114,7 +115,6 @@ export default function Demandas() {
         </Button>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-40 h-9 text-sm"><SelectValue /></SelectTrigger>
@@ -137,7 +137,6 @@ export default function Demandas() {
         <span className="text-xs text-muted-foreground">{demands.length} demanda(s)</span>
       </div>
 
-      {/* Table */}
       {isLoading ? (
         <p className="text-sm text-muted-foreground text-center py-8">Carregando...</p>
       ) : demands.length === 0 ? (
@@ -149,11 +148,13 @@ export default function Demandas() {
               <TableRow className="bg-muted/50">
                 <TableHead className="w-12">Tipo</TableHead>
                 <TableHead>Título</TableHead>
-                <TableHead className="w-32">Responsável</TableHead>
+                <TableHead className="w-28">Solicitante</TableHead>
+                <TableHead className="w-28">Destinatário</TableHead>
                 <TableHead className="w-36">Prioridade</TableHead>
-                <TableHead className="w-36">Status</TableHead>
-                <TableHead className="w-24">Data</TableHead>
-                <TableHead className="w-20 text-center">Ações</TableHead>
+                <TableHead className="w-32">Status</TableHead>
+                <TableHead className="w-28">Prazo</TableHead>
+                <TableHead className="w-24">Criação</TableHead>
+                <TableHead className="w-24 text-center">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -161,6 +162,7 @@ export default function Demandas() {
                 const prioBadge = PRIORITY_BADGE[d.priority] ?? PRIORITY_BADGE.media;
                 const statusBadge = STATUS_BADGE[d.status] ?? STATUS_BADGE.em_andamento;
                 const isDone = ['concluida', 'cancelada'].includes(d.status);
+                const isOverdue = d.due_date && d.due_date < today && !isDone;
                 return (
                   <TableRow key={d.id} className={isDone ? 'opacity-60' : ''}>
                     <TableCell className="text-center text-lg">{TYPE_ICON[d.type] ?? '✅'}</TableCell>
@@ -168,6 +170,7 @@ export default function Demandas() {
                       <div className="font-semibold text-sm line-clamp-1">{d.title}</div>
                       {d.description && <div className="text-xs text-muted-foreground line-clamp-1">{d.description}</div>}
                     </TableCell>
+                    <TableCell className="text-sm">{userMap.get(d.created_by) ?? '—'}</TableCell>
                     <TableCell className="text-sm">{d.assigned_to ? (userMap.get(d.assigned_to) ?? '—') : '—'}</TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border ${prioBadge.className}`}>
@@ -179,6 +182,16 @@ export default function Demandas() {
                         {statusBadge.label}
                       </span>
                     </TableCell>
+                    <TableCell>
+                      {d.due_date ? (
+                        <span className={`text-xs ${isOverdue ? 'text-destructive font-semibold' : 'text-muted-foreground'}`}>
+                          {new Date(d.due_date + 'T12:00').toLocaleDateString('pt-BR')}
+                          {isOverdue && <span className="ml-1">⚠️</span>}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {new Date(d.created_at).toLocaleDateString('pt-BR')}
                     </TableCell>
@@ -187,6 +200,11 @@ export default function Demandas() {
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setSelectedDemand(d)}>
                           <Eye className="w-4 h-4" />
                         </Button>
+                        {isAdmin && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditDemand(d)}>
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        )}
                         {!isDone && (
                           <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600 hover:text-green-700" onClick={() => handleConclude(d)}>
                             <Check className="w-4 h-4" />
@@ -209,6 +227,14 @@ export default function Demandas() {
           demand={selectedDemand}
           open={!!selectedDemand}
           onOpenChange={open => { if (!open) setSelectedDemand(null); }}
+        />
+      )}
+
+      {editDemand && (
+        <EditDemandDialog
+          demand={editDemand}
+          open={!!editDemand}
+          onOpenChange={open => { if (!open) setEditDemand(null); }}
         />
       )}
     </div>

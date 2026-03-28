@@ -50,10 +50,10 @@ export default function NewDemandDialog({ open, onOpenChange }: NewDemandDialogP
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const needsAssignee = type === 'tarefa';
   const needsSector = type === 'manutencao';
   const needsItem = type === 'compra';
   const needsPhotos = type === 'manutencao';
+  const assigneeRequired = type === 'tarefa';
 
   const reset = () => {
     setType(''); setTitle(''); setDescription(''); setAssignedTo('');
@@ -66,7 +66,7 @@ export default function NewDemandDialog({ open, onOpenChange }: NewDemandDialogP
       toast.error('Preencha os campos obrigatórios (Tipo e Título).');
       return;
     }
-    if (needsAssignee && !assignedTo) {
+    if (assigneeRequired && !assignedTo) {
       toast.error('Selecione o destinatário.');
       return;
     }
@@ -94,7 +94,7 @@ export default function NewDemandDialog({ open, onOpenChange }: NewDemandDialogP
         type,
         priority,
         sector: sector || null,
-        assigned_to: assignedTo || null,
+        assigned_to: (assignedTo && assignedTo !== 'none') ? assignedTo : null,
         created_by: usuario.id,
         due_date: dueDate || null,
         photos: photoPaths,
@@ -141,26 +141,31 @@ export default function NewDemandDialog({ open, onOpenChange }: NewDemandDialogP
             <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Resumo da demanda" />
           </div>
 
+          {/* Solicitante */}
+          <div>
+            <Label>Solicitante</Label>
+            <Input value={usuario?.nome ?? ''} disabled className="bg-muted" />
+          </div>
+
           {/* Description */}
           <div>
             <Label>Descrição</Label>
             <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Detalhes..." rows={3} />
           </div>
 
-          {/* Conditional: Assignee */}
-          {needsAssignee && (
-            <div>
-              <Label>Direcionado para <span className="text-destructive">*</span></Label>
-              <Select value={assignedTo} onValueChange={setAssignedTo}>
-                <SelectTrigger><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
-                <SelectContent>
-                  {assigneeOptions.map(u => (
-                    <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          {/* Assignee — always visible */}
+          <div>
+            <Label>Destinatário {assigneeRequired && <span className="text-destructive">*</span>}</Label>
+            <Select value={assignedTo} onValueChange={setAssignedTo}>
+              <SelectTrigger><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
+              <SelectContent>
+                {!assigneeRequired && <SelectItem value="none">— Nenhum —</SelectItem>}
+                {assigneeOptions.map(u => (
+                  <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Conditional: Sector */}
           {needsSector && (
