@@ -248,7 +248,7 @@ export default function EspelhoPonto() {
       else if (isFolga) { status = '🏖️ Folga'; statusEmoji = '🏖️'; }
       else if (isFaltaJustificada && !entrada) { status = '❌ Falta justificada'; statusEmoji = '❌'; }
       else if (entrada && saida) { status = '✅ Normal'; statusEmoji = '✅'; }
-      else if (entrada && !saida) { status = '⚠️ Saída pendente'; statusEmoji = '⚠️'; }
+      else if (entrada && !saida) { status = '⚠️ Batida pendente'; statusEmoji = '⚠️'; }
 
       // Override isFolga for afastamento/atestado/compensacao so jornada engine skips CH
       if (isAtestado || isCompensacao) {
@@ -412,7 +412,7 @@ export default function EspelhoPonto() {
   const isInconsistentDay = useCallback((r: typeof rows[0]) => {
     if (r.isFuture || r.isFolga || r.isVacation || r.isAfastamento || r.isHoliday) return false;
     if (r.status === '❌ Falta') return true;
-    if (r.status === '⚠️ Saída pendente') return true;
+    if (r.status === '⚠️ Batida pendente') return true;
     const filled = [r.entrada, r.saidaInt, r.retornoInt, r.saida].filter(Boolean).length;
     if (filled > 0 && filled < 4) return true;
     if (r.hoursMin != null && r.hoursMin > 14 * 60) return true;

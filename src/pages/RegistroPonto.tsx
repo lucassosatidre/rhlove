@@ -36,7 +36,7 @@ interface Inconsistency {
 
 const TYPE_LABELS: Record<InconsistencyType, string> = {
   incomplete: 'Batidas incompletas',
-  saida_pendente: 'Saída pendente',
+  saida_pendente: 'Batida pendente',
   sem_intervalo: 'Sem intervalo',
   jornada_longa: 'Jornada > 14h',
   jornada_curta: 'Jornada < 2h',
