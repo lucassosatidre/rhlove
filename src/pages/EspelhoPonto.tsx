@@ -26,6 +26,8 @@ import { useQuery } from '@tanstack/react-query';
 import type { Collaborator, DayOfWeek } from '@/types/collaborator';
 import PrintHeader, { PrintFooter } from '@/components/PrintHeader';
 import { UpdatePunchesDialog } from '@/components/ponto/UpdatePunchesDialog';
+import { inferPunchSlots, calculatePattern } from '@/lib/punchInference';
+import type { PunchRecord } from '@/hooks/usePunchRecords';
 
 const WEEKDAY_MAP: Record<number, DayOfWeek> = {
   0: 'DOMINGO', 1: 'SEGUNDA', 2: 'TERCA', 3: 'QUARTA', 4: 'QUINTA', 5: 'SEXTA', 6: 'SABADO',
