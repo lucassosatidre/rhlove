@@ -92,7 +92,10 @@ export default function EspelhoPonto() {
 
   const { data: collaborators = [] } = useCollaborators();
   const { data: punchRecords = [] } = usePunchRecords(selectedMonth, selectedYear);
-  const monthStart = format(new Date(selectedYear, selectedMonth, 1), 'yyyy-MM-dd');
+  // Expand range by 7 days before month start for swap events whose week_start is in previous month
+  const monthStartDate = new Date(selectedYear, selectedMonth, 1);
+  const expandedStart = new Date(monthStartDate); expandedStart.setDate(expandedStart.getDate() - 7);
+  const monthStart = format(expandedStart, 'yyyy-MM-dd');
   const monthEnd = format(new Date(selectedYear, selectedMonth, getDaysInMonth(new Date(selectedYear, selectedMonth))), 'yyyy-MM-dd');
   const { data: scheduleEvents = [] } = useScheduleEvents(monthStart, monthEnd);
   const { data: vacations = [] } = useScheduledVacations();
