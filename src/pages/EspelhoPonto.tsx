@@ -17,7 +17,7 @@ import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { usePunchRecords } from '@/hooks/usePunchRecords';
-import { useScheduleEvents } from '@/hooks/useScheduleEvents';
+import { useScheduleEvents, buildSwapOverrides, buildEventsMap } from '@/hooks/useScheduleEvents';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
@@ -92,7 +92,10 @@ export default function EspelhoPonto() {
 
   const { data: collaborators = [] } = useCollaborators();
   const { data: punchRecords = [] } = usePunchRecords(selectedMonth, selectedYear);
-  const monthStart = format(new Date(selectedYear, selectedMonth, 1), 'yyyy-MM-dd');
+  // Expand range by 7 days before month start for swap events whose week_start is in previous month
+  const monthStartDate = new Date(selectedYear, selectedMonth, 1);
+  const expandedStart = new Date(monthStartDate); expandedStart.setDate(expandedStart.getDate() - 7);
+  const monthStart = format(expandedStart, 'yyyy-MM-dd');
   const monthEnd = format(new Date(selectedYear, selectedMonth, getDaysInMonth(new Date(selectedYear, selectedMonth))), 'yyyy-MM-dd');
   const { data: scheduleEvents = [] } = useScheduleEvents(monthStart, monthEnd);
   const { data: vacations = [] } = useScheduledVacations();
@@ -147,6 +150,19 @@ export default function EspelhoPonto() {
     isAutoInterval: boolean;
   };
 
+  // Build swap overrides and events map from schedule_events
+  const swapOverrides = useMemo(() => buildSwapOverrides(scheduleEvents), [scheduleEvents]);
+  const eventsMap = useMemo(() => buildEventsMap(scheduleEvents), [scheduleEvents]);
+
+  // Helper: get the Monday (week_start) for a given date
+  const getWeekStart = (date: Date): string => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    d.setDate(d.getDate() + diff);
+    return format(d, 'yyyy-MM-dd');
+  };
+
   const rows: DayRow[] = useMemo(() => {
     if (!selected) return [];
     const collabPunches = punchRecords.filter(p => p.collaborator_id === selected.id);
@@ -160,20 +176,17 @@ export default function EspelhoPonto() {
       const wd = WEEKDAY_MAP[getDay(dateObj)];
       const weekday = format(dateObj, 'EEE', { locale: ptBR });
 
-      // punch_records already stores dates with the 03:00 rule applied
-      // (00:00-02:59 punches belong to previous day), so just look up directly
       const punch = punchMap.get(iso);
       let entrada = punch?.entrada ?? null;
       let saida = punch?.saida ?? null;
       let saidaInt = punch?.saida_intervalo ?? null;
       let retornoInt = punch?.retorno_intervalo ?? null;
 
-      // Auto-interval: if collaborator has intervalo_automatico and day has exactly 2 punches
+      // Auto-interval
       let isAutoInterval = false;
       if (selected.intervalo_automatico && selected.intervalo_inicio && selected.intervalo_duracao) {
         const filledPunches = [entrada, saidaInt, retornoInt, saida].filter(Boolean) as string[];
         if (filledPunches.length === 2) {
-          // Two punches = entrada + saída; auto-fill interval between them (overnight-aware sort)
           const osk = (t: string) => { const h = parseInt(t.split(':')[0]); return h < 3 ? parseInt(t.replace(':', '')) + 2400 : parseInt(t.replace(':', '')); };
           const sorted = [...filledPunches].sort((a, b) => osk(a) - osk(b));
           entrada = sorted[0];
@@ -193,34 +206,60 @@ export default function EspelhoPonto() {
       const isHoliday = holidaySet.has(iso);
       const isVacation = vacations.some(v => v.collaborator_id === selected.id && iso >= v.data_inicio_ferias && iso <= v.data_fim_ferias);
       const isAfastamento = afastamentos.some(a => a.collaborator_id === selected.id && iso >= a.data_inicio && iso <= a.data_fim);
-      const isFolgaSemanal = selected.folgas_semanais?.includes(wd);
-      let isFolgaDomingo = false;
-      if (selected.sunday_n > 0 && getDay(dateObj) === 0) {
+
+      // --- Day-off logic with swap overrides ---
+      const weekStart = getWeekStart(dateObj);
+      const overrideKey = `${weekStart}|${selected.id}`;
+      const override = swapOverrides.get(overrideKey);
+
+      // Base folga (fixed schedule)
+      let isBaseFolga = !!selected.folgas_semanais?.includes(wd);
+      if (!isBaseFolga && selected.sunday_n > 0 && getDay(dateObj) === 0) {
         let sundayCount = 0;
         for (let day = 1; day <= d; day++) {
           if (getDay(new Date(selectedYear, selectedMonth, day)) === 0) sundayCount++;
         }
-        if (sundayCount === selected.sunday_n) isFolgaDomingo = true;
+        if (sundayCount === selected.sunday_n) isBaseFolga = true;
       }
-      const isFolgaEvent = scheduleEvents.some(e =>
-        e.collaborator_id === selected.id && e.event_date === iso && (e.event_type === 'TROCA_FOLGA' || e.event_type === 'MUDANCA_FOLGA') && e.status === 'ATIVO'
-      );
-      const isFolga = !!(isFolgaSemanal || isFolgaEvent || isFolgaDomingo);
 
+      // Apply swap overrides: removeDays removes a folga, addDays adds a folga
+      let isFolga = isBaseFolga;
+      if (override) {
+        const wdLower = wd.toLowerCase();
+        if (override.removeDays.some(rd => rd?.toLowerCase() === wdLower)) isFolga = false;
+        if (override.addDays.some(ad => ad?.toLowerCase() === wdLower)) isFolga = true;
+      }
+
+      // Check schedule_events for this date/collaborator (FALTA, ATESTADO, COMPENSACAO)
+      const dayEvents = eventsMap[iso]?.[selected.id] ?? [];
+      const isFaltaJustificada = dayEvents.some(e => e.event_type === 'FALTA' && e.status === 'ATIVO');
+      const isAtestado = dayEvents.some(e => e.event_type === 'ATESTADO' && e.status === 'ATIVO');
+      const isCompensacao = dayEvents.some(e => e.event_type === 'COMPENSACAO' && e.status === 'ATIVO');
+      const isTrocaFolga = override && (override.addDays.some(ad => ad?.toLowerCase() === wd.toLowerCase()));
+
+      // Determine status
       let status = isFuture ? '—' : '❌ Falta';
       let statusEmoji = isFuture ? '—' : '❌';
-      if (isVacation) { status = '🌴 Férias'; statusEmoji = '🌴'; }
-      else if (isAfastamento) { status = '🏥 Afastamento'; statusEmoji = '🏥'; }
+      if (isVacation) { status = '📅 Férias'; statusEmoji = '📅'; }
+      else if (isAfastamento || isAtestado) { status = '🏥 Afastado'; statusEmoji = '🏥'; }
       else if (isHoliday) { status = '🎉 Feriado'; statusEmoji = '🎉'; }
+      else if (isCompensacao) { status = '🎉 Compensação'; statusEmoji = '🎉'; isFolga = true; }
+      else if (isFolga && isTrocaFolga) { status = '🔄 Folga (troca)'; statusEmoji = '🔄'; }
       else if (isFolga) { status = '🏖️ Folga'; statusEmoji = '🏖️'; }
+      else if (isFaltaJustificada && !entrada) { status = '❌ Falta justificada'; statusEmoji = '❌'; }
       else if (entrada && saida) { status = '✅ Normal'; statusEmoji = '✅'; }
       else if (entrada && !saida) { status = '⚠️ Saída pendente'; statusEmoji = '⚠️'; }
 
+      // Override isFolga for afastamento/atestado/compensacao so jornada engine skips CH
+      if (isAtestado || isCompensacao) {
+        isFolga = true;
+      }
+
       const isAdjusted = punch ? !!(punch as any).adjusted_at : false;
-      result.push({ date: iso, dateObj, weekday, entrada, saidaInt, retornoInt, saida, hoursMin, status, statusEmoji, isAdjusted, isFolga, isVacation, isAfastamento, isHoliday, isFuture, isAutoInterval });
+      result.push({ date: iso, dateObj, weekday, entrada, saidaInt, retornoInt, saida, hoursMin, status, statusEmoji, isAdjusted, isFolga, isVacation, isAfastamento: isAfastamento || isAtestado, isHoliday, isFuture, isAutoInterval });
     }
     return result;
-  }, [selected, selectedMonth, selectedYear, daysInMonth, punchRecords, scheduleEvents, vacations, afastamentos, holidaySet]);
+  }, [selected, selectedMonth, selectedYear, daysInMonth, punchRecords, swapOverrides, eventsMap, vacations, afastamentos, holidaySet]);
 
   // Jornada calculations
   const { jornadaRows, jornadaTotals, consecutiveSundaysEnd } = useMemo(() => {
