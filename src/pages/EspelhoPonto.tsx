@@ -535,7 +535,7 @@ export default function EspelhoPonto() {
   const adjCollabName = adjustmentCollaborator?.name ?? selected?.collaborator_name ?? '';
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden print:overflow-visible print:h-auto">
+    <div className="flex flex-col h-[calc(100vh-6rem)] -m-4 md:-m-6 lg:-m-8 overflow-hidden print:overflow-visible print:h-auto print:m-0">
       <PrintHeader title="Espelho de Ponto" subtitle={selected ? `${selected.collaborator_name} — ${selected.sector} — ${MONTHS[selectedMonth].label}/${selectedYear}` : undefined} />
 
       <div className="flex flex-1 min-h-0 gap-3 p-2 print:p-0 print:block">
