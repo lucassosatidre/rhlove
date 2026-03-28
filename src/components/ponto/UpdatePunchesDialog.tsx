@@ -234,12 +234,19 @@ export function UpdatePunchesDialog({ open, onOpenChange, collaborators }: Props
             continue;
           }
 
+          let entrada = day.entrada;
+          let saida = day.saida;
           let saidaInt = day.saidaIntervalo;
           let retornoInt = day.retornoIntervalo;
 
           // Auto-fill interval for collaborators with intervalo_automatico
           if (collab.intervalo_automatico && collab.intervalo_inicio && collab.intervalo_duracao) {
-            if (day.entrada && day.saida && !saidaInt && !retornoInt) {
+            const filledPunches = [entrada, saidaInt, retornoInt, saida].filter(Boolean) as string[];
+            if (filledPunches.length === 2) {
+              // Two punches = entrada + saída; auto-fill interval
+              const sorted = filledPunches.sort();
+              entrada = sorted[0];
+              saida = sorted[1];
               saidaInt = collab.intervalo_inicio;
               const [ih, im] = collab.intervalo_inicio.split(':').map(Number);
               const totalMin = ih * 60 + im + collab.intervalo_duracao;
@@ -252,10 +259,10 @@ export function UpdatePunchesDialog({ open, onOpenChange, collaborators }: Props
             collaborator_id: collab.id,
             collaborator_name: collab.collaborator_name,
             date: day.date,
-            entrada: day.entrada,
+            entrada: entrada,
             saida_intervalo: saidaInt,
             retorno_intervalo: retornoInt,
-            saida: day.saida,
+            saida: saida,
           });
           importedDays++;
         }

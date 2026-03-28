@@ -168,10 +168,15 @@ export default function EspelhoPonto() {
       let saidaInt = punch?.saida_intervalo ?? null;
       let retornoInt = punch?.retorno_intervalo ?? null;
 
-      // Auto-interval: if collaborator has intervalo_automatico and day has only entrada+saida (no interval)
+      // Auto-interval: if collaborator has intervalo_automatico and day has exactly 2 punches
       let isAutoInterval = false;
       if (selected.intervalo_automatico && selected.intervalo_inicio && selected.intervalo_duracao) {
-        if (entrada && saida && !saidaInt && !retornoInt) {
+        const filledPunches = [entrada, saidaInt, retornoInt, saida].filter(Boolean) as string[];
+        if (filledPunches.length === 2) {
+          // Two punches = entrada + saída; auto-fill interval between them
+          const sorted = filledPunches.sort();
+          entrada = sorted[0];
+          saida = sorted[1];
           saidaInt = selected.intervalo_inicio;
           const [ih, im] = selected.intervalo_inicio.split(':').map(Number);
           const totalMin = ih * 60 + im + selected.intervalo_duracao;
