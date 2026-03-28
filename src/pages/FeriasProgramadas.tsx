@@ -468,6 +468,84 @@ export default function FeriasProgramadas() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <VacationHistory />
     </div>
+  );
+}
+
+function VacationHistory() {
+  const { data: afastamentos = [], isLoading } = useAfastamentos();
+  const ferias = useMemo(
+    () => afastamentos.filter(a => a.motivo === 'Férias'),
+    [afastamentos]
+  );
+
+  function formatDateBR2(s: string) {
+    const [y, m, d] = s.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function calcDias(inicio: string, fim: string) {
+    const d1 = new Date(inicio + 'T00:00:00');
+    const d2 = new Date(fim + 'T00:00:00');
+    return Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1;
+  }
+
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  return (
+    <Card className="mt-6">
+      <CardHeader>
+        <CardTitle className="text-base">Histórico de Férias (Afastamentos)</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground">Carregando...</p>
+        ) : ferias.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum histórico de férias registrado.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Colaborador</TableHead>
+                <TableHead>Setor</TableHead>
+                <TableHead>Data Início</TableHead>
+                <TableHead>Data Fim</TableHead>
+                <TableHead>Dias</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Registrado por</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {ferias.map(a => {
+                const isActive = todayStr >= a.data_inicio && todayStr <= a.data_fim;
+                const isPast = todayStr > a.data_fim;
+                return (
+                  <TableRow key={a.id}>
+                    <TableCell className="font-medium">{a.collaborator_name}</TableCell>
+                    <TableCell>{a.sector}</TableCell>
+                    <TableCell>{formatDateBR2(a.data_inicio)}</TableCell>
+                    <TableCell>{formatDateBR2(a.data_fim)}</TableCell>
+                    <TableCell>{calcDias(a.data_inicio, a.data_fim)}</TableCell>
+                    <TableCell>
+                      {isActive ? (
+                        <Badge variant="destructive">Ativo</Badge>
+                      ) : isPast ? (
+                        <Badge variant="secondary">Encerrado</Badge>
+                      ) : (
+                        <Badge variant="outline">Futuro</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{a.created_by || '—'}</TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 }
