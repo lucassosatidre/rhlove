@@ -336,6 +336,15 @@ export default function CollaboratorActionMenu({
               <ArrowLeftRight className="w-4 h-4 text-orange-500" />
               Ajustar folga nesta semana
             </button>
+            {isSunday && hasSundayN && (
+              <button
+                className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent transition-colors"
+                onClick={() => openDialog('TROCA_DOMINGO')}
+              >
+                <CalendarDays className="w-4 h-4 text-purple-500" />
+                Alterar domingo de folga
+              </button>
+            )}
           </div>
         </PopoverContent>
       </Popover>
