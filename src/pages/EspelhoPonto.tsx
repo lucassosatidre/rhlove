@@ -535,27 +535,21 @@ export default function EspelhoPonto() {
   // Export Excel — exports exactly what's visible in the table
   const exportExcel = () => {
     if (displayRows.length === 0) return;
-    const data = displayRows.map(r => ({
-      'Colaborador': r.collaboratorName,
-      'Data': format(r.dateObj, 'dd/MM/yyyy'),
-      'Entrada': r.entrada ?? '',
-      'Saída Intervalo': r.saidaInt ?? '',
-      'Retorno Intervalo': r.retornoInt ?? '',
-      'Saída': r.saida ?? '',
-      'Ajuste': '',
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    // Auto-fit column widths
-    const cols = [
-      { wch: 25 }, // Colaborador
-      { wch: 12 }, // Data
-      { wch: 8 },  // Entrada
-      { wch: 16 }, // Saída Intervalo
-      { wch: 18 }, // Retorno Intervalo
-      { wch: 8 },  // Saída
-      { wch: 12 }, // Ajuste
+    const rows = displayRows.map(r => [
+      r.collaboratorName,
+      format(r.dateObj, 'dd/MM/yyyy'),
+      r.entrada ?? '',
+      r.saidaInt ?? '',
+      r.retornoInt ?? '',
+      r.saida ?? '',
+      '',
+    ]);
+    // Header row: only Colaborador, Data and Ajuste have labels; C-F are blank
+    const header = ['Colaborador', 'Data', '', '', '', '', 'Ajuste'];
+    const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
+    ws['!cols'] = [
+      { wch: 25 }, { wch: 12 }, { wch: 8 }, { wch: 16 }, { wch: 18 }, { wch: 8 }, { wch: 12 },
     ];
-    ws['!cols'] = cols;
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Espelho');
     XLSX.writeFile(wb, `espelho-ponto-${MONTHS[selectedMonth].label}-${selectedYear}.xlsx`);
