@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Trash2 } from 'lucide-react';
+import { assignPunchSlots, type PunchSlots } from '@/lib/punchInference';
 
 interface PunchAdjustmentDialogProps {
   open: boolean;
