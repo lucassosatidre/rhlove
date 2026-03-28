@@ -128,8 +128,23 @@ export default function RegistroPonto() {
   const [filterDateTo, setFilterDateTo] = useState('');
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const { data: collaborators = [] } = useCollaborators();
+  const queryClient = useQueryClient();
   const { data: punchRecords = [] } = usePunchRecords();
 
+  // Realtime subscription to auto-refresh when punch_records change
+  useEffect(() => {
+    const channel = supabase
+      .channel('registro-ponto-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'punch_records' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['punch_records'] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
   // Build collaborator_id -> PIS map
   const collabPisMap = useMemo(() => {
     const map: Record<string, string> = {};
