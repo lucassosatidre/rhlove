@@ -485,9 +485,9 @@ export default function EspelhoPonto() {
     if (!collab) return;
     const currentValues = { entrada: row.entrada, saida_intervalo: row.saidaInt, retorno_intervalo: row.retornoInt, saida: row.saida };
     currentValues[field] = newValue;
-    const rawTimes = [currentValues.entrada, currentValues.saida_intervalo, currentValues.retorno_intervalo, currentValues.saida];
+    const rawTimes = [currentValues.entrada, currentValues.saida_intervalo, currentValues.retorno_intervalo, currentValues.saida].filter((t): t is string => !!t && t.trim() !== '');
     const pattern = patternCache.get(row.collaboratorId) ?? null;
-    const sorted = inferPunchSlots(rawTimes, pattern);
+    const sorted = assignPunchSlots(rawTimes, pattern);
     const allEmpty = !sorted.entrada && !sorted.saida_intervalo && !sorted.retorno_intervalo && !sorted.saida;
     try {
       if (allEmpty) {
