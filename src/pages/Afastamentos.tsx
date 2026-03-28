@@ -14,6 +14,23 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Pencil, Trash2, UserMinus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+const MOTIVOS = [
+  'Férias', 'Atestado', 'Ajuste de Escala', 'Abono', 'Licença Médica',
+  'Licença Maternidade/Paternidade', 'Falta Justificada', 'Falta Injustificada', 'Outro',
+] as const;
+
+const MOTIVO_COLORS: Record<string, string> = {
+  'Férias': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  'Atestado': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  'Ajuste de Escala': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  'Abono': 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+  'Licença Médica': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  'Licença Maternidade/Paternidade': 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400',
+  'Falta Justificada': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+  'Falta Injustificada': 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+  'Outro': 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400',
+};
+
 function formatDateBR(s: string) {
   const [y, m, d] = s.split('-');
   return `${d}/${m}/${y}`;
