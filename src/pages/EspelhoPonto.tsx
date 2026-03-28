@@ -683,11 +683,9 @@ export default function EspelhoPonto() {
               <Button variant="default" size="sm" className="text-xs" onClick={() => setUpdateDialogOpen(true)}>
                 <RefreshCw className="w-3.5 h-3.5 mr-1" /> Atualizar Batidas
               </Button>
-              {selected && (
-                <Button variant="outline" size="sm" className="text-xs" onClick={exportExcel}>
-                  <Download className="w-3.5 h-3.5 mr-1" /> Excel
-                </Button>
-              )}
+              <Button variant="outline" size="sm" className="text-xs" onClick={exportExcel} disabled={displayRows.length === 0}>
+                <Download className="w-3.5 h-3.5 mr-1" /> Excel
+              </Button>
             </div>
           </div>
 
