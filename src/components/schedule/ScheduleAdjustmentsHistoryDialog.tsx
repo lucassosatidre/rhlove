@@ -61,6 +61,11 @@ const EVENT_CONFIG: Record<string, { label: string; icon: React.ReactNode; badge
     icon: <ArrowRight className="w-4 h-4 text-orange-500" />,
     badgeClass: 'bg-orange-500 text-white',
   },
+  TROCA_DOMINGO: {
+    label: 'Troca de domingo',
+    icon: <ArrowLeftRight className="w-4 h-4 text-purple-500" />,
+    badgeClass: 'bg-purple-500 text-white',
+  },
 };
 
 const getDateDisplay = (event: ScheduleEvent) => {
