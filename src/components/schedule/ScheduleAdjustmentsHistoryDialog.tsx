@@ -88,6 +88,11 @@ const getDetailDisplay = (event: ScheduleEvent) => {
     const next = DAY_LABELS[event.swapped_day || ''] || event.swapped_day || '—';
     return `${original} → ${next}`;
   }
+  if (event.event_type === 'TROCA_DOMINGO') {
+    const origDate = event.original_day ? formatDateBR(event.original_day) : '—';
+    const newDate = event.swapped_day ? formatDateBR(event.swapped_day) : '—';
+    return `Dom ${origDate} → Dom ${newDate}`;
+  }
   return '—';
 };
 
