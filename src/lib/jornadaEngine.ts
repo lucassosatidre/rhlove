@@ -153,8 +153,10 @@ export function calculateJornada(
       }
     }
 
-    // Days off, vacation, leave, holiday → no CH prevista
-    if (day.isFolga || day.isVacation || day.isAfastamento || day.isHoliday) {
+    // Days off, vacation, leave → no CH prevista
+    // NOTE: Holidays are NOT included here — they are calculated as normal working days
+    // (the company grants compensatory time off instead of paying extra)
+    if (day.isFolga || day.isVacation || day.isAfastamento) {
       if (day.hoursWorkedMin && day.hoursWorkedMin > 0) {
         row.extraBH = day.hoursWorkedMin;
         row.saldoBH = day.hoursWorkedMin;

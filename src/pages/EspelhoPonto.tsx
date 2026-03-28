@@ -308,7 +308,7 @@ export default function EspelhoPonto() {
 
       // Detect inconsistency tags for working days
       let tags: InconsistencyTag[] = [];
-      if (!isFuture && !isFolga && !isVacation && !(isAfastamento || isAtestado) && !isHoliday && !isCompensacao) {
+      if (!isFuture && !isFolga && !isVacation && !(isAfastamento || isAtestado) && !isCompensacao) {
         tags = detectTags(entrada, saida, saidaInt, retornoInt);
         // Falta is also an inconsistency
         if (status === '❌ Falta') tags = ['batida_pendente'];
@@ -357,7 +357,7 @@ export default function EspelhoPonto() {
           chForDay = eh * 60 + (em || 0);
         }
       }
-      if (avisoReducao > 0 && !isFolga && !isVacation && !isAfastamento && !isHoliday) {
+      if (avisoReducao > 0 && !isFolga && !isVacation && !isAfastamento) {
         chForDay = Math.max(0, chForDay - avisoReducao);
       }
       return {
@@ -594,7 +594,17 @@ export default function EspelhoPonto() {
     if (isExtra100) return <span className="text-[10px] text-pink-600 font-medium">💯 Art.386</span>;
 
     // Map status to colored tags
-    if (row.status.includes('Folga')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-sky-100 text-sky-700 border border-sky-200">🏖️ Folga</span>;
+    if (row.status.includes('Folga')) {
+      const hasPunches = row.entrada || row.saida;
+      return (
+        <span className="inline-flex items-center gap-1">
+          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium ${hasPunches ? 'bg-amber-100 text-amber-700 border border-amber-300' : 'bg-sky-100 text-sky-700 border border-sky-200'}`}>🏖️ Folga</span>
+          {hasPunches && (
+            <span className="text-amber-500 cursor-help" title="Atenção: existem batidas registradas neste dia de folga">⚠️</span>
+          )}
+        </span>
+      );
+    }
     if (row.status.includes('Férias')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-emerald-100 text-emerald-700 border border-emerald-200">🌴 Férias</span>;
     if (row.status.includes('Afastado')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-purple-100 text-purple-700 border border-purple-200">🏥 Afastamento</span>;
     if (row.status.includes('Feriado')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-700 border border-amber-200">🎉 Feriado</span>;
