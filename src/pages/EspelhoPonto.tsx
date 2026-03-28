@@ -470,15 +470,7 @@ export default function EspelhoPonto() {
     const times = [currentValues.entrada, currentValues.saida_intervalo, currentValues.retorno_intervalo, currentValues.saida].filter(Boolean) as string[];
     const osk = (t: string) => { const h = parseInt(t.split(':')[0]); return h < 3 ? parseInt(t.replace(':', '')) + 2400 : parseInt(t.replace(':', '')); };
     times.sort((a, b) => osk(a) - osk(b));
-    const sorted = { entrada: null as string | null, saida_intervalo: null as string | null, retorno_intervalo: null as string | null, saida: null as string | null };
-    if (times.length >= 1) sorted.entrada = times[0];
-    if (times.length >= 2) sorted.saida_intervalo = times[1];
-    if (times.length >= 3) sorted.retorno_intervalo = times[2];
-    if (times.length >= 4) sorted.saida = times[3];
-    if (times.length === 1) {
-      sorted.entrada = null; sorted.saida_intervalo = null; sorted.retorno_intervalo = null; sorted.saida = null;
-      sorted[field] = times[0];
-    }
+    const sorted = { entrada: times[0] ?? null, saida_intervalo: times[1] ?? null, retorno_intervalo: times[2] ?? null, saida: times[3] ?? null } as Record<string, string | null>;
     const allEmpty = !sorted.entrada && !sorted.saida_intervalo && !sorted.retorno_intervalo && !sorted.saida;
     try {
       if (allEmpty) {
