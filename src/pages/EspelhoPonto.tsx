@@ -470,15 +470,7 @@ export default function EspelhoPonto() {
     const times = [currentValues.entrada, currentValues.saida_intervalo, currentValues.retorno_intervalo, currentValues.saida].filter(Boolean) as string[];
     const osk = (t: string) => { const h = parseInt(t.split(':')[0]); return h < 3 ? parseInt(t.replace(':', '')) + 2400 : parseInt(t.replace(':', '')); };
     times.sort((a, b) => osk(a) - osk(b));
-    const sorted = { entrada: null as string | null, saida_intervalo: null as string | null, retorno_intervalo: null as string | null, saida: null as string | null };
-    if (times.length >= 1) sorted.entrada = times[0];
-    if (times.length >= 2) sorted.saida_intervalo = times[1];
-    if (times.length >= 3) sorted.retorno_intervalo = times[2];
-    if (times.length >= 4) sorted.saida = times[3];
-    if (times.length === 1) {
-      sorted.entrada = null; sorted.saida_intervalo = null; sorted.retorno_intervalo = null; sorted.saida = null;
-      sorted[field] = times[0];
-    }
+    const sorted = { entrada: times[0] ?? null, saida_intervalo: times[1] ?? null, retorno_intervalo: times[2] ?? null, saida: times[3] ?? null } as Record<string, string | null>;
     const allEmpty = !sorted.entrada && !sorted.saida_intervalo && !sorted.retorno_intervalo && !sorted.saida;
     try {
       if (allEmpty) {
@@ -770,52 +762,24 @@ export default function EspelhoPonto() {
                           {format(r.dateObj, 'dd/MM')} <span className="text-muted-foreground">{r.weekday}</span>
                         </TableCell>
                         <TableCell className="text-xs tabular-nums p-1">
-                          {showJornada ? (
-                            <InlineTimeCell value={r.entrada} canEdit={canEdit} onSave={v => handleInlineSave(r, 'entrada', v)} />
+                          <InlineTimeCell value={r.entrada} canEdit={canEdit} onSave={v => handleInlineSave(r, 'entrada', v)} />
+                        </TableCell>
+                        <TableCell className="text-xs tabular-nums p-1">
+                          {r.isAutoInterval ? (
+                            <span className="italic text-muted-foreground text-[10px]" title="Auto">🤖 {r.saidaInt}</span>
                           ) : (
-                            <span className={`text-[11px] font-mono ${!r.entrada && canEdit ? 'cursor-pointer hover:text-primary' : ''}`}
-                              onClick={() => { if (!r.entrada && canEdit) openAdjustment(r); }}>
-                              {r.entrada || '—'}
-                            </span>
+                            <InlineTimeCell value={r.saidaInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida_intervalo', v)} />
                           )}
                         </TableCell>
                         <TableCell className="text-xs tabular-nums p-1">
-                          {showJornada ? (
-                            r.isAutoInterval ? (
-                              <span className="italic text-muted-foreground text-[10px]" title="Auto">🤖 {r.saidaInt}</span>
-                            ) : (
-                              <InlineTimeCell value={r.saidaInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida_intervalo', v)} />
-                            )
+                          {r.isAutoInterval ? (
+                            <span className="italic text-muted-foreground text-[10px]" title="Auto">🤖 {r.retornoInt}</span>
                           ) : (
-                            <span className={`text-[11px] font-mono ${!r.saidaInt && canEdit ? 'cursor-pointer hover:text-primary' : ''}`}
-                              onClick={() => { if (!r.saidaInt && canEdit) openAdjustment(r); }}>
-                              {r.saidaInt || '—'}
-                            </span>
+                            <InlineTimeCell value={r.retornoInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'retorno_intervalo', v)} />
                           )}
                         </TableCell>
                         <TableCell className="text-xs tabular-nums p-1">
-                          {showJornada ? (
-                            r.isAutoInterval ? (
-                              <span className="italic text-muted-foreground text-[10px]" title="Auto">🤖 {r.retornoInt}</span>
-                            ) : (
-                              <InlineTimeCell value={r.retornoInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'retorno_intervalo', v)} />
-                            )
-                          ) : (
-                            <span className={`text-[11px] font-mono ${!r.retornoInt && canEdit ? 'cursor-pointer hover:text-primary' : ''}`}
-                              onClick={() => { if (!r.retornoInt && canEdit) openAdjustment(r); }}>
-                              {r.retornoInt || '—'}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-xs tabular-nums p-1">
-                          {showJornada ? (
-                            <InlineTimeCell value={r.saida} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida', v)} />
-                          ) : (
-                            <span className={`text-[11px] font-mono ${!r.saida && canEdit ? 'cursor-pointer hover:text-primary' : ''}`}
-                              onClick={() => { if (!r.saida && canEdit) openAdjustment(r); }}>
-                              {r.saida || '—'}
-                            </span>
-                          )}
+                          <InlineTimeCell value={r.saida} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida', v)} />
                         </TableCell>
                         <TableCell className="text-[11px] tabular-nums font-medium py-1">{r.hoursMin != null ? formatMinutes(r.hoursMin) : '—'}</TableCell>
                         <TableCell className="py-1">
