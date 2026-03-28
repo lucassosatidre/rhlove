@@ -357,7 +357,7 @@ export default function EspelhoPonto() {
           chForDay = eh * 60 + (em || 0);
         }
       }
-      if (avisoReducao > 0 && !isFolga && !isVacation && !isAfastamento && !isHoliday) {
+      if (avisoReducao > 0 && !isFolga && !isVacation && !isAfastamento) {
         chForDay = Math.max(0, chForDay - avisoReducao);
       }
       return {
