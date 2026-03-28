@@ -59,6 +59,7 @@ export default function Afastamentos() {
   function openNew() {
     setEditing(null);
     setCollabId('');
+    setMotivo('');
     setDataInicio('');
     setDataFim('');
     setObservacao('');
@@ -68,6 +69,7 @@ export default function Afastamentos() {
   function openEdit(a: Afastamento) {
     setEditing(a);
     setCollabId(a.collaborator_id);
+    setMotivo(a.motivo || '');
     setDataInicio(a.data_inicio);
     setDataFim(a.data_fim);
     setObservacao(a.observacao || '');
