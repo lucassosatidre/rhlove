@@ -53,7 +53,7 @@ export default function CollaboratorActionMenu({
   children,
 }: Props) {
   const [open, setOpen] = useState(false);
-  const [dialogType, setDialogType] = useState<'FALTA' | 'ATESTADO' | 'COMPENSACAO' | 'AJUSTE_FOLGA' | null>(null);
+  const [dialogType, setDialogType] = useState<'FALTA' | 'ATESTADO' | 'COMPENSACAO' | 'AJUSTE_FOLGA' | 'TROCA_DOMINGO' | null>(null);
   const [observation, setObservation] = useState('');
   const [atestadoEnd, setAtestadoEnd] = useState('');
   const [loading, setLoading] = useState(false);
