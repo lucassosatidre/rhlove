@@ -22,8 +22,7 @@ const NAV_ITEMS = [
   
   { to: '/espelho-ponto', label: 'Espelho de Ponto', icon: ClipboardList, roles: ['admin', 'gestor'] },
   { to: '/checkout', label: 'Checkout', icon: Mic, roles: ['admin', 'gestor', 'lider'] },
-  { to: '/manutencoes', label: 'Manutenções e Compras', icon: Wrench, roles: ['admin', 'gestor', 'lider'] },
-  { to: '/pendencias', label: 'Pendências', icon: ListTodo, roles: ['admin', 'gestor', 'lider', 'visualizador'], badge: true },
+  { to: '/demandas', label: 'Demandas', icon: ClipboardCheck, roles: ['admin', 'gestor', 'lider', 'visualizador'], badge: true },
   { to: '/usuarios', label: 'Usuários', icon: Shield, roles: ['admin'] },
 ];
 
