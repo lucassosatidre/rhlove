@@ -181,6 +181,11 @@ export default function Afastamentos() {
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.collaborator_name}</TableCell>
                       <TableCell>{a.sector}</TableCell>
+                      <TableCell>
+                        <Badge className={MOTIVO_COLORS[a.motivo] || MOTIVO_COLORS['Outro']} variant="secondary">
+                          {a.motivo || 'Outro'}
+                        </Badge>
+                      </TableCell>
                       <TableCell>{formatDateBR(a.data_inicio)}</TableCell>
                       <TableCell>{formatDateBR(a.data_fim)}</TableCell>
                       <TableCell>
