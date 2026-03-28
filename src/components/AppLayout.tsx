@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, UserMinus, Fingerprint, Mic, Wrench, ClipboardList, ListTodo } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
+import { useOpenReceivedTasksCount } from '@/hooks/useTasks';
 import rhLoveIcon from '@/assets/rh-love-icon.png';
 import clienteIcon from '@/assets/cliente-estrela-icon.png';
 
@@ -20,7 +21,7 @@ const NAV_ITEMS = [
   { to: '/espelho-ponto', label: 'Espelho de Ponto', icon: ClipboardList, roles: ['admin', 'gestor'] },
   { to: '/checkout', label: 'Checkout', icon: Mic, roles: ['admin', 'gestor', 'lider'] },
   { to: '/manutencoes', label: 'Manutenções e Compras', icon: Wrench, roles: ['admin', 'gestor', 'lider'] },
-  { to: '/pendencias', label: 'Pendências', icon: ListTodo, roles: ['admin', 'gestor', 'lider', 'visualizador'] },
+  { to: '/pendencias', label: 'Pendências', icon: ListTodo, roles: ['admin', 'gestor', 'lider', 'visualizador'], badge: true },
   { to: '/usuarios', label: 'Usuários', icon: Shield, roles: ['admin'] },
 ];
 
@@ -28,9 +29,31 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { usuario, signOut } = useAuth();
+  const { data: openTasksCount } = useOpenReceivedTasksCount();
 
   const visibleItems = NAV_ITEMS.filter(item => 
     usuario && item.roles.includes(usuario.perfil)
+  );
+
+  const renderNavItem = (item: typeof NAV_ITEMS[0], active: boolean, onClick?: () => void) => (
+    <Link
+      key={item.to}
+      to={item.to}
+      onClick={onClick}
+      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+        active
+          ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-sidebar-primary/25'
+          : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground'
+      }`}
+    >
+      <item.icon className="w-[18px] h-[18px]" />
+      <span className="flex-1">{item.label}</span>
+      {'badge' in item && item.badge && openTasksCount && openTasksCount > 0 ? (
+        <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
+          {openTasksCount > 99 ? '99+' : openTasksCount}
+        </span>
+      ) : null}
+    </Link>
   );
 
   return (
@@ -66,23 +89,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <div className="h-px bg-gradient-to-r from-sidebar-primary/40 via-sidebar-primary/20 to-transparent" />
         </div>
 
-        <nav className="flex-1 px-3 space-y-0.5">
+        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
           {visibleItems.map(item => {
             const active = location.pathname === item.to;
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
-                  active
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-sidebar-primary/25'
-                    : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground'
-                }`}
-              >
-                <item.icon className="w-[18px] h-[18px]" />
-                {item.label}
-              </Link>
-            );
+            return renderNavItem(item, active);
           })}
         </nav>
 
@@ -126,8 +136,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <button onClick={signOut} className="p-1.5 rounded-lg hover:bg-muted transition-colors" title="Sair">
               <LogOut className="w-4 h-4" />
             </button>
-            <button onClick={() => setMobileOpen(!mobileOpen)} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+            <button onClick={() => setMobileOpen(!mobileOpen)} className="relative p-1.5 rounded-lg hover:bg-muted transition-colors">
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {!mobileOpen && openTasksCount && openTasksCount > 0 ? (
+                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full bg-destructive text-destructive-foreground text-[8px] font-bold">
+                  {openTasksCount > 99 ? '99+' : openTasksCount}
+                </span>
+              ) : null}
             </button>
           </div>
         </header>
@@ -137,19 +152,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             <nav className="px-4 space-y-1">
               {visibleItems.map(item => {
                 const active = location.pathname === item.to;
-                return (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    onClick={() => setMobileOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                      active ? 'bg-primary text-primary-foreground shadow-md' : 'hover:bg-muted'
-                    }`}
-                  >
-                    <item.icon className="w-[18px] h-[18px]" />
-                    {item.label}
-                  </Link>
-                );
+                return renderNavItem(item, active, () => setMobileOpen(false));
               })}
             </nav>
           </div>
