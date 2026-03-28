@@ -542,7 +542,7 @@ export default function EspelhoPonto() {
       'Saída Intervalo': r.saidaInt ?? '',
       'Retorno Intervalo': r.retornoInt ?? '',
       'Saída': r.saida ?? '',
-      'Status': r.status,
+      'Ajuste': '',
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
