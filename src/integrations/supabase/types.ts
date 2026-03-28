@@ -377,6 +377,130 @@ export type Database = {
         }
         Relationships: []
       }
+      demand_comments: {
+        Row: {
+          comment: string
+          created_at: string
+          demand_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          comment: string
+          created_at?: string
+          demand_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string
+          created_at?: string
+          demand_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demand_comments_demand_id_fkey"
+            columns: ["demand_id"]
+            isOneToOne: false
+            referencedRelation: "demands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demand_status_history: {
+        Row: {
+          changed_by: string
+          created_at: string
+          demand_id: string
+          id: string
+          new_status: string
+          old_status: string | null
+        }
+        Insert: {
+          changed_by: string
+          created_at?: string
+          demand_id: string
+          id?: string
+          new_status: string
+          old_status?: string | null
+        }
+        Update: {
+          changed_by?: string
+          created_at?: string
+          demand_id?: string
+          id?: string
+          new_status?: string
+          old_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demand_status_history_demand_id_fkey"
+            columns: ["demand_id"]
+            isOneToOne: false
+            referencedRelation: "demands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demands: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          due_date: string | null
+          id: string
+          item_name: string | null
+          observation: string | null
+          photos: string[]
+          priority: string
+          sector: string | null
+          status: string
+          stock_quantity: string | null
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          item_name?: string | null
+          observation?: string | null
+          photos?: string[]
+          priority?: string
+          sector?: string | null
+          status?: string
+          stock_quantity?: string | null
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          item_name?: string | null
+          observation?: string | null
+          photos?: string[]
+          priority?: string
+          sector?: string | null
+          status?: string
+          stock_quantity?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       freelancer_entries: {
         Row: {
           cancelled_at: string | null
