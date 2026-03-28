@@ -64,6 +64,7 @@ const emptyForm: FormData = {
   horario_saida: '',
   jornadas_especiais: [],
   aviso_previo_reducao: null,
+  controla_ponto: true,
 };
 
 export default function Colaboradores() {

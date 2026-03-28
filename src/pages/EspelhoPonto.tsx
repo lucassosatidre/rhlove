@@ -201,7 +201,7 @@ export default function EspelhoPonto() {
   const upsertBalance = useUpsertBankHoursBalance();
 
   const activeCollabs = useMemo(
-    () => collaborators.filter(c => c.status !== 'DESLIGADO'),
+    () => collaborators.filter(c => c.status !== 'DESLIGADO' && c.controla_ponto !== false),
     [collaborators]
   );
 
