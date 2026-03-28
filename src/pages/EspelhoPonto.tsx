@@ -1,11 +1,11 @@
-import { useState, useMemo, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Download, Calendar, AlertTriangle, Pencil, Wrench, Banknote, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Search, Download, Calendar, AlertTriangle, Pencil, Wrench, Banknote, RefreshCw } from 'lucide-react';
 import { InlineTimeCell } from '@/components/ponto/InlineTimeCell';
 import { format, getDaysInMonth, getDay, parse } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
@@ -34,17 +34,13 @@ const WEEKDAY_MAP: Record<number, DayOfWeek> = {
 function calcHours(entrada: string | null, saida: string | null, saidaInt: string | null, retornoInt: string | null): number | null {
   if (!entrada || !saida) return null;
   const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-  const adjustForOvernight = (timeMin: number, refMin: number) => {
-    if (timeMin < 180 && refMin > timeMin) return timeMin + 1440;
-    return timeMin;
-  };
+  const adj = (timeMin: number, refMin: number) => (timeMin < 180 && refMin > timeMin) ? timeMin + 1440 : timeMin;
   const entradaMin = toMin(entrada);
-  let saidaMin = adjustForOvernight(toMin(saida), entradaMin);
+  let saidaMin = adj(toMin(saida), entradaMin);
   let total = saidaMin - entradaMin;
   if (saidaInt && retornoInt) {
-    const saidaIntMin = toMin(saidaInt);
-    const retornoIntMin = adjustForOvernight(toMin(retornoInt), saidaIntMin);
-    total -= (retornoIntMin - saidaIntMin);
+    const siMin = toMin(saidaInt);
+    total -= (adj(toMin(retornoInt), siMin) - siMin);
   }
   return total > 0 ? total : 0;
 }
@@ -78,53 +74,53 @@ function useHolidays() {
   });
 }
 
-// Inconsistency detection for RegistroPonto-style analysis
-type InconsistencyType = 'incomplete' | 'saida_pendente' | 'sem_intervalo' | 'jornada_longa' | 'jornada_curta';
+// ── Inconsistency types ──
+type InconsistencyTag = 'batida_pendente' | 'sem_intervalo' | 'incompleta' | 'jornada_longa' | 'jornada_curta';
 
-const TYPE_LABELS: Record<InconsistencyType, string> = {
-  incomplete: 'Batidas incompletas',
-  saida_pendente: 'Batida pendente',
-  sem_intervalo: 'Sem intervalo',
-  jornada_longa: 'Jornada > 14h',
-  jornada_curta: 'Jornada < 2h',
+const TAG_CONFIG: Record<InconsistencyTag, { label: string; emoji: string; className: string }> = {
+  batida_pendente: { label: 'Batida pendente', emoji: '🔴', className: 'bg-red-100 text-red-700 border-red-200' },
+  jornada_curta: { label: 'Jornada < 2h', emoji: '🟡', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  jornada_longa: { label: 'Jornada > 14h', emoji: '🟠', className: 'bg-orange-100 text-orange-700 border-orange-200' },
+  sem_intervalo: { label: 'Sem intervalo', emoji: '🟡', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+  incompleta: { label: 'Incompleta', emoji: '🔴', className: 'bg-red-100 text-red-700 border-red-200' },
 };
 
-interface GlobalInconsistency {
+function detectTags(entrada: string | null, saida: string | null, saidaInt: string | null, retornoInt: string | null): InconsistencyTag[] {
+  const fields = [entrada, saidaInt, retornoInt, saida];
+  const filled = fields.filter(f => f && f !== '').length;
+  if (filled === 0) return [];
+  const tags: InconsistencyTag[] = [];
+  if (filled > 0 && filled < 4) {
+    if (entrada && !saida) tags.push('batida_pendente');
+    else if (entrada && saida && !saidaInt && !retornoInt) tags.push('sem_intervalo');
+    else tags.push('incompleta');
+  }
+  const worked = calcHours(entrada, saida, saidaInt, retornoInt);
+  if (worked !== null) {
+    if (worked > 14 * 60) tags.push('jornada_longa');
+    if (worked < 2 * 60 && worked > 0) tags.push('jornada_curta');
+  }
+  return tags;
+}
+
+// ── Unified row type for the single table ──
+interface UnifiedRow {
   collaboratorId: string;
   collaboratorName: string;
   date: string;
+  dateObj: Date;
+  weekday: string;
   entrada: string | null;
-  saidaIntervalo: string | null;
-  retornoIntervalo: string | null;
+  saidaInt: string | null;
+  retornoInt: string | null;
   saida: string | null;
-  types: InconsistencyType[];
-  workedMinutes: number | null;
-}
-
-function detectGlobalInconsistency(record: { collaborator_id: string; collaborator_name: string; date: string; entrada: string | null; saida: string | null; saida_intervalo: string | null; retorno_intervalo: string | null; }): GlobalInconsistency | null {
-  const { entrada, saida, saida_intervalo, retorno_intervalo } = record;
-  const fields = [entrada, saida_intervalo, retorno_intervalo, saida];
-  const filled = fields.filter(f => f && f !== '').length;
-  if (filled === 0) return null;
-  const types: InconsistencyType[] = [];
-  if (filled > 0 && filled < 4) {
-    if (entrada && !saida) types.push('saida_pendente');
-    else if (entrada && saida && !saida_intervalo && !retorno_intervalo) types.push('sem_intervalo');
-    else types.push('incomplete');
-  }
-  const worked = calcHours(entrada, saida, saida_intervalo, retorno_intervalo);
-  if (worked !== null) {
-    if (worked > 14 * 60) types.push('jornada_longa');
-    if (worked < 2 * 60 && worked > 0) types.push('jornada_curta');
-  }
-  if (types.length === 0) return null;
-  return {
-    collaboratorId: record.collaborator_id,
-    collaboratorName: record.collaborator_name,
-    date: record.date,
-    entrada, saidaIntervalo: saida_intervalo, retornoIntervalo: retorno_intervalo, saida,
-    types, workedMinutes: worked,
-  };
+  hoursMin: number | null;
+  status: string;
+  tags: InconsistencyTag[];
+  isAdjusted: boolean;
+  isAutoInterval: boolean;
+  // Jornada cols (only when a single collaborator is selected)
+  jornada?: JornadaRow;
 }
 
 export default function EspelhoPonto() {
@@ -134,7 +130,7 @@ export default function EspelhoPonto() {
   const [selectedCollaboratorId, setSelectedCollaboratorId] = useState<string | null>(null);
   const [searchName, setSearchName] = useState('');
   const [sectorFilter, setSectorFilter] = useState<string>('Todos');
-  const [showAllInconsistencies, setShowAllInconsistencies] = useState(false);
+  const [onlyInconsistencies, setOnlyInconsistencies] = useState(false);
   const { usuario } = useAuth();
   const canEdit = usuario?.perfil === 'admin' || usuario?.perfil === 'gestor';
   const queryClient = useQueryClient();
@@ -158,7 +154,6 @@ export default function EspelhoPonto() {
   const { data: afastamentos = [] } = useAfastamentos();
   const { data: holidays = [] } = useHolidays();
 
-  // Realtime subscription
   useEffect(() => {
     const channel = supabase
       .channel('espelho-ponto-realtime')
@@ -174,14 +169,18 @@ export default function EspelhoPonto() {
     [collaborators, selectedCollaboratorId]
   );
 
-  // Dynamic sectors from collaborators
+  const collabMap = useMemo(() => {
+    const m = new Map<string, Collaborator>();
+    collaborators.forEach(c => m.set(c.id, c));
+    return m;
+  }, [collaborators]);
+
   const sectors = useMemo(() => {
     const s = new Set<string>();
     collaborators.forEach(c => { if (c.sector) s.add(c.sector); });
     return Array.from(s).sort();
   }, [collaborators]);
 
-  // Fetch sunday_tracking for current month
   const { data: sundayTracking } = useQuery({
     queryKey: ['sunday_tracking', selectedCollaboratorId, selectedMonth, selectedYear],
     queryFn: async () => {
@@ -216,15 +215,6 @@ export default function EspelhoPonto() {
 
   const daysInMonth = getDaysInMonth(new Date(selectedYear, selectedMonth));
   const holidaySet = useMemo(() => new Set(holidays.map(h => h.date)), [holidays]);
-
-  type DayRow = {
-    date: string; dateObj: Date; weekday: string;
-    entrada: string | null; saidaInt: string | null; retornoInt: string | null; saida: string | null;
-    hoursMin: number | null; status: string; statusEmoji: string; isAdjusted: boolean;
-    isFolga: boolean; isVacation: boolean; isAfastamento: boolean; isHoliday: boolean; isFuture: boolean;
-    isAutoInterval: boolean;
-  };
-
   const swapOverrides = useMemo(() => buildSwapOverrides(scheduleEvents), [scheduleEvents]);
   const eventsMap = useMemo(() => buildEventsMap(scheduleEvents), [scheduleEvents]);
 
@@ -236,13 +226,13 @@ export default function EspelhoPonto() {
     return format(d, 'yyyy-MM-dd');
   };
 
-  const rows: DayRow[] = useMemo(() => {
-    if (!selected) return [];
-    const collabPunches = punchRecords.filter(p => p.collaborator_id === selected.id);
+  // Build day rows for a specific collaborator
+  const buildCollabRows = useCallback((collab: Collaborator) => {
+    const collabPunches = punchRecords.filter(p => p.collaborator_id === collab.id);
     const punchMap = new Map<string, typeof punchRecords[0]>();
     collabPunches.forEach(p => punchMap.set(p.date, p));
 
-    const result: DayRow[] = [];
+    const result: UnifiedRow[] = [];
     for (let d = 1; d <= daysInMonth; d++) {
       const dateObj = new Date(selectedYear, selectedMonth, d);
       const iso = format(dateObj, 'yyyy-MM-dd');
@@ -255,22 +245,18 @@ export default function EspelhoPonto() {
       let saidaInt = punch?.saida_intervalo ?? null;
       let retornoInt = punch?.retorno_intervalo ?? null;
 
-      // Auto-interval
       let isAutoInterval = false;
-      if (selected.intervalo_automatico && selected.intervalo_inicio && selected.intervalo_duracao) {
+      if (collab.intervalo_automatico && collab.intervalo_inicio && collab.intervalo_duracao) {
         const filledPunches = [entrada, saidaInt, retornoInt, saida].filter(Boolean) as string[];
         if (filledPunches.length === 2) {
           const osk = (t: string) => { const h = parseInt(t.split(':')[0]); return h < 3 ? parseInt(t.replace(':', '')) + 2400 : parseInt(t.replace(':', '')); };
           const sorted = [...filledPunches].sort((a, b) => osk(a) - osk(b));
-          entrada = sorted[0];
-          saida = sorted[1];
-          const intKey = osk(selected.intervalo_inicio);
-          const entKey = osk(entrada);
-          const saiKey = osk(saida);
+          entrada = sorted[0]; saida = sorted[1];
+          const intKey = osk(collab.intervalo_inicio); const entKey = osk(entrada); const saiKey = osk(saida);
           if (intKey > entKey && intKey < saiKey) {
-            saidaInt = selected.intervalo_inicio;
-            const [ih, im] = selected.intervalo_inicio.split(':').map(Number);
-            const totalMin = ih * 60 + im + selected.intervalo_duracao;
+            saidaInt = collab.intervalo_inicio;
+            const [ih, im] = collab.intervalo_inicio.split(':').map(Number);
+            const totalMin = ih * 60 + im + collab.intervalo_duracao;
             retornoInt = `${String(Math.floor(totalMin / 60) % 24).padStart(2, '0')}:${String(totalMin % 60).padStart(2, '0')}`;
             isAutoInterval = true;
           }
@@ -281,19 +267,19 @@ export default function EspelhoPonto() {
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const isFuture = dateObj >= today;
       const isHoliday = holidaySet.has(iso);
-      const isVacation = vacations.some(v => v.collaborator_id === selected.id && iso >= v.data_inicio_ferias && iso <= v.data_fim_ferias);
-      const isAfastamento = afastamentos.some(a => a.collaborator_id === selected.id && iso >= a.data_inicio && iso <= a.data_fim);
+      const isVacation = vacations.some(v => v.collaborator_id === collab.id && iso >= v.data_inicio_ferias && iso <= v.data_fim_ferias);
+      const isAfastamento = afastamentos.some(a => a.collaborator_id === collab.id && iso >= a.data_inicio && iso <= a.data_fim);
 
       const weekStart = getWeekStart(dateObj);
-      const overrideKey = `${weekStart}|${selected.id}`;
+      const overrideKey = `${weekStart}|${collab.id}`;
       const override = swapOverrides.get(overrideKey);
-      let isBaseFolga = !!selected.folgas_semanais?.includes(wd);
-      if (!isBaseFolga && selected.sunday_n > 0 && getDay(dateObj) === 0) {
+      let isBaseFolga = !!collab.folgas_semanais?.includes(wd);
+      if (!isBaseFolga && collab.sunday_n > 0 && getDay(dateObj) === 0) {
         let sundayCount = 0;
         for (let day = 1; day <= d; day++) {
           if (getDay(new Date(selectedYear, selectedMonth, day)) === 0) sundayCount++;
         }
-        if (sundayCount === selected.sunday_n) isBaseFolga = true;
+        if (sundayCount === collab.sunday_n) isBaseFolga = true;
       }
       let isFolga = isBaseFolga;
       if (override) {
@@ -301,41 +287,64 @@ export default function EspelhoPonto() {
         if (override.removeDays.some(rd => rd?.toLowerCase() === wdLower)) isFolga = false;
         if (override.addDays.some(ad => ad?.toLowerCase() === wdLower)) isFolga = true;
       }
-      const dayEvents = eventsMap[iso]?.[selected.id] ?? [];
-      const isFaltaJustificada = dayEvents.some(e => e.event_type === 'FALTA' && e.status === 'ATIVO');
+      const dayEvents = eventsMap[iso]?.[collab.id] ?? [];
       const isAtestado = dayEvents.some(e => e.event_type === 'ATESTADO' && e.status === 'ATIVO');
       const isCompensacao = dayEvents.some(e => e.event_type === 'COMPENSACAO' && e.status === 'ATIVO');
-      const isTrocaFolga = override && (override.addDays.some(ad => ad?.toLowerCase() === wd.toLowerCase()));
+      const isFaltaJustificada = dayEvents.some(e => e.event_type === 'FALTA' && e.status === 'ATIVO');
+      const isTrocaFolga = override && override.addDays.some(ad => ad?.toLowerCase() === wd.toLowerCase());
 
       let status = isFuture ? '—' : '❌ Falta';
-      let statusEmoji = isFuture ? '—' : '❌';
-      if (isVacation) { status = '📅 Férias'; statusEmoji = '📅'; }
-      else if (isAfastamento || isAtestado) { status = '🏥 Afastado'; statusEmoji = '🏥'; }
-      else if (isHoliday) { status = '🎉 Feriado'; statusEmoji = '🎉'; }
-      else if (isCompensacao) { status = '🎉 Compensação'; statusEmoji = '🎉'; isFolga = true; }
-      else if (isFolga && isTrocaFolga) { status = '🔄 Folga (troca)'; statusEmoji = '🔄'; }
-      else if (isFolga) { status = '🏖️ Folga'; statusEmoji = '🏖️'; }
-      else if (isFaltaJustificada && !entrada) { status = '❌ Falta justificada'; statusEmoji = '❌'; }
-      else if (entrada && saida) { status = '✅ Normal'; statusEmoji = '✅'; }
-      else if (entrada && !saida) { status = '⚠️ Batida pendente'; statusEmoji = '⚠️'; }
+      if (isVacation) status = '🌴 Férias';
+      else if (isAfastamento || isAtestado) status = '🏥 Afastado';
+      else if (isHoliday) status = '🎉 Feriado';
+      else if (isCompensacao) { status = '🎉 Compensação'; isFolga = true; }
+      else if (isFolga && isTrocaFolga) status = '🔄 Folga (troca)';
+      else if (isFolga) status = '🏖️ Folga';
+      else if (isFaltaJustificada && !entrada) status = '❌ Falta justificada';
+      else if (entrada && saida) status = '✅ Normal';
+      else if (entrada && !saida) status = '⚠️ Batida pendente';
 
-      if (isAtestado || isCompensacao) isFolga = true;
+      // Detect inconsistency tags for working days
+      let tags: InconsistencyTag[] = [];
+      if (!isFuture && !isFolga && !isVacation && !(isAfastamento || isAtestado) && !isHoliday && !isCompensacao) {
+        tags = detectTags(entrada, saida, saidaInt, retornoInt);
+        // Falta is also an inconsistency
+        if (status === '❌ Falta') tags = ['batida_pendente'];
+      }
 
       const isAdjusted = punch ? !!(punch as any).adjusted_at : false;
-      result.push({ date: iso, dateObj, weekday, entrada, saidaInt, retornoInt, saida, hoursMin, status, statusEmoji, isAdjusted, isFolga, isVacation, isAfastamento: isAfastamento || isAtestado, isHoliday, isFuture, isAutoInterval });
+      result.push({
+        collaboratorId: collab.id, collaboratorName: collab.collaborator_name,
+        date: iso, dateObj, weekday, entrada, saidaInt, retornoInt, saida,
+        hoursMin, status, tags, isAdjusted, isAutoInterval,
+      });
     }
     return result;
-  }, [selected, selectedMonth, selectedYear, daysInMonth, punchRecords, swapOverrides, eventsMap, vacations, afastamentos, holidaySet]);
+  }, [daysInMonth, selectedMonth, selectedYear, punchRecords, swapOverrides, eventsMap, vacations, afastamentos, holidaySet]);
 
-  // Jornada calculations
+  // ── Single collaborator rows (with jornada) ──
+  const singleCollabRows = useMemo(() => {
+    if (!selected) return [];
+    return buildCollabRows(selected);
+  }, [selected, buildCollabRows]);
+
+  // Jornada calculations (only for selected collaborator)
   const { jornadaRows, jornadaTotals, consecutiveSundaysEnd } = useMemo(() => {
-    if (!selected || rows.length === 0) return { jornadaRows: [] as JornadaRow[], jornadaTotals: null, consecutiveSundaysEnd: 0 };
+    if (!selected || singleCollabRows.length === 0) return { jornadaRows: [] as JornadaRow[], jornadaTotals: null, consecutiveSundaysEnd: 0 };
     const WEEKDAY_NAME_MAP: Record<number, string> = { 0: 'domingo', 1: 'segunda', 2: 'terca', 3: 'quarta', 4: 'quinta', 5: 'sexta', 6: 'sabado' };
     const defaultChMin = selected.carga_horaria_diaria
       ? (() => { const [h, m] = selected.carga_horaria_diaria!.split(':').map(Number); return h * 60 + (m || 0); })()
       : 420;
     const avisoReducao = (selected.status === 'AVISO_PREVIO' && selected.aviso_previo_reducao === 2) ? 120 : 0;
-    const dayInfos = rows.map(r => {
+
+    // Derive isFolga etc from status
+    const dayInfos = singleCollabRows.map(r => {
+      const isFolga = ['🏖️ Folga', '🔄 Folga (troca)', '🎉 Compensação'].some(s => r.status.includes(s.replace(/^[^\w]*/, ''))) || r.status.includes('Folga');
+      const isVacation = r.status.includes('Férias');
+      const isAfastamento = r.status.includes('Afastado');
+      const isHoliday = r.status.includes('Feriado');
+      const isFuture = r.status === '—';
+
       let chForDay = defaultChMin;
       const dayOfWeek = getDay(r.dateObj);
       const dayName = WEEKDAY_NAME_MAP[dayOfWeek];
@@ -346,12 +355,12 @@ export default function EspelhoPonto() {
           chForDay = eh * 60 + (em || 0);
         }
       }
-      if (avisoReducao > 0 && !r.isFolga && !r.isVacation && !r.isAfastamento && !r.isHoliday) {
+      if (avisoReducao > 0 && !isFolga && !isVacation && !isAfastamento && !isHoliday) {
         chForDay = Math.max(0, chForDay - avisoReducao);
       }
       return {
-        date: r.date, isFolga: r.isFolga, isVacation: r.isVacation, isAfastamento: r.isAfastamento,
-        isHoliday: r.isHoliday, isFuture: r.isFuture,
+        date: r.date, isFolga: isFolga || r.status.includes('Compensação'),
+        isVacation, isAfastamento, isHoliday, isFuture,
         punch: { entrada: r.entrada, saida: r.saida, saidaInt: r.saidaInt, retornoInt: r.retornoInt },
         hoursWorkedMin: r.hoursMin, chOverride: chForDay,
       };
@@ -359,13 +368,73 @@ export default function EspelhoPonto() {
     const consecutiveFromPrev = (selected.genero === 'F' && sundayTracking) ? sundayTracking.consecutive_sundays_from_previous : 0;
     const result = calculateJornada(dayInfos, defaultChMin, selected.genero ?? 'M', consecutiveFromPrev);
     return { jornadaRows: result.rows, jornadaTotals: result.totals, consecutiveSundaysEnd: result.consecutiveSundaysEnd };
-  }, [rows, selected, sundayTracking]);
+  }, [singleCollabRows, selected, sundayTracking]);
+
+  // Attach jornada to single collab rows
+  const singleCollabRowsWithJornada = useMemo(() => {
+    return singleCollabRows.map((r, i) => ({ ...r, jornada: jornadaRows[i] }));
+  }, [singleCollabRows, jornadaRows]);
+
+  // ── All collaborators rows (no jornada, simpler) ──
+  const allCollabRows = useMemo(() => {
+    if (selected) return []; // not needed when single collab selected
+    const targetCollabs = sectorFilter === 'Todos'
+      ? activeCollabs
+      : activeCollabs.filter(c => c.sector === sectorFilter);
+    
+    // Build from punch_records for efficiency (only days with punches)
+    const rows: UnifiedRow[] = [];
+    for (const pr of punchRecords) {
+      const collab = collabMap.get(pr.collaborator_id);
+      if (!collab || collab.status === 'DESLIGADO') continue;
+      if (sectorFilter !== 'Todos' && collab.sector !== sectorFilter) continue;
+
+      const dateObj = parse(pr.date, 'yyyy-MM-dd', new Date());
+      const weekday = format(dateObj, 'EEE', { locale: ptBR });
+      const hoursMin = calcHours(pr.entrada, pr.saida, pr.saida_intervalo, pr.retorno_intervalo);
+      const tags = detectTags(pr.entrada, pr.saida, pr.saida_intervalo, pr.retorno_intervalo);
+      
+      let status = '✅ Normal';
+      if (tags.length > 0) {
+        const primary = tags[0];
+        const cfg = TAG_CONFIG[primary];
+        status = `${cfg.emoji} ${cfg.label}`;
+      } else if (!pr.entrada && !pr.saida) {
+        status = '—';
+      }
+
+      rows.push({
+        collaboratorId: pr.collaborator_id, collaboratorName: pr.collaborator_name,
+        date: pr.date, dateObj, weekday,
+        entrada: pr.entrada, saidaInt: pr.saida_intervalo, retornoInt: pr.retorno_intervalo, saida: pr.saida,
+        hoursMin, status, tags,
+        isAdjusted: !!(pr as any).adjusted_at,
+        isAutoInterval: false,
+      });
+    }
+    rows.sort((a, b) => {
+      const nc = a.collaboratorName.localeCompare(b.collaboratorName);
+      return nc !== 0 ? nc : a.date.localeCompare(b.date);
+    });
+    return rows;
+  }, [selected, punchRecords, collabMap, activeCollabs, sectorFilter]);
+
+  // ── Unified display rows ──
+  const displayRows = useMemo(() => {
+    const source = selected ? singleCollabRowsWithJornada : allCollabRows;
+    if (onlyInconsistencies) return source.filter(r => r.tags.length > 0);
+    return source;
+  }, [selected, singleCollabRowsWithJornada, allCollabRows, onlyInconsistencies]);
+
+  const totalInconsistencies = useMemo(() => {
+    const source = selected ? singleCollabRowsWithJornada : allCollabRows;
+    return source.filter(r => r.tags.length > 0).length;
+  }, [selected, singleCollabRowsWithJornada, allCollabRows]);
 
   // Bank hours
   const prevMonthBalance = useMemo(() => {
     if (!bankBalances.length) return 0;
-    let prevMonth = selectedMonth - 1;
-    let prevYear = selectedYear;
+    let prevMonth = selectedMonth - 1; let prevYear = selectedYear;
     if (prevMonth < 0) { prevMonth = 11; prevYear--; }
     const prev = bankBalances.find(b => b.month === prevMonth + 1 && b.year === prevYear);
     return prev?.accumulated_balance ?? 0;
@@ -393,13 +462,14 @@ export default function EspelhoPonto() {
   }, [selected?.id, selectedMonth, selectedYear, consecutiveSundaysEnd, jornadaTotals]);
 
   // Inline save handler
-  const handleInlineSave = useCallback(async (row: DayRow, field: 'entrada' | 'saida_intervalo' | 'retorno_intervalo' | 'saida', newValue: string | null) => {
-    if (!selected) return;
+  const handleInlineSave = useCallback(async (row: UnifiedRow, field: 'entrada' | 'saida_intervalo' | 'retorno_intervalo' | 'saida', newValue: string | null) => {
+    const collab = collabMap.get(row.collaboratorId);
+    if (!collab) return;
     const currentValues = { entrada: row.entrada, saida_intervalo: row.saidaInt, retorno_intervalo: row.retornoInt, saida: row.saida };
     currentValues[field] = newValue;
     const times = [currentValues.entrada, currentValues.saida_intervalo, currentValues.retorno_intervalo, currentValues.saida].filter(Boolean) as string[];
-    const overnightSortKey = (t: string) => { const h = parseInt(t.split(':')[0]); return h < 3 ? parseInt(t.replace(':', '')) + 2400 : parseInt(t.replace(':', '')); };
-    times.sort((a, b) => overnightSortKey(a) - overnightSortKey(b));
+    const osk = (t: string) => { const h = parseInt(t.split(':')[0]); return h < 3 ? parseInt(t.replace(':', '')) + 2400 : parseInt(t.replace(':', '')); };
+    times.sort((a, b) => osk(a) - osk(b));
     const sorted = { entrada: null as string | null, saida_intervalo: null as string | null, retorno_intervalo: null as string | null, saida: null as string | null };
     if (times.length >= 1) sorted.entrada = times[0];
     if (times.length >= 2) sorted.saida_intervalo = times[1];
@@ -412,10 +482,10 @@ export default function EspelhoPonto() {
     const allEmpty = !sorted.entrada && !sorted.saida_intervalo && !sorted.retorno_intervalo && !sorted.saida;
     try {
       if (allEmpty) {
-        await supabase.from('punch_records').delete().eq('collaborator_id', selected.id).eq('date', row.date);
+        await supabase.from('punch_records').delete().eq('collaborator_id', row.collaboratorId).eq('date', row.date);
       } else {
         const record = {
-          collaborator_id: selected.id, collaborator_name: selected.collaborator_name, date: row.date,
+          collaborator_id: row.collaboratorId, collaborator_name: row.collaboratorName, date: row.date,
           ...sorted, adjusted_by: usuario?.id ?? null, adjusted_at: new Date().toISOString(), adjustment_reason: 'Edição inline',
         };
         await supabase.from('punch_records').upsert(record as any, { onConflict: 'collaborator_id,date' });
@@ -424,50 +494,15 @@ export default function EspelhoPonto() {
     } catch (err: any) {
       toast.error('Erro ao salvar: ' + (err.message ?? 'desconhecido'));
     }
-  }, [selected, usuario, queryClient]);
+  }, [collabMap, usuario, queryClient]);
 
-  // Inconsistency detection for espelho
-  const isInconsistentDay = useCallback((r: DayRow) => {
-    if (r.isFuture || r.isFolga || r.isVacation || r.isAfastamento || r.isHoliday) return false;
-    if (r.status === '❌ Falta') return true;
-    if (r.status === '⚠️ Batida pendente') return true;
-    const filled = [r.entrada, r.saidaInt, r.retornoInt, r.saida].filter(Boolean).length;
-    if (filled > 0 && filled < 4) return true;
-    if (r.hoursMin != null && r.hoursMin > 14 * 60) return true;
-    if (r.hoursMin != null && r.hoursMin > 0 && r.hoursMin < 2 * 60) return true;
-    return false;
-  }, []);
-
-  const inconsistencyCount = useMemo(() => rows.filter(isInconsistentDay).length, [rows, isInconsistentDay]);
-
-  // Global inconsistencies from ALL punch_records for the month
-  const globalInconsistencies = useMemo(() => {
-    const results: GlobalInconsistency[] = [];
-    for (const r of punchRecords) {
-      const inc = detectGlobalInconsistency(r);
-      if (inc) results.push(inc);
-    }
-    results.sort((a, b) => {
-      const d = b.date.localeCompare(a.date);
-      return d !== 0 ? d : a.collaboratorName.localeCompare(b.collaboratorName);
-    });
-    return results;
-  }, [punchRecords]);
-
-  // Inconsistencies to display in bottom panel
-  const displayedInconsistencies = useMemo(() => {
-    if (showAllInconsistencies) return globalInconsistencies;
-    if (!selected) return [];
-    return globalInconsistencies.filter(i => i.collaboratorId === selected.id);
-  }, [showAllInconsistencies, globalInconsistencies, selected]);
-
-  const totalWorked = rows.filter(r => r.status === '✅ Normal').length;
-  const totalFaltas = rows.filter(r => r.status === '❌ Falta').length;
-  const totalHoursMin = rows.reduce((acc, r) => acc + (r.hoursMin ?? 0), 0);
+  const totalWorked = singleCollabRows.filter(r => r.status === '✅ Normal').length;
+  const totalFaltas = singleCollabRows.filter(r => r.status.includes('Falta')).length;
+  const totalHoursMin = singleCollabRows.reduce((acc, r) => acc + (r.hoursMin ?? 0), 0);
 
   const years = useMemo(() => { const y = now.getFullYear(); return [y - 1, y, y + 1]; }, []);
 
-  // Summary card values (filtered by sector/collaborator)
+  // Summary stats
   const summaryStats = useMemo(() => {
     const filteredIds = new Set(
       sectorFilter === 'Todos'
@@ -482,15 +517,16 @@ export default function EspelhoPonto() {
     const totalCollabs = collabSet.size;
     let incCount = 0;
     for (const r of relevantRecords) {
-      if (detectGlobalInconsistency(r)) incCount++;
+      const tags = detectTags(r.entrada, r.saida, r.saida_intervalo, r.retorno_intervalo);
+      if (tags.length > 0) incCount++;
     }
     return { totalRegistros, totalCollabs, totalInconsistencias: incCount, totalOk: totalRegistros - incCount };
   }, [punchRecords, activeCollabs, sectorFilter, selectedCollaboratorId]);
 
   // Export Excel
   const exportExcel = () => {
-    if (!selected || rows.length === 0) return;
-    const data = rows.map((r, i) => {
+    if (!selected || singleCollabRows.length === 0) return;
+    const data = singleCollabRows.map((r, i) => {
       const j = jornadaRows[i];
       return {
         'Data': format(r.dateObj, 'dd/MM/yyyy'), 'Dia': r.weekday,
@@ -499,26 +535,23 @@ export default function EspelhoPonto() {
         'Horas Trab.': r.hoursMin != null ? formatMinutes(r.hoursMin) : '', 'Status': r.status,
         'CH Prevista': fmtHHMM(j?.chPrevista ?? null), 'Normais': fmtHHMM(j?.normais ?? null),
         'Faltas': fmtHHMM(j?.faltas ?? null), 'Atraso': fmtHHMM(j?.atraso ?? null),
-        'Adiantamento': fmtHHMM(j?.adiantamento ?? null), 'Extra BH': fmtHHMM(j?.extraBH ?? null),
-        'Extra 100%': fmtHHMM(j?.extra100 ?? null), 'Ad. Noturno': fmtHHMM(j?.adNoturno ?? null),
-        'Not. 100%': fmtHHMM(j?.not100 ?? null),
+        'Extra BH': fmtHHMM(j?.extraBH ?? null), 'Extra 100%': fmtHHMM(j?.extra100 ?? null),
+        'Ad. Noturno': fmtHHMM(j?.adNoturno ?? null), 'Not. 100%': fmtHHMM(j?.not100 ?? null),
         'Saldo BH': j?.saldoBH != null && j.saldoBH !== 0 ? fmtSaldo(j.saldoBH).text : '',
       };
     });
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Espelho');
-    const monthName = MONTHS[selectedMonth].label;
-    XLSX.writeFile(wb, `espelho-${selected.collaborator_name}-${monthName}-${selectedYear}.xlsx`);
+    XLSX.writeFile(wb, `espelho-${selected.collaborator_name}-${MONTHS[selectedMonth].label}-${selectedYear}.xlsx`);
   };
 
-  const openAdjustmentForInconsistency = (inc: GlobalInconsistency) => {
-    const dateObj = parse(inc.date, 'yyyy-MM-dd', new Date());
-    setAdjustmentCollaborator({ id: inc.collaboratorId, name: inc.collaboratorName });
+  const openAdjustment = (row: UnifiedRow) => {
+    setAdjustmentCollaborator({ id: row.collaboratorId, name: row.collaboratorName });
     setAdjustmentRow({
-      date: inc.date, dateObj,
-      entrada: inc.entrada, saidaInt: inc.saidaIntervalo,
-      retornoInt: inc.retornoIntervalo, saida: inc.saida,
+      date: row.date, dateObj: row.dateObj,
+      entrada: row.entrada, saidaInt: row.saidaInt,
+      retornoInt: row.retornoInt, saida: row.saida,
     });
     setAdjustmentOpen(true);
   };
@@ -526,13 +559,42 @@ export default function EspelhoPonto() {
   const saldoMes = fmtSaldo(currentMonthSaldo);
   const saldoAcum = fmtSaldo(accumulatedBalance);
 
-  const formatDate = (iso: string) => {
-    try { return format(parse(iso, 'yyyy-MM-dd', new Date()), "dd/MM (EEE)", { locale: ptBR }); }
-    catch { return iso; }
-  };
+  const adjCollabId = adjustmentCollaborator?.id ?? '';
+  const adjCollabName = adjustmentCollaborator?.name ?? '';
 
-  const adjCollabId = adjustmentCollaborator?.id ?? selected?.id ?? '';
-  const adjCollabName = adjustmentCollaborator?.name ?? selected?.collaborator_name ?? '';
+  const showJornada = !!selected;
+
+  // Status tag renderer
+  const renderStatusTag = (row: UnifiedRow) => {
+    if (row.tags.length > 0) {
+      return (
+        <div className="flex flex-col gap-0.5">
+          {row.tags.map(t => {
+            const cfg = TAG_CONFIG[t];
+            return (
+              <span key={t} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium border ${cfg.className}`}>
+                {cfg.emoji} {cfg.label}
+              </span>
+            );
+          })}
+        </div>
+      );
+    }
+    // Check for special statuses
+    const isExtra100 = showJornada && row.jornada?.extra100 && row.jornada.extra100 > 0;
+    if (isExtra100) return <span className="text-[10px] text-pink-600 font-medium">💯 Art.386</span>;
+
+    // Map status to colored tags
+    if (row.status.includes('Folga')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-sky-100 text-sky-700 border border-sky-200">🏖️ Folga</span>;
+    if (row.status.includes('Férias')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-emerald-100 text-emerald-700 border border-emerald-200">🌴 Férias</span>;
+    if (row.status.includes('Afastado')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-purple-100 text-purple-700 border border-purple-200">🏥 Afastamento</span>;
+    if (row.status.includes('Feriado')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-700 border border-amber-200">🎉 Feriado</span>;
+    if (row.status.includes('Compensação')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-700 border border-amber-200">🎉 Compensação</span>;
+    if (row.status === '—') return <span className="text-[10px] text-muted-foreground">—</span>;
+    if (row.status.includes('Normal')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-green-100 text-green-700 border border-green-200">✅ Normal</span>;
+    if (row.status.includes('Falta')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-red-100 text-red-700 border border-red-200">❌ Falta</span>;
+    return <span className="text-[10px]">{row.status}</span>;
+  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-6rem)] -m-4 md:-m-6 lg:-m-8 overflow-hidden print:overflow-visible print:h-auto print:m-0">
@@ -545,26 +607,22 @@ export default function EspelhoPonto() {
             <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Buscar..." value={searchName} onChange={e => setSearchName(e.target.value)} className="pl-9 h-9 text-sm" />
           </div>
-          {/* Sector filter buttons */}
           <div className="flex flex-wrap gap-1">
-            <Button
-              variant={sectorFilter === 'Todos' ? 'default' : 'outline'}
-              size="sm" className="h-6 px-2 text-[10px]"
-              onClick={() => setSectorFilter('Todos')}
-            >Todos</Button>
+            <Button variant={sectorFilter === 'Todos' ? 'default' : 'outline'} size="sm" className="h-6 px-2 text-[10px]"
+              onClick={() => setSectorFilter('Todos')}>Todos</Button>
             {sectors.map(s => (
-              <Button
-                key={s}
-                variant={sectorFilter === s ? 'default' : 'outline'}
-                size="sm" className="h-6 px-2 text-[10px]"
-                onClick={() => setSectorFilter(s)}
-              >{s}</Button>
+              <Button key={s} variant={sectorFilter === s ? 'default' : 'outline'} size="sm" className="h-6 px-2 text-[10px]"
+                onClick={() => setSectorFilter(s)}>{s}</Button>
             ))}
           </div>
-          {/* Collaborator list */}
+          {/* "All" button to deselect */}
+          <button onClick={() => { setSelectedCollaboratorId(null); setOnlyInconsistencies(false); }}
+            className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors font-medium ${!selectedCollaboratorId ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}>
+            📋 Todos os colaboradores
+          </button>
           <div className="flex-1 overflow-y-auto space-y-0.5 min-h-0">
             {filteredCollabs.map(c => (
-              <button key={c.id} onClick={() => { setSelectedCollaboratorId(c.id); setShowAllInconsistencies(false); }}
+              <button key={c.id} onClick={() => { setSelectedCollaboratorId(c.id); setOnlyInconsistencies(false); }}
                 className={`w-full text-left px-2 py-1.5 rounded text-sm transition-colors ${selectedCollaboratorId === c.id ? 'bg-primary text-primary-foreground font-medium' : 'hover:bg-muted'}`}>
                 <span className="block truncate text-xs">{c.collaborator_name}</span>
                 <span className={`text-[10px] ${selectedCollaboratorId === c.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{c.sector}</span>
@@ -576,35 +634,29 @@ export default function EspelhoPonto() {
 
         {/* Main content */}
         <div className="flex-1 flex flex-col min-h-0 min-w-0 gap-2">
-          {/* 1. Summary cards */}
+          {/* Summary cards */}
           <div className="grid grid-cols-4 gap-2 shrink-0">
-            <Card>
-              <CardContent className="p-2">
-                <p className="text-[10px] text-muted-foreground">Total de Registros</p>
-                <p className="text-lg font-bold tabular-nums">{summaryStats.totalRegistros}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-2">
-                <p className="text-[10px] text-muted-foreground">Colaboradores</p>
-                <p className="text-lg font-bold tabular-nums">{summaryStats.totalCollabs}</p>
-              </CardContent>
-            </Card>
+            <Card><CardContent className="p-2">
+              <p className="text-[10px] text-muted-foreground">Total de Registros</p>
+              <p className="text-lg font-bold tabular-nums">{summaryStats.totalRegistros}</p>
+            </CardContent></Card>
+            <Card><CardContent className="p-2">
+              <p className="text-[10px] text-muted-foreground">Colaboradores</p>
+              <p className="text-lg font-bold tabular-nums">{summaryStats.totalCollabs}</p>
+            </CardContent></Card>
             <Card className={summaryStats.totalInconsistencias > 0 ? 'border-destructive/50 bg-destructive/5' : ''}>
               <CardContent className="p-2">
                 <p className="text-[10px] text-muted-foreground">Inconsistências</p>
                 <p className={`text-lg font-bold tabular-nums ${summaryStats.totalInconsistencias > 0 ? 'text-destructive' : ''}`}>{summaryStats.totalInconsistencias}</p>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="p-2">
-                <p className="text-[10px] text-muted-foreground">Registros OK</p>
-                <p className="text-lg font-bold tabular-nums text-green-600">{summaryStats.totalOk}</p>
-              </CardContent>
-            </Card>
+            <Card><CardContent className="p-2">
+              <p className="text-[10px] text-muted-foreground">Registros OK</p>
+              <p className="text-lg font-bold tabular-nums text-green-600">{summaryStats.totalOk}</p>
+            </CardContent></Card>
           </div>
 
-          {/* 2. Month selector + actions */}
+          {/* Month selector + actions */}
           <div className="flex items-center justify-between shrink-0 print:hidden">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -618,13 +670,11 @@ export default function EspelhoPonto() {
               </Select>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline" size="sm"
-                className={`text-xs ${showAllInconsistencies ? 'bg-amber-50 border-amber-300 text-amber-700' : 'text-amber-600 border-amber-200 hover:bg-amber-50'}`}
-                onClick={() => setShowAllInconsistencies(!showAllInconsistencies)}
-              >
+              <Button variant="outline" size="sm"
+                className={`text-xs ${onlyInconsistencies ? 'bg-amber-50 border-amber-300 text-amber-700' : 'text-amber-600 border-amber-200 hover:bg-amber-50'}`}
+                onClick={() => setOnlyInconsistencies(!onlyInconsistencies)}>
                 <AlertTriangle className="w-3.5 h-3.5 mr-1" />
-                ⚠️ Inconsistências ({globalInconsistencies.length})
+                ⚠️ Inconsistências ({totalInconsistencies})
               </Button>
               <Button variant="default" size="sm" className="text-xs" onClick={() => setUpdateDialogOpen(true)}>
                 <RefreshCw className="w-3.5 h-3.5 mr-1" /> Atualizar Batidas
@@ -637,56 +687,46 @@ export default function EspelhoPonto() {
             </div>
           </div>
 
-          {/* 3. Espelho panel (60%) */}
-          <div className="flex-[6] min-h-0 overflow-hidden">
-            {!selected ? (
-              <Card className="h-full flex items-center justify-center">
-                <CardContent className="text-center text-muted-foreground">
-                  <Search className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                  <p className="font-medium text-sm">Selecione um colaborador</p>
-                  <p className="text-xs mt-1">Escolha na lista ao lado para ver o espelho de ponto</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="h-full flex flex-col overflow-hidden">
-                {/* Collaborator header */}
-                <div className="flex items-center justify-between px-3 py-2 border-b shrink-0">
-                  <div className="flex items-center gap-3">
-                    <h3 className="text-sm font-semibold">{selected.collaborator_name}</h3>
-                    <Badge variant="outline" className="text-[10px]">{selected.sector}</Badge>
-                    <span className="text-[10px] text-muted-foreground">
-                      Trab: {totalWorked} · Faltas: {totalFaltas} · Horas: {formatMinutes(totalHoursMin)}
-                    </span>
-                    {inconsistencyCount > 0 && (
-                      <Badge variant="destructive" className="text-[10px]">
-                        <AlertTriangle className="w-3 h-3 mr-0.5" /> {inconsistencyCount}
-                      </Badge>
-                    )}
-                  </div>
-                  {/* Bank hours mini */}
-                  <div className="flex items-center gap-3 text-xs">
-                    <div className="flex items-center gap-1">
-                      <Banknote className="w-3.5 h-3.5 text-primary" />
-                      <span className="text-muted-foreground">BH Mês:</span>
-                      <span className={`font-semibold tabular-nums ${saldoMes.className}`}>{saldoMes.text || '00:00'}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-muted-foreground">Acum:</span>
-                      <span className={`font-semibold tabular-nums ${saldoAcum.className}`}>{saldoAcum.text || '00:00'}</span>
-                    </div>
-                  </div>
+          {/* Collaborator header (when selected) */}
+          {selected && (
+            <div className="flex items-center justify-between px-3 py-1.5 bg-muted/50 rounded-lg shrink-0">
+              <div className="flex items-center gap-3">
+                <h3 className="text-sm font-semibold">{selected.collaborator_name}</h3>
+                <Badge variant="outline" className="text-[10px]">{selected.sector}</Badge>
+                <span className="text-[10px] text-muted-foreground">
+                  Trab: {totalWorked} · Faltas: {totalFaltas} · Horas: {formatMinutes(totalHoursMin)}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 text-xs">
+                <div className="flex items-center gap-1">
+                  <Banknote className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-muted-foreground">BH Mês:</span>
+                  <span className={`font-semibold tabular-nums ${saldoMes.className}`}>{saldoMes.text || '00:00'}</span>
                 </div>
-                <CardContent className="p-0 flex-1 overflow-auto min-h-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-20 sticky top-0 left-0 bg-background z-20 text-xs">Data</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs">Entrada</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs">Saída Int.</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs">Ret. Int.</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs">Saída</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs">Horas</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs">Status</TableHead>
+                <div className="flex items-center gap-1">
+                  <span className="text-muted-foreground">Acum:</span>
+                  <span className={`font-semibold tabular-nums ${saldoAcum.className}`}>{saldoAcum.text || '00:00'}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Unified table */}
+          <Card className="flex-1 min-h-0 overflow-hidden flex flex-col">
+            <CardContent className="p-0 flex-1 overflow-auto min-h-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {!showJornada && <TableHead className="sticky top-0 bg-background z-10 text-xs">Colaborador</TableHead>}
+                    <TableHead className={`sticky top-0 ${showJornada ? 'left-0 z-20' : 'z-10'} bg-background text-xs w-20`}>Data</TableHead>
+                    <TableHead className="sticky top-0 bg-background z-10 text-xs">Entrada</TableHead>
+                    <TableHead className="sticky top-0 bg-background z-10 text-xs">Saída Int.</TableHead>
+                    <TableHead className="sticky top-0 bg-background z-10 text-xs">Ret. Int.</TableHead>
+                    <TableHead className="sticky top-0 bg-background z-10 text-xs">Saída</TableHead>
+                    <TableHead className="sticky top-0 bg-background z-10 text-xs">Horas</TableHead>
+                    <TableHead className="sticky top-0 bg-background z-10 text-xs">Status</TableHead>
+                    {showJornada && (
+                      <>
                         <TableHead className="sticky top-0 bg-background z-10 text-xs text-center">CH</TableHead>
                         <TableHead className="sticky top-0 bg-background z-10 text-xs text-center">Norm.</TableHead>
                         <TableHead className="sticky top-0 bg-background z-10 text-xs text-center">Flt.</TableHead>
@@ -697,47 +737,83 @@ export default function EspelhoPonto() {
                         <TableHead className="sticky top-0 bg-background z-10 text-xs text-center">A.Not</TableHead>
                         <TableHead className="sticky top-0 bg-background z-10 text-xs text-center">N.100</TableHead>
                         <TableHead className="sticky top-0 bg-background z-10 text-xs text-center">Saldo</TableHead>
-                        {canEdit && <TableHead className="w-8 sticky top-0 bg-background z-10 print:hidden"></TableHead>}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {rows.map((r, idx) => {
-                        const j = jornadaRows[idx];
-                        const isWeekend = [0, 6].includes(getDay(r.dateObj));
-                        const isExtra100 = !!(j?.extra100 && j.extra100 > 0);
-                        const saldo = j ? fmtSaldo(j.saldoBH) : { text: '', className: '' };
-                        return (
-                          <TableRow key={r.date} className={`${isExtra100 ? 'bg-pink-50 dark:bg-pink-950/20' : isWeekend ? 'bg-muted/30' : ''}`}>
-                            <TableCell className="text-[11px] font-medium whitespace-nowrap tabular-nums sticky left-0 bg-background z-10 py-1 px-2">
-                              {format(r.dateObj, 'dd/MM')} <span className="text-muted-foreground">{r.weekday}</span>
-                            </TableCell>
-                            <TableCell className="text-xs tabular-nums p-1">
-                              <InlineTimeCell value={r.entrada} canEdit={canEdit} onSave={v => handleInlineSave(r, 'entrada', v)} />
-                            </TableCell>
-                            <TableCell className="text-xs tabular-nums p-1">
-                              {r.isAutoInterval ? (
-                                <span className="italic text-muted-foreground text-[10px]" title="Auto">🤖 {r.saidaInt}</span>
-                              ) : (
-                                <InlineTimeCell value={r.saidaInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida_intervalo', v)} />
-                              )}
-                            </TableCell>
-                            <TableCell className="text-xs tabular-nums p-1">
-                              {r.isAutoInterval ? (
-                                <span className="italic text-muted-foreground text-[10px]" title="Auto">🤖 {r.retornoInt}</span>
-                              ) : (
-                                <InlineTimeCell value={r.retornoInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'retorno_intervalo', v)} />
-                              )}
-                            </TableCell>
-                            <TableCell className="text-xs tabular-nums p-1">
-                              <InlineTimeCell value={r.saida} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida', v)} />
-                            </TableCell>
-                            <TableCell className="text-[11px] tabular-nums font-medium py-1">{r.hoursMin != null ? formatMinutes(r.hoursMin) : '—'}</TableCell>
-                            <TableCell className="py-1">
-                              <span className="text-[10px] whitespace-nowrap flex items-center gap-0.5">
-                                {isExtra100 ? <span className="text-pink-600 font-medium">💯 Art.386</span> : r.status}
-                                {r.isAdjusted && <Wrench className="w-2.5 h-2.5 text-muted-foreground inline" />}
-                              </span>
-                            </TableCell>
+                      </>
+                    )}
+                    {canEdit && <TableHead className="w-8 sticky top-0 bg-background z-10 print:hidden"></TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {displayRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={showJornada ? 19 : 9} className="text-center py-8 text-muted-foreground text-sm">
+                        {onlyInconsistencies ? 'Nenhuma inconsistência encontrada' : 'Nenhum registro para exibir'}
+                      </TableCell>
+                    </TableRow>
+                  ) : displayRows.map((r, idx) => {
+                    const j = r.jornada;
+                    const isWeekend = [0, 6].includes(getDay(r.dateObj));
+                    const isExtra100 = !!(j?.extra100 && j.extra100 > 0);
+                    const hasInconsistency = r.tags.length > 0;
+                    const saldo = j ? fmtSaldo(j.saldoBH) : { text: '', className: '' };
+                    return (
+                      <TableRow key={`${r.collaboratorId}-${r.date}`}
+                        className={`${isExtra100 ? 'bg-pink-50 dark:bg-pink-950/20' : hasInconsistency ? 'bg-destructive/5' : isWeekend ? 'bg-muted/30' : ''}`}>
+                        {!showJornada && (
+                          <TableCell className="text-xs font-medium py-1 px-2">
+                            <button onClick={() => { setSelectedCollaboratorId(r.collaboratorId); setOnlyInconsistencies(false); }}
+                              className="hover:underline text-left truncate max-w-[140px] block" title={r.collaboratorName}>
+                              {r.collaboratorName}
+                            </button>
+                          </TableCell>
+                        )}
+                        <TableCell className={`text-[11px] font-medium whitespace-nowrap tabular-nums py-1 px-2 ${showJornada ? 'sticky left-0 bg-background z-10' : ''}`}>
+                          {format(r.dateObj, 'dd/MM')} <span className="text-muted-foreground">{r.weekday}</span>
+                        </TableCell>
+                        <TableCell className="text-xs tabular-nums p-1">
+                          {showJornada ? (
+                            <InlineTimeCell value={r.entrada} canEdit={canEdit} onSave={v => handleInlineSave(r, 'entrada', v)} />
+                          ) : (
+                            <span className="text-[11px] font-mono">{r.entrada || '—'}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs tabular-nums p-1">
+                          {showJornada ? (
+                            r.isAutoInterval ? (
+                              <span className="italic text-muted-foreground text-[10px]" title="Auto">🤖 {r.saidaInt}</span>
+                            ) : (
+                              <InlineTimeCell value={r.saidaInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida_intervalo', v)} />
+                            )
+                          ) : (
+                            <span className="text-[11px] font-mono">{r.saidaInt || '—'}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs tabular-nums p-1">
+                          {showJornada ? (
+                            r.isAutoInterval ? (
+                              <span className="italic text-muted-foreground text-[10px]" title="Auto">🤖 {r.retornoInt}</span>
+                            ) : (
+                              <InlineTimeCell value={r.retornoInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'retorno_intervalo', v)} />
+                            )
+                          ) : (
+                            <span className="text-[11px] font-mono">{r.retornoInt || '—'}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs tabular-nums p-1">
+                          {showJornada ? (
+                            <InlineTimeCell value={r.saida} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida', v)} />
+                          ) : (
+                            <span className="text-[11px] font-mono">{r.saida || '—'}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-[11px] tabular-nums font-medium py-1">{r.hoursMin != null ? formatMinutes(r.hoursMin) : '—'}</TableCell>
+                        <TableCell className="py-1">
+                          <div className="flex items-center gap-0.5">
+                            {renderStatusTag(r)}
+                            {r.isAdjusted && <Wrench className="w-2.5 h-2.5 text-muted-foreground" />}
+                          </div>
+                        </TableCell>
+                        {showJornada && (
+                          <>
                             <TableCell className="text-[10px] tabular-nums text-center py-1">{fmtHHMM(j?.chPrevista ?? null)}</TableCell>
                             <TableCell className="text-[10px] tabular-nums text-center py-1">{fmtHHMM(j?.normais ?? null)}</TableCell>
                             <TableCell className="text-[10px] tabular-nums text-center text-red-600 py-1">{fmtHHMM(j?.faltas ?? null)}</TableCell>
@@ -748,127 +824,45 @@ export default function EspelhoPonto() {
                             <TableCell className="text-[10px] tabular-nums text-center text-indigo-600 py-1">{fmtHHMM(j?.adNoturno ?? null)}</TableCell>
                             <TableCell className="text-[10px] tabular-nums text-center text-indigo-600 py-1">{fmtHHMM(j?.not100 ?? null)}</TableCell>
                             <TableCell className={`text-[10px] tabular-nums text-center font-medium py-1 ${saldo.className}`}>{saldo.text}</TableCell>
-                            {canEdit && (
-                              <TableCell className="print:hidden py-1 px-1">
-                                <button onClick={() => { setAdjustmentCollaborator({ id: selected.id, name: selected.collaborator_name }); setAdjustmentRow({ date: r.date, dateObj: r.dateObj, entrada: r.entrada, saidaInt: r.saidaInt, retornoInt: r.retornoInt, saida: r.saida }); setAdjustmentOpen(true); }}
-                                  className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Editar batida">
-                                  <Pencil className="w-3 h-3" />
-                                </button>
-                              </TableCell>
-                            )}
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                    {jornadaTotals && (
-                      <TableFooter>
-                        <TableRow className="font-semibold bg-muted/50">
-                          <TableCell colSpan={7} className="text-[10px] text-right sticky left-0 bg-muted/50 z-10 py-1">TOTAIS</TableCell>
-                          <TableCell className="text-[10px] tabular-nums text-center py-1">{fmtHHMM(jornadaTotals.chPrevista)}</TableCell>
-                          <TableCell className="text-[10px] tabular-nums text-center py-1">{fmtHHMM(jornadaTotals.normais)}</TableCell>
-                          <TableCell className="text-[10px] tabular-nums text-center text-red-600 py-1">{fmtHHMM(jornadaTotals.faltas)}</TableCell>
-                          <TableCell className="text-[10px] tabular-nums text-center text-amber-600 py-1">{fmtHHMM(jornadaTotals.atraso)}</TableCell>
-                          <TableCell className="text-[10px] tabular-nums text-center text-blue-600 py-1">{fmtHHMM(jornadaTotals.adiantamento)}</TableCell>
-                          <TableCell className="text-[10px] tabular-nums text-center text-green-600 py-1">{fmtHHMM(jornadaTotals.extraBH)}</TableCell>
-                          <TableCell className="text-[10px] tabular-nums text-center text-purple-600 py-1">{fmtHHMM(jornadaTotals.extra100)}</TableCell>
-                          <TableCell className="text-[10px] tabular-nums text-center text-indigo-600 py-1">{fmtHHMM(jornadaTotals.adNoturno)}</TableCell>
-                          <TableCell className="text-[10px] tabular-nums text-center text-indigo-600 py-1">{fmtHHMM(jornadaTotals.not100)}</TableCell>
-                          <TableCell className={`text-[10px] tabular-nums text-center font-bold py-1 ${fmtSaldo(jornadaTotals.saldoBH).className}`}>{fmtSaldo(jornadaTotals.saldoBH).text}</TableCell>
-                          {canEdit && <TableCell className="print:hidden py-1" />}
-                        </TableRow>
-                      </TableFooter>
-                    )}
-                  </Table>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* 4. Inconsistencies panel (40%) */}
-          <div className="flex-[4] min-h-0 overflow-hidden print:hidden">
-            <Card className="h-full flex flex-col overflow-hidden">
-              <div className="flex items-center justify-between px-3 py-2 border-b shrink-0">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-destructive" />
-                  <h3 className="text-sm font-semibold">
-                    {showAllInconsistencies ? 'Todas as Inconsistências' : selected ? `Inconsistências — ${selected.collaborator_name}` : 'Inconsistências'}
-                  </h3>
-                  <Badge variant="destructive" className="text-[10px]">{displayedInconsistencies.length}</Badge>
-                </div>
-                {selected && !showAllInconsistencies && (
-                  <Button variant="ghost" size="sm" className="text-[10px] text-amber-600" onClick={() => setShowAllInconsistencies(true)}>
-                    Ver todos os colaboradores
-                  </Button>
-                )}
-                {showAllInconsistencies && (
-                  <Button variant="ghost" size="sm" className="text-[10px]" onClick={() => setShowAllInconsistencies(false)}>
-                    Voltar para colaborador
-                  </Button>
-                )}
-              </div>
-              <CardContent className="p-0 flex-1 overflow-auto min-h-0">
-                {displayedInconsistencies.length === 0 ? (
-                  <div className="flex items-center justify-center h-full text-muted-foreground">
-                    <div className="text-center">
-                      <CheckCircle2 className="w-6 h-6 mx-auto mb-1 opacity-40" />
-                      <p className="text-xs">{!selected && !showAllInconsistencies ? 'Selecione um colaborador ou veja todas' : 'Nenhuma inconsistência'}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        {showAllInconsistencies && <TableHead className="sticky top-0 bg-background z-10 text-xs">Colaborador</TableHead>}
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs">Data</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs">Entrada</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs">Saída Int.</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs">Ret. Int.</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs">Saída</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs">Horas</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs">Status</TableHead>
-                        {canEdit && <TableHead className="w-8 sticky top-0 bg-background z-10"></TableHead>}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {displayedInconsistencies.map((inc, i) => (
-                        <TableRow key={`${inc.collaboratorId}-${inc.date}-${i}`}>
-                          {showAllInconsistencies && <TableCell className="text-xs font-medium py-1">{inc.collaboratorName}</TableCell>}
-                          <TableCell className="text-xs whitespace-nowrap py-1">{formatDate(inc.date)}</TableCell>
-                          <TableCell className="text-[11px] font-mono py-1">{inc.entrada || '—'}</TableCell>
-                          <TableCell className="text-[11px] font-mono py-1">{inc.saidaIntervalo || '—'}</TableCell>
-                          <TableCell className="text-[11px] font-mono py-1">{inc.retornoIntervalo || '—'}</TableCell>
-                          <TableCell className="text-[11px] font-mono py-1">{inc.saida || '—'}</TableCell>
-                          <TableCell className="text-[11px] font-mono py-1">{formatMinutesHHMM(inc.workedMinutes)}</TableCell>
-                          <TableCell className="py-1">
-                            <div className="flex flex-col gap-0.5">
-                              {inc.types.map(t => (
-                                <Badge key={t} variant="destructive" className="text-[9px] w-fit">
-                                  {TYPE_LABELS[t]}
-                                </Badge>
-                              ))}
-                            </div>
+                          </>
+                        )}
+                        {canEdit && (
+                          <TableCell className="print:hidden py-1 px-1">
+                            <button onClick={() => openAdjustment(r)}
+                              className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Editar batida">
+                              <Pencil className="w-3 h-3" />
+                            </button>
                           </TableCell>
-                          {canEdit && (
-                            <TableCell className="py-1 px-1">
-                              <button onClick={() => openAdjustmentForInconsistency(inc)}
-                                className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Corrigir batida">
-                                <Pencil className="w-3 h-3" />
-                              </button>
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+                {showJornada && jornadaTotals && (
+                  <TableFooter>
+                    <TableRow className="font-semibold bg-muted/50">
+                      <TableCell colSpan={7} className="text-[10px] text-right sticky left-0 bg-muted/50 z-10 py-1">TOTAIS</TableCell>
+                      <TableCell className="text-[10px] tabular-nums text-center py-1">{fmtHHMM(jornadaTotals.chPrevista)}</TableCell>
+                      <TableCell className="text-[10px] tabular-nums text-center py-1">{fmtHHMM(jornadaTotals.normais)}</TableCell>
+                      <TableCell className="text-[10px] tabular-nums text-center text-red-600 py-1">{fmtHHMM(jornadaTotals.faltas)}</TableCell>
+                      <TableCell className="text-[10px] tabular-nums text-center text-amber-600 py-1">{fmtHHMM(jornadaTotals.atraso)}</TableCell>
+                      <TableCell className="text-[10px] tabular-nums text-center text-blue-600 py-1">{fmtHHMM(jornadaTotals.adiantamento)}</TableCell>
+                      <TableCell className="text-[10px] tabular-nums text-center text-green-600 py-1">{fmtHHMM(jornadaTotals.extraBH)}</TableCell>
+                      <TableCell className="text-[10px] tabular-nums text-center text-purple-600 py-1">{fmtHHMM(jornadaTotals.extra100)}</TableCell>
+                      <TableCell className="text-[10px] tabular-nums text-center text-indigo-600 py-1">{fmtHHMM(jornadaTotals.adNoturno)}</TableCell>
+                      <TableCell className="text-[10px] tabular-nums text-center text-indigo-600 py-1">{fmtHHMM(jornadaTotals.not100)}</TableCell>
+                      <TableCell className={`text-[10px] tabular-nums text-center font-bold py-1 ${fmtSaldo(jornadaTotals.saldoBH).className}`}>{fmtSaldo(jornadaTotals.saldoBH).text}</TableCell>
+                      {canEdit && <TableCell className="print:hidden py-1" />}
+                    </TableRow>
+                  </TableFooter>
                 )}
-              </CardContent>
-            </Card>
-          </div>
+              </Table>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
       <PrintFooter />
-
       <UpdatePunchesDialog open={updateDialogOpen} onOpenChange={setUpdateDialogOpen} collaborators={collaborators} />
 
       {adjCollabId && adjustmentRow && (
