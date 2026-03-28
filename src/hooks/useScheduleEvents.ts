@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { DayOffOverride, DayOffOverridesMap } from '@/lib/scheduleEngine';
 
-export type ScheduleEventType = 'FALTA' | 'ATESTADO' | 'COMPENSACAO' | 'TROCA_FOLGA' | 'MUDANCA_FOLGA';
+export type ScheduleEventType = 'FALTA' | 'ATESTADO' | 'COMPENSACAO' | 'TROCA_FOLGA' | 'MUDANCA_FOLGA' | 'TROCA_DOMINGO';
 export type ScheduleEventStatus = 'ATIVO' | 'REVERTIDO';
 
 export interface ScheduleEvent {
@@ -44,7 +44,7 @@ export interface ScheduleEventInput {
   created_by?: string | null;
 }
 
-const DAY_OFF_EVENT_TYPES: ScheduleEventType[] = ['TROCA_FOLGA', 'MUDANCA_FOLGA'];
+const DAY_OFF_EVENT_TYPES: ScheduleEventType[] = ['TROCA_FOLGA', 'MUDANCA_FOLGA', 'TROCA_DOMINGO'];
 
 async function replaceActiveDayOffAdjustments(input: ScheduleEventInput) {
   if (!DAY_OFF_EVENT_TYPES.includes(input.event_type)) return;
@@ -209,7 +209,40 @@ export function buildSwapOverrides(events: ScheduleEvent[]): DayOffOverridesMap 
 
   for (const ev of events) {
     if (ev.status !== 'ATIVO') continue;
-    if (ev.event_type !== 'TROCA_FOLGA' && ev.event_type !== 'MUDANCA_FOLGA') continue;
+    if (ev.event_type !== 'TROCA_FOLGA' && ev.event_type !== 'MUDANCA_FOLGA' && ev.event_type !== 'TROCA_DOMINGO') continue;
+    if (!ev.week_start && ev.event_type !== 'TROCA_DOMINGO') continue;
+
+    if (ev.event_type === 'TROCA_DOMINGO') {
+      // TROCA_DOMINGO: original_day = original sunday date, swapped_day = new sunday date
+      // For the week of original sunday: remove DOMINGO from day-off (collaborator works)
+      // For the week of new sunday: add DOMINGO as day-off (collaborator is off)
+      if (ev.original_day && ev.swapped_day) {
+        const origDate = new Date(ev.original_day + 'T12:00:00');
+        const newDate = new Date(ev.swapped_day + 'T12:00:00');
+
+        // Get week start (Monday) for each Sunday
+        const getMonday = (d: Date) => {
+          const day = d.getDay();
+          const diff = day === 0 ? -6 : 1 - day;
+          const mon = new Date(d);
+          mon.setDate(d.getDate() + diff);
+          return `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, '0')}-${String(mon.getDate()).padStart(2, '0')}`;
+        };
+
+        const origWeekStart = getMonday(origDate);
+        const newWeekStart = getMonday(newDate);
+
+        // Original Sunday's week: remove DOMINGO day-off so they work
+        const origOverride = getOrCreate(`${origWeekStart}|${ev.collaborator_id}`);
+        pushUnique(origOverride.removeDays, 'DOMINGO');
+
+        // New Sunday's week: add DOMINGO day-off so they're off
+        const newOverride = getOrCreate(`${newWeekStart}|${ev.collaborator_id}`);
+        pushUnique(newOverride.addDays, 'DOMINGO');
+      }
+      continue;
+    }
+
     if (!ev.week_start) continue;
 
     const a = getOrCreate(`${ev.week_start}|${ev.collaborator_id}`);

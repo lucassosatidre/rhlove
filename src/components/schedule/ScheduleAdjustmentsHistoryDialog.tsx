@@ -61,11 +61,19 @@ const EVENT_CONFIG: Record<string, { label: string; icon: React.ReactNode; badge
     icon: <ArrowRight className="w-4 h-4 text-orange-500" />,
     badgeClass: 'bg-orange-500 text-white',
   },
+  TROCA_DOMINGO: {
+    label: 'Troca de domingo',
+    icon: <ArrowLeftRight className="w-4 h-4 text-purple-500" />,
+    badgeClass: 'bg-purple-500 text-white',
+  },
 };
 
 const getDateDisplay = (event: ScheduleEvent) => {
   if (event.event_type === 'TROCA_FOLGA' || event.event_type === 'MUDANCA_FOLGA') {
     return `Semana ${formatDateBR(event.week_start || event.event_date)}`;
+  }
+  if (event.event_type === 'TROCA_DOMINGO') {
+    return formatDateBR(event.swapped_day || event.event_date);
   }
   const start = formatDateBR(event.event_date);
   if (event.event_date_end && event.event_date_end !== event.event_date) {
@@ -79,6 +87,11 @@ const getDetailDisplay = (event: ScheduleEvent) => {
     const original = DAY_LABELS[event.original_day || ''] || event.original_day || '—';
     const next = DAY_LABELS[event.swapped_day || ''] || event.swapped_day || '—';
     return `${original} → ${next}`;
+  }
+  if (event.event_type === 'TROCA_DOMINGO') {
+    const origDate = event.original_day ? formatDateBR(event.original_day) : '—';
+    const newDate = event.swapped_day ? formatDateBR(event.swapped_day) : '—';
+    return `Dom ${origDate} → Dom ${newDate}`;
   }
   return '—';
 };
@@ -95,7 +108,7 @@ const FILTER_TYPES: Record<FilterTab, string[]> = {
   faltas: ['FALTA'],
   atestados: ['ATESTADO'],
   compensacoes: ['COMPENSACAO'],
-  ajustes: ['TROCA_FOLGA', 'MUDANCA_FOLGA'],
+  ajustes: ['TROCA_FOLGA', 'MUDANCA_FOLGA', 'TROCA_DOMINGO'],
 };
 
 export default function ScheduleAdjustmentsHistoryDialog({ open, onOpenChange }: Props) {
