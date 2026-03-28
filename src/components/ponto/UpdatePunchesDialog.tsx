@@ -243,8 +243,9 @@ export function UpdatePunchesDialog({ open, onOpenChange, collaborators }: Props
           if (collab.intervalo_automatico && collab.intervalo_inicio && collab.intervalo_duracao) {
             const filledPunches = [entrada, saidaInt, retornoInt, saida].filter(Boolean) as string[];
             if (filledPunches.length === 2) {
-              // Two punches = entrada + saída; auto-fill interval
-              const sorted = filledPunches.sort();
+              // Two punches = entrada + saída; auto-fill interval (overnight-aware sort)
+              const osk = (t: string) => { const h = parseInt(t.split(':')[0]); return h < 3 ? parseInt(t.replace(':', '')) + 2400 : parseInt(t.replace(':', '')); };
+              const sorted = [...filledPunches].sort((a, b) => osk(a) - osk(b));
               entrada = sorted[0];
               saida = sorted[1];
               saidaInt = collab.intervalo_inicio;
