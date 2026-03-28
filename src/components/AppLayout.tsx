@@ -1,9 +1,9 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, UserMinus, Fingerprint, Mic, Wrench, ClipboardList, ListTodo } from 'lucide-react';
+import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, UserMinus, Fingerprint, Mic, ClipboardList, ClipboardCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
-import { useOpenReceivedTasksCount } from '@/hooks/useTasks';
+import { useOpenDemandsCount } from '@/hooks/useDemands';
 import rhLoveIcon from '@/assets/rh-love-icon.png';
 import clienteIcon from '@/assets/cliente-estrela-icon.png';
 
@@ -20,8 +20,7 @@ const NAV_ITEMS = [
   
   { to: '/espelho-ponto', label: 'Espelho de Ponto', icon: ClipboardList, roles: ['admin', 'gestor'] },
   { to: '/checkout', label: 'Checkout', icon: Mic, roles: ['admin', 'gestor', 'lider'] },
-  { to: '/manutencoes', label: 'Manutenções e Compras', icon: Wrench, roles: ['admin', 'gestor', 'lider'] },
-  { to: '/pendencias', label: 'Pendências', icon: ListTodo, roles: ['admin', 'gestor', 'lider', 'visualizador'], badge: true },
+  { to: '/demandas', label: 'Demandas', icon: ClipboardCheck, roles: ['admin', 'gestor', 'lider', 'visualizador'], badge: true },
   { to: '/usuarios', label: 'Usuários', icon: Shield, roles: ['admin'] },
 ];
 
@@ -29,7 +28,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { usuario, signOut } = useAuth();
-  const { data: openTasksCount } = useOpenReceivedTasksCount();
+  const { data: openTasksCount } = useOpenDemandsCount();
 
   const visibleItems = NAV_ITEMS.filter(item => 
     usuario && item.roles.includes(usuario.perfil)

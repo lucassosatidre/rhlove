@@ -19,8 +19,7 @@ import GerenciarUsuarios from "@/pages/GerenciarUsuarios";
 import RegistroPonto from "@/pages/RegistroPonto";
 import CheckoutPage from "@/pages/Checkout";
 import EspelhoPonto from "@/pages/EspelhoPonto";
-import Manutencoes from "@/pages/Manutencoes";
-import Pendencias from "@/pages/Pendencias";
+import Demandas from "@/pages/Demandas";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -96,8 +95,9 @@ function AppRoutes() {
         <Route path="/registro-ponto" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><RegistroPonto /></ProtectedRoute>} />
         <Route path="/espelho-ponto" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><EspelhoPonto /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute allowedRoles={['admin', 'gestor', 'lider']}><CheckoutPage /></ProtectedRoute>} />
-        <Route path="/manutencoes" element={<ProtectedRoute allowedRoles={['admin', 'gestor', 'lider']}><Manutencoes /></ProtectedRoute>} />
-        <Route path="/pendencias" element={<ProtectedRoute><Pendencias /></ProtectedRoute>} />
+        <Route path="/demandas" element={<ProtectedRoute><Demandas /></ProtectedRoute>} />
+        <Route path="/manutencoes" element={<Navigate to="/demandas" replace />} />
+        <Route path="/pendencias" element={<Navigate to="/demandas" replace />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
