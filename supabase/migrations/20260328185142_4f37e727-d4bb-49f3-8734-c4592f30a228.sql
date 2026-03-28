@@ -1,0 +1,1 @@
+ALTER TABLE public.afastamentos ADD COLUMN IF NOT EXISTS motivo text NOT NULL DEFAULT 'Outro';

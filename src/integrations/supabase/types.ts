@@ -23,6 +23,7 @@ export type Database = {
           data_fim: string
           data_inicio: string
           id: string
+          motivo: string
           observacao: string | null
           sector: string
           updated_at: string
@@ -35,6 +36,7 @@ export type Database = {
           data_fim: string
           data_inicio: string
           id?: string
+          motivo?: string
           observacao?: string | null
           sector: string
           updated_at?: string
@@ -47,6 +49,7 @@ export type Database = {
           data_fim?: string
           data_inicio?: string
           id?: string
+          motivo?: string
           observacao?: string | null
           sector?: string
           updated_at?: string

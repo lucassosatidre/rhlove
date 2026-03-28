@@ -14,6 +14,23 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Pencil, Trash2, UserMinus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
+const MOTIVOS = [
+  'Férias', 'Atestado', 'Ajuste de Escala', 'Abono', 'Licença Médica',
+  'Licença Maternidade/Paternidade', 'Falta Justificada', 'Falta Injustificada', 'Outro',
+] as const;
+
+const MOTIVO_COLORS: Record<string, string> = {
+  'Férias': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  'Atestado': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  'Ajuste de Escala': 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  'Abono': 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+  'Licença Médica': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  'Licença Maternidade/Paternidade': 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400',
+  'Falta Justificada': 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+  'Falta Injustificada': 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+  'Outro': 'bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400',
+};
+
 function formatDateBR(s: string) {
   const [y, m, d] = s.split('-');
   return `${d}/${m}/${y}`;
@@ -32,6 +49,7 @@ export default function Afastamentos() {
   const [editing, setEditing] = useState<Afastamento | null>(null);
 
   const [collabId, setCollabId] = useState('');
+  const [motivo, setMotivo] = useState('');
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [observacao, setObservacao] = useState('');
@@ -41,6 +59,7 @@ export default function Afastamentos() {
   function openNew() {
     setEditing(null);
     setCollabId('');
+    setMotivo('');
     setDataInicio('');
     setDataFim('');
     setObservacao('');
@@ -50,6 +69,7 @@ export default function Afastamentos() {
   function openEdit(a: Afastamento) {
     setEditing(a);
     setCollabId(a.collaborator_id);
+    setMotivo(a.motivo || '');
     setDataInicio(a.data_inicio);
     setDataFim(a.data_fim);
     setObservacao(a.observacao || '');
@@ -57,7 +77,7 @@ export default function Afastamentos() {
   }
 
   async function handleSave() {
-    if (!collabId || !dataInicio || !dataFim) {
+    if (!collabId || !motivo || !dataInicio || !dataFim) {
       toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
       return;
     }
@@ -75,6 +95,7 @@ export default function Afastamentos() {
           collaborator_id: collabId,
           collaborator_name: collab.collaborator_name,
           sector: collab.sector,
+          motivo,
           data_inicio: dataInicio,
           data_fim: dataFim,
           observacao: observacao || null,
@@ -85,6 +106,7 @@ export default function Afastamentos() {
           collaborator_id: collabId,
           collaborator_name: collab.collaborator_name,
           sector: collab.sector,
+          motivo,
           data_inicio: dataInicio,
           data_fim: dataFim,
           observacao: observacao || null,
@@ -142,6 +164,7 @@ export default function Afastamentos() {
                 <TableRow>
                   <TableHead>Colaborador</TableHead>
                   <TableHead>Setor</TableHead>
+                  <TableHead>Motivo</TableHead>
                   <TableHead>Início</TableHead>
                   <TableHead>Fim</TableHead>
                   <TableHead>Status</TableHead>
@@ -158,6 +181,11 @@ export default function Afastamentos() {
                     <TableRow key={a.id}>
                       <TableCell className="font-medium">{a.collaborator_name}</TableCell>
                       <TableCell>{a.sector}</TableCell>
+                      <TableCell>
+                        <Badge className={MOTIVO_COLORS[a.motivo] || MOTIVO_COLORS['Outro']} variant="secondary">
+                          {a.motivo || 'Outro'}
+                        </Badge>
+                      </TableCell>
                       <TableCell>{formatDateBR(a.data_inicio)}</TableCell>
                       <TableCell>{formatDateBR(a.data_fim)}</TableCell>
                       <TableCell>
@@ -207,6 +235,19 @@ export default function Afastamentos() {
                     <SelectItem key={c.id} value={c.id}>
                       {c.collaborator_name} — {c.sector}
                     </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Motivo</Label>
+              <Select value={motivo} onValueChange={setMotivo}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o motivo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MOTIVOS.map(m => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

@@ -6,6 +6,7 @@ export interface Afastamento {
   collaborator_id: string;
   collaborator_name: string;
   sector: string;
+  motivo: string;
   data_inicio: string;
   data_fim: string;
   observacao: string | null;
