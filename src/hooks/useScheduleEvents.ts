@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { DayOffOverride, DayOffOverridesMap } from '@/lib/scheduleEngine';
 
-export type ScheduleEventType = 'FALTA' | 'ATESTADO' | 'COMPENSACAO' | 'TROCA_FOLGA' | 'MUDANCA_FOLGA';
+export type ScheduleEventType = 'FALTA' | 'ATESTADO' | 'COMPENSACAO' | 'TROCA_FOLGA' | 'MUDANCA_FOLGA' | 'TROCA_DOMINGO';
 export type ScheduleEventStatus = 'ATIVO' | 'REVERTIDO';
 
 export interface ScheduleEvent {
