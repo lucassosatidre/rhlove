@@ -24,6 +24,7 @@ interface PunchAdjustmentDialogProps {
   saidaInt?: string | null;
   retornoInt?: string | null;
   saida?: string | null;
+  punchPattern?: Record<keyof PunchSlots, number> | null;
 }
 
 export function PunchAdjustmentDialog({
