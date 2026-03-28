@@ -178,7 +178,7 @@ export function useUsuarios() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('usuarios')
-        .select('id, nome, email')
+        .select('id, nome, email, collaborator_id' as any)
         .eq('status', 'ativo')
         .order('nome');
       if (error) throw error;
