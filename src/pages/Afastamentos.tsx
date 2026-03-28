@@ -77,7 +77,7 @@ export default function Afastamentos() {
   }
 
   async function handleSave() {
-    if (!collabId || !dataInicio || !dataFim) {
+    if (!collabId || !motivo || !dataInicio || !dataFim) {
       toast({ title: 'Preencha todos os campos obrigatórios', variant: 'destructive' });
       return;
     }
