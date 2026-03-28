@@ -607,6 +607,18 @@ export default function Colaboradores() {
               )}
             </div>
 
+            {/* Controle de ponto */}
+            <div className="flex items-center justify-between border rounded-lg p-3 bg-muted/30">
+              <div>
+                <p className="text-sm font-medium">Controlar batidas no Espelho de Ponto</p>
+                <p className="text-[11px] text-muted-foreground">Desative para colaboradores que não precisam de controle de ponto</p>
+              </div>
+              <Switch
+                checked={form.controla_ponto}
+                onCheckedChange={v => setForm(f => ({ ...f, controla_ponto: v }))}
+              />
+            </div>
+
             {/* Intervalo automático */}
             <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
               <div className="flex items-center justify-between">
