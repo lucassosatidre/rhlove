@@ -545,6 +545,17 @@ export default function EspelhoPonto() {
       'Ajuste': '',
     }));
     const ws = XLSX.utils.json_to_sheet(data);
+    // Auto-fit column widths
+    const cols = [
+      { wch: 25 }, // Colaborador
+      { wch: 12 }, // Data
+      { wch: 8 },  // Entrada
+      { wch: 16 }, // Saída Intervalo
+      { wch: 18 }, // Retorno Intervalo
+      { wch: 8 },  // Saída
+      { wch: 12 }, // Ajuste
+    ];
+    ws['!cols'] = cols;
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Espelho');
     XLSX.writeFile(wb, `espelho-ponto-${MONTHS[selectedMonth].label}-${selectedYear}.xlsx`);
