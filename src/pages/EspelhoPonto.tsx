@@ -865,6 +865,7 @@ export default function EspelhoPonto() {
           date={adjustmentRow.date} dateObj={adjustmentRow.dateObj}
           entrada={adjustmentRow.entrada} saidaInt={adjustmentRow.saidaInt}
           retornoInt={adjustmentRow.retornoInt} saida={adjustmentRow.saida}
+          punchPattern={adjCollabId ? patternCache.get(adjCollabId) ?? null : null}
         />
       )}
     </div>
