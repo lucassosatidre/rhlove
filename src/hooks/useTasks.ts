@@ -176,13 +176,13 @@ export function useUsuarios() {
   return useQuery({
     queryKey: ['usuarios_list'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from('usuarios')
-        .select('id, nome, email, collaborator_id' as any)
+        .select('*')
         .eq('status', 'ativo')
-        .order('nome');
+        .order('nome') as any);
       if (error) throw error;
-      return data || [];
+      return (data || []) as { id: string; nome: string; email: string; collaborator_id?: string | null }[];
     },
   });
 }
