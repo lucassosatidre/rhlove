@@ -141,26 +141,31 @@ export default function NewDemandDialog({ open, onOpenChange }: NewDemandDialogP
             <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Resumo da demanda" />
           </div>
 
+          {/* Solicitante */}
+          <div>
+            <Label>Solicitante</Label>
+            <Input value={usuario?.nome ?? ''} disabled className="bg-muted" />
+          </div>
+
           {/* Description */}
           <div>
             <Label>Descrição</Label>
             <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Detalhes..." rows={3} />
           </div>
 
-          {/* Conditional: Assignee */}
-          {needsAssignee && (
-            <div>
-              <Label>Direcionado para <span className="text-destructive">*</span></Label>
-              <Select value={assignedTo} onValueChange={setAssignedTo}>
-                <SelectTrigger><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
-                <SelectContent>
-                  {assigneeOptions.map(u => (
-                    <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          {/* Assignee — always visible */}
+          <div>
+            <Label>Destinatário {assigneeRequired && <span className="text-destructive">*</span>}</Label>
+            <Select value={assignedTo} onValueChange={setAssignedTo}>
+              <SelectTrigger><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
+              <SelectContent>
+                {!assigneeRequired && <SelectItem value="none">— Nenhum —</SelectItem>}
+                {assigneeOptions.map(u => (
+                  <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Conditional: Sector */}
           {needsSector && (
