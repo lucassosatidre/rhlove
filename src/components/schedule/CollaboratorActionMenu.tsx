@@ -621,6 +621,78 @@ export default function CollaboratorActionMenu({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* TROCA DOMINGO Dialog */}
+      <Dialog open={dialogType === 'TROCA_DOMINGO'} onOpenChange={(o) => !o && setDialogType(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarDays className="w-5 h-5 text-purple-500" />
+              Alterar Domingo de Folga
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm">
+              <strong>{collaboratorName}</strong>
+            </p>
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="text-xs text-muted-foreground">Domingo de folga atual:</p>
+              <p className="text-sm font-semibold">
+                {currentSundayInfo ? currentSundayInfo.label : `${currentSundayN}º domingo`}
+              </p>
+            </div>
+            <div>
+              <Label className="text-xs">Novo domingo de folga</Label>
+              <Select value={newSunday} onValueChange={setNewSunday}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o domingo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sundaysOfMonth
+                    .filter(s => s.num !== currentSundayN)
+                    .map((s) => (
+                      <SelectItem key={s.dateKey} value={s.dateKey}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {newSunday && currentSundayInfo && (
+              <div className="rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/30 p-3">
+                <p className="text-xs font-medium text-purple-700 dark:text-purple-400">Resultado:</p>
+                <p className="text-sm">
+                  <strong>{collaboratorName}</strong> folgará no{' '}
+                  <strong>{sundaysOfMonth.find(s => s.dateKey === newSunday)?.label}</strong>{' '}
+                  em vez do {currentSundayInfo.label}
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Apenas neste mês. O domingo fixo ({currentSundayN}º) não será alterado no cadastro.
+                </p>
+              </div>
+            )}
+            <div>
+              <Label className="text-xs">Observação (opcional)</Label>
+              <Textarea
+                value={observation}
+                onChange={(e) => setObservation(e.target.value)}
+                placeholder="Motivo da alteração"
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogType(null)}>Cancelar</Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={loading || !newSunday}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              {loading ? 'Salvando...' : 'Confirmar Alteração'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
