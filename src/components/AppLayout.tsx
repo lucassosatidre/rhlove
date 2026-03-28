@@ -6,8 +6,6 @@ import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 import { useOpenDemandsCount } from '@/hooks/useDemands';
 import rhLoveIcon from '@/assets/rh-love-icon.png';
 import clienteIcon from '@/assets/cliente-estrela-icon.png';
-import rhLoveIcon from '@/assets/rh-love-icon.png';
-import clienteIcon from '@/assets/cliente-estrela-icon.png';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'gestor', 'visualizador'] },
