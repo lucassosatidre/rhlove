@@ -92,7 +92,7 @@ export function useCreateDemand() {
       await supabase.from('demand_status_history' as any).insert({
         demand_id: (data as any).id,
         old_status: null,
-        new_status: 'aberta',
+        new_status: 'em_andamento',
         changed_by: demand.created_by,
       } as any);
       return data;
