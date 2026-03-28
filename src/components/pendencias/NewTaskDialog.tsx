@@ -13,6 +13,7 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { useTasks, useUsuarios } from '@/hooks/useTasks';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCollaborators } from '@/hooks/useCollaborators';
 import { toast } from 'sonner';
 
 const CATEGORIES = [
@@ -38,6 +39,7 @@ export default function NewTaskDialog({ open, onOpenChange }: Props) {
   const { usuario } = useAuth();
   const { createTask } = useTasks();
   const { data: usuarios } = useUsuarios();
+  const { data: collaborators } = useCollaborators();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
@@ -45,6 +47,17 @@ export default function NewTaskDialog({ open, onOpenChange }: Props) {
   const [category, setCategory] = useState('tarefa');
   const [priority, setPriority] = useState('media');
   const [saving, setSaving] = useState(false);
+
+  // Build list: usuarios ativos (excluding current user), showing collaborator name if linked
+  const destinatarios = (usuarios || [])
+    .filter(u => u.id !== usuario?.id)
+    .map(u => {
+      const collab = collaborators?.find((c: any) => c.id === (u as any).collaborator_id);
+      return {
+        userId: u.id,
+        label: collab ? `${collab.collaborator_name} (${u.nome})` : u.nome,
+      };
+    });
 
   const reset = () => {
     setTitle(''); setDescription(''); setAssignedTo(''); setDueDate(undefined);
@@ -92,10 +105,10 @@ export default function NewTaskDialog({ open, onOpenChange }: Props) {
           <div>
             <Label>Direcionado para *</Label>
             <Select value={assignedTo} onValueChange={setAssignedTo}>
-              <SelectTrigger><SelectValue placeholder="Selecione um usuário" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Selecione o destinatário" /></SelectTrigger>
               <SelectContent>
-                {usuarios?.filter(u => u.id !== usuario?.id).map(u => (
-                  <SelectItem key={u.id} value={u.id}>{u.nome}</SelectItem>
+                {destinatarios.map(d => (
+                  <SelectItem key={d.userId} value={d.userId}>{d.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

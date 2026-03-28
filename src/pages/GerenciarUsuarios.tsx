@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -19,6 +19,13 @@ interface UsuarioRow {
   perfil: string;
   status: string;
   created_at: string;
+  collaborator_id: string | null;
+}
+
+interface CollaboratorOption {
+  id: string;
+  collaborator_name: string;
+  sector: string;
 }
 
 const PERFIS: Perfil[] = ['admin', 'gestor', 'lider', 'visualizador'];
@@ -26,6 +33,7 @@ const PERFIS: Perfil[] = ['admin', 'gestor', 'lider', 'visualizador'];
 export default function GerenciarUsuarios() {
   const { usuario: currentUser } = useAuth();
   const [usuarios, setUsuarios] = useState<UsuarioRow[]>([]);
+  const [collaborators, setCollaborators] = useState<CollaboratorOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -35,17 +43,23 @@ export default function GerenciarUsuarios() {
   const [senha, setSenha] = useState('');
   const [perfil, setPerfil] = useState<Perfil>('visualizador');
   const [status, setStatus] = useState<'ativo' | 'inativo'>('ativo');
+  const [collaboratorId, setCollaboratorId] = useState<string>('none');
 
   const fetchUsuarios = async () => {
     const { data } = await supabase.from('usuarios').select('*').order('nome');
-    setUsuarios((data as UsuarioRow[]) || []);
+    setUsuarios((data as unknown as UsuarioRow[]) || []);
     setLoading(false);
   };
 
-  useEffect(() => { fetchUsuarios(); }, []);
+  const fetchCollaborators = async () => {
+    const { data } = await supabase.from('collaborators').select('id, collaborator_name, sector').eq('status', 'ATIVO').order('collaborator_name');
+    setCollaborators((data as CollaboratorOption[]) || []);
+  };
+
+  useEffect(() => { fetchUsuarios(); fetchCollaborators(); }, []);
 
   const resetForm = () => {
-    setNome(''); setEmail(''); setSenha(''); setPerfil('visualizador'); setStatus('ativo'); setEditingId(null);
+    setNome(''); setEmail(''); setSenha(''); setPerfil('visualizador'); setStatus('ativo'); setEditingId(null); setCollaboratorId('none');
   };
 
   const openCreate = () => { resetForm(); setDialogOpen(true); };
@@ -57,7 +71,13 @@ export default function GerenciarUsuarios() {
     setSenha('');
     setPerfil(u.perfil as Perfil);
     setStatus(u.status as 'ativo' | 'inativo');
+    setCollaboratorId(u.collaborator_id || 'none');
     setDialogOpen(true);
+  };
+
+  const getCollaboratorName = (collabId: string | null) => {
+    if (!collabId) return '—';
+    return collaborators.find(c => c.id === collabId)?.collaborator_name || '—';
   };
 
   const handleSave = async () => {
@@ -66,19 +86,21 @@ export default function GerenciarUsuarios() {
       return;
     }
 
+    const collabValue = collaboratorId === 'none' ? null : collaboratorId;
+
     if (editingId) {
-      // Update profile data
-      const { error } = await supabase.from('usuarios').update({ nome, email, perfil, status }).eq('id', editingId);
+      const { error } = await supabase.from('usuarios').update({
+        nome, email, perfil, status,
+        collaborator_id: collabValue,
+      } as any).eq('id', editingId);
       if (error) { toast.error('Erro ao atualizar: ' + error.message); return; }
       toast.success('Usuário atualizado');
     } else {
-      // Create new user via edge function or auth signup
       if (!senha.trim() || senha.length < 6) {
         toast.error('Senha deve ter pelo menos 6 caracteres');
         return;
       }
       
-      // Use supabase admin signup via edge function
       const { data, error } = await supabase.functions.invoke('create-user', {
         body: { email, password: senha, nome, perfil, status }
       });
@@ -87,6 +109,12 @@ export default function GerenciarUsuarios() {
         toast.error('Erro ao criar usuário: ' + (data?.error || error?.message));
         return;
       }
+
+      // Update collaborator_id if set
+      if (collabValue && data?.user?.id) {
+        await supabase.from('usuarios').update({ collaborator_id: collabValue } as any).eq('id', data.user.id);
+      }
+
       toast.success('Usuário criado com sucesso');
     }
 
@@ -168,6 +196,18 @@ export default function GerenciarUsuarios() {
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label>Colaborador vinculado</Label>
+                <Select value={collaboratorId} onValueChange={setCollaboratorId}>
+                  <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {collaborators.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.collaborator_name} ({c.sector})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label>Status</Label>
                 <Select value={status} onValueChange={v => setStatus(v as 'ativo' | 'inativo')}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -192,6 +232,7 @@ export default function GerenciarUsuarios() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Colaborador</TableHead>
                 <TableHead>Perfil</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -199,13 +240,14 @@ export default function GerenciarUsuarios() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
               ) : usuarios.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Nenhum usuário cadastrado</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum usuário cadastrado</TableCell></TableRow>
               ) : usuarios.map(u => (
-                <TableRow key={u.id}>
+                <TableRow key={u.id} className={u.status === 'inativo' ? 'opacity-50' : ''}>
                   <TableCell className="font-medium">{u.nome}</TableCell>
                   <TableCell>{u.email}</TableCell>
+                  <TableCell className="text-xs">{getCollaboratorName(u.collaborator_id)}</TableCell>
                   <TableCell><Badge variant="secondary" className="capitalize">{u.perfil}</Badge></TableCell>
                   <TableCell>
                     <Badge variant={u.status === 'ativo' ? 'default' : 'destructive'} className="capitalize">
