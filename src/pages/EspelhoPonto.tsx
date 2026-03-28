@@ -248,7 +248,7 @@ export default function EspelhoPonto() {
       else if (isFolga) { status = '🏖️ Folga'; statusEmoji = '🏖️'; }
       else if (isFaltaJustificada && !entrada) { status = '❌ Falta justificada'; statusEmoji = '❌'; }
       else if (entrada && saida) { status = '✅ Normal'; statusEmoji = '✅'; }
-      else if (entrada && !saida) { status = '⚠️ Saída pendente'; statusEmoji = '⚠️'; }
+      else if (entrada && !saida) { status = '⚠️ Batida pendente'; statusEmoji = '⚠️'; }
 
       // Override isFolga for afastamento/atestado/compensacao so jornada engine skips CH
       if (isAtestado || isCompensacao) {
