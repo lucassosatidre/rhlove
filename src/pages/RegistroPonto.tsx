@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,9 +12,11 @@ import { toast } from 'sonner';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { usePunchRecords } from '@/hooks/usePunchRecords';
 import { UpdatePunchesDialog } from '@/components/ponto/UpdatePunchesDialog';
+import { supabase } from '@/integrations/supabase/client';
 
 type InconsistencyType = 'incomplete' | 'saida_pendente' | 'sem_intervalo' | 'jornada_longa' | 'jornada_curta';
 
@@ -126,8 +128,23 @@ export default function RegistroPonto() {
   const [filterDateTo, setFilterDateTo] = useState('');
   const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
   const { data: collaborators = [] } = useCollaborators();
+  const queryClient = useQueryClient();
   const { data: punchRecords = [] } = usePunchRecords();
 
+  // Realtime subscription to auto-refresh when punch_records change
+  useEffect(() => {
+    const channel = supabase
+      .channel('registro-ponto-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'punch_records' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['punch_records'] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [queryClient]);
   // Build collaborator_id -> PIS map
   const collabPisMap = useMemo(() => {
     const map: Record<string, string> = {};
