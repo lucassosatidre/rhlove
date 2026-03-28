@@ -76,6 +76,33 @@ export default function CollaboratorActionMenu({
 
   const currentCollab = allCollaborators.find(c => c.id === collaboratorId);
   const currentDayOff = currentCollab?.folgas_semanais[0] || '';
+  const isSunday = date.getDay() === 0;
+  const hasSundayN = (currentCollab?.sunday_n ?? 0) > 0;
+
+  // Compute all Sundays of the month for the sunday swap modal
+  const sundaysOfMonth = useMemo(() => {
+    const y = date.getFullYear();
+    const m = date.getMonth();
+    const sundays: { num: number; date: Date; dateKey: string; label: string }[] = [];
+    const d = new Date(y, m, 1);
+    while (d.getMonth() === m) {
+      if (d.getDay() === 0) {
+        const num = Math.ceil(d.getDate() / 7);
+        const dk = formatDateKey(d);
+        sundays.push({
+          num,
+          date: new Date(d),
+          dateKey: dk,
+          label: `${num}º domingo — ${String(d.getDate()).padStart(2, '0')}/${String(m + 1).padStart(2, '0')}`,
+        });
+      }
+      d.setDate(d.getDate() + 1);
+    }
+    return sundays;
+  }, [date]);
+
+  const currentSundayN = currentCollab?.sunday_n ?? 0;
+  const currentSundayInfo = sundaysOfMonth.find(s => s.num === currentSundayN);
 
   const availableCompensations = compensations.filter(
     (c) => c.collaborator_id === collaboratorId && c.status === 'SIM'
@@ -101,6 +128,7 @@ export default function CollaboratorActionMenu({
     setAtestadoEnd('');
     setSwapCollaboratorId('');
     setNewDayOff('');
+    setNewSunday('');
     setSelectedCompensationId('');
     setAjusteMode('troca');
   };
