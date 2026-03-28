@@ -50,10 +50,10 @@ export default function NewDemandDialog({ open, onOpenChange }: NewDemandDialogP
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const needsAssignee = type === 'tarefa';
   const needsSector = type === 'manutencao';
   const needsItem = type === 'compra';
   const needsPhotos = type === 'manutencao';
+  const assigneeRequired = type === 'tarefa';
 
   const reset = () => {
     setType(''); setTitle(''); setDescription(''); setAssignedTo('');
