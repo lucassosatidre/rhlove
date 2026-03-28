@@ -40,6 +40,7 @@ interface FormData {
   horario_saida: string;
   jornadas_especiais: JornadaEspecial[];
   aviso_previo_reducao: number | null;
+  controla_ponto: boolean;
 }
 
 const emptyForm: FormData = {
