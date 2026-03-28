@@ -239,6 +239,19 @@ export default function Afastamentos() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label>Motivo</Label>
+              <Select value={motivo} onValueChange={setMotivo}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o motivo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MOTIVOS.map(m => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Data inicial</Label>
