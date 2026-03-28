@@ -1039,6 +1039,7 @@ export type Database = {
       }
       usuarios: {
         Row: {
+          collaborator_id: string | null
           created_at: string
           email: string
           id: string
@@ -1047,6 +1048,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          collaborator_id?: string | null
           created_at?: string
           email: string
           id: string
@@ -1055,6 +1057,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          collaborator_id?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -1062,7 +1065,15 @@ export type Database = {
           perfil?: string
           status?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "usuarios_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
