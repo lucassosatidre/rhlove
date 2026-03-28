@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useAfastamentos, type Afastamento } from '@/hooks/useAfastamentos';
 import {
   useScheduledVacations,
   useCreateScheduledVacation,
