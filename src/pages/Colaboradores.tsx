@@ -136,6 +136,7 @@ export default function Colaboradores() {
     horario_saida: f.horario_saida || null,
     jornadas_especiais: f.jornadas_especiais.length > 0 ? f.jornadas_especiais : null,
     aviso_previo_reducao: f.aviso_previo_reducao,
+    controla_ponto: f.controla_ponto,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

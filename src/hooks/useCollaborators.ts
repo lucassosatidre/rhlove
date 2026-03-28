@@ -53,6 +53,7 @@ function toDbRow(c: CollaboratorInput) {
     horario_saida: c.horario_saida || null,
     jornadas_especiais: c.jornadas_especiais ? JSON.stringify(c.jornadas_especiais) : null,
     aviso_previo_reducao: c.aviso_previo_reducao ?? null,
+    controla_ponto: c.controla_ponto ?? true,
     data_retorno: c.data_retorno || c.fim_periodo || null,
     data_fim_experiencia: c.data_fim_experiencia || (c.status === 'EXPERIENCIA' ? c.fim_periodo : null) || null,
     data_fim_aviso: c.data_fim_aviso || (c.status === 'AVISO_PREVIO' ? c.fim_periodo : null) || null,
