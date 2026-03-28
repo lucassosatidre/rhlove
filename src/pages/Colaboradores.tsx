@@ -110,6 +110,7 @@ export default function Colaboradores() {
       horario_saida: c.horario_saida ?? '',
       jornadas_especiais: c.jornadas_especiais ?? [],
       aviso_previo_reducao: c.aviso_previo_reducao ?? null,
+      controla_ponto: c.controla_ponto ?? true,
     });
     setDialogOpen(true);
   };
