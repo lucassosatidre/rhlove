@@ -44,7 +44,7 @@ export interface ScheduleEventInput {
   created_by?: string | null;
 }
 
-const DAY_OFF_EVENT_TYPES: ScheduleEventType[] = ['TROCA_FOLGA', 'MUDANCA_FOLGA'];
+const DAY_OFF_EVENT_TYPES: ScheduleEventType[] = ['TROCA_FOLGA', 'MUDANCA_FOLGA', 'TROCA_DOMINGO'];
 
 async function replaceActiveDayOffAdjustments(input: ScheduleEventInput) {
   if (!DAY_OFF_EVENT_TYPES.includes(input.event_type)) return;
