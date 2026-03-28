@@ -30,7 +30,7 @@ interface PunchAdjustmentDialogProps {
 export function PunchAdjustmentDialog({
   open, onOpenChange,
   collaboratorId, collaboratorName, date, dateObj,
-  entrada, saidaInt, retornoInt, saida,
+  entrada, saidaInt, retornoInt, saida, punchPattern,
 }: PunchAdjustmentDialogProps) {
   const [entradaVal, setEntradaVal] = useState(entrada ?? '');
   const [saidaIntVal, setSaidaIntVal] = useState(saidaInt ?? '');
