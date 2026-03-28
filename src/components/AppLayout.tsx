@@ -1,9 +1,11 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, UserMinus, Fingerprint, Mic, Wrench, ClipboardList, ListTodo } from 'lucide-react';
+import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, UserMinus, Fingerprint, Mic, ClipboardList, ClipboardCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
-import { useOpenReceivedTasksCount } from '@/hooks/useTasks';
+import { useOpenDemandsCount } from '@/hooks/useDemands';
+import rhLoveIcon from '@/assets/rh-love-icon.png';
+import clienteIcon from '@/assets/cliente-estrela-icon.png';
 import rhLoveIcon from '@/assets/rh-love-icon.png';
 import clienteIcon from '@/assets/cliente-estrela-icon.png';
 
