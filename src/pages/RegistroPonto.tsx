@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,9 +12,11 @@ import { toast } from 'sonner';
 import { format, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { usePunchRecords } from '@/hooks/usePunchRecords';
 import { UpdatePunchesDialog } from '@/components/ponto/UpdatePunchesDialog';
+import { supabase } from '@/integrations/supabase/client';
 
 type InconsistencyType = 'incomplete' | 'saida_pendente' | 'sem_intervalo' | 'jornada_longa' | 'jornada_curta';
 
