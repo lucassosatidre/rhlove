@@ -787,40 +787,40 @@ export default function EspelhoPonto() {
                     const saldo = j ? fmtSaldo(j.saldoBH) : { text: '', className: '' };
                     return (
                       <TableRow key={`${r.collaboratorId}-${r.date}`}
-                        className={`${isExtra100 ? 'bg-pink-50 dark:bg-pink-950/20' : hasInconsistency ? 'bg-destructive/5' : isWeekend ? 'bg-muted/30' : ''}`}>
+                        className={`${isExtra100 ? 'bg-pink-50 dark:bg-pink-950/20' : hasInconsistency ? 'bg-destructive/5' : idx % 2 === 1 ? 'bg-gray-50/60 dark:bg-gray-900/20' : ''}`}>
                         {!showJornada && (
-                          <TableCell className="text-xs font-medium py-1 px-2">
+                          <TableCell className="text-xs font-medium py-0.5 px-2">
                             <button onClick={() => { setSelectedCollaboratorId(r.collaboratorId); setOnlyInconsistencies(false); }}
                               className="hover:underline text-left truncate max-w-[140px] block" title={r.collaboratorName}>
                               {r.collaboratorName}
                             </button>
                           </TableCell>
                         )}
-                        <TableCell className={`text-[11px] font-medium whitespace-nowrap tabular-nums py-1 px-2 ${showJornada ? 'sticky left-0 bg-background z-10' : ''}`}>
+                        <TableCell className={`text-[11px] font-medium whitespace-nowrap tabular-nums py-0.5 px-2 ${showJornada ? 'sticky left-0 bg-inherit z-10' : ''}`}>
                           {format(r.dateObj, 'dd/MM')} <span className="text-muted-foreground">{r.weekday}</span>
                         </TableCell>
-                        <TableCell className="text-xs tabular-nums p-1 bg-blue-50/40 dark:bg-blue-950/10 border-l-2 border-l-blue-200">
+                        <TableCell className="text-xs tabular-nums py-0.5 px-1 border-l-2 border-l-gray-300">
                           <InlineTimeCell value={r.entrada} canEdit={canEdit} onSave={v => handleInlineSave(r, 'entrada', v)} />
                         </TableCell>
-                        <TableCell className="text-xs tabular-nums p-1 bg-blue-50/40 dark:bg-blue-950/10">
+                        <TableCell className="text-xs tabular-nums py-0.5 px-1">
                           {r.isAutoInterval ? (
                             <span className="italic text-muted-foreground text-[10px]" title="Auto">🤖 {r.saidaInt}</span>
                           ) : (
                             <InlineTimeCell value={r.saidaInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida_intervalo', v)} />
                           )}
                         </TableCell>
-                        <TableCell className="text-xs tabular-nums p-1 bg-blue-50/40 dark:bg-blue-950/10">
+                        <TableCell className="text-xs tabular-nums py-0.5 px-1">
                           {r.isAutoInterval ? (
                             <span className="italic text-muted-foreground text-[10px]" title="Auto">🤖 {r.retornoInt}</span>
                           ) : (
                             <InlineTimeCell value={r.retornoInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'retorno_intervalo', v)} />
                           )}
                         </TableCell>
-                        <TableCell className="text-xs tabular-nums p-1 bg-blue-50/40 dark:bg-blue-950/10">
+                        <TableCell className="text-xs tabular-nums py-0.5 px-1">
                           <InlineTimeCell value={r.saida} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida', v)} />
                         </TableCell>
-                        <TableCell className="text-[11px] tabular-nums font-medium py-1 border-l-2 border-l-border">{r.hoursMin != null ? formatMinutes(r.hoursMin) : '—'}</TableCell>
-                        <TableCell className="py-1">
+                        <TableCell className="text-[11px] tabular-nums font-medium py-0.5 border-l-2 border-l-gray-300">{r.hoursMin != null ? formatMinutes(r.hoursMin) : '—'}</TableCell>
+                        <TableCell className="py-0.5">
                           <div className="flex items-center gap-0.5">
                             {renderStatusTag(r)}
                             {r.isAdjusted && <Wrench className="w-2.5 h-2.5 text-muted-foreground" />}
@@ -828,20 +828,20 @@ export default function EspelhoPonto() {
                         </TableCell>
                         {showJornada && (
                           <>
-                            <TableCell className="text-[10px] tabular-nums text-center py-1 bg-gray-50/40 dark:bg-gray-900/10 border-l-2 border-l-gray-300">{fmtHHMM(j?.chPrevista ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center py-1 bg-gray-50/40 dark:bg-gray-900/10">{fmtHHMM(j?.normais ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center text-red-600 py-1 bg-gray-50/40 dark:bg-gray-900/10">{fmtHHMM(j?.faltas ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center text-amber-600 py-1 bg-amber-50/40 dark:bg-amber-950/10 border-l-2 border-l-amber-200">{fmtHHMM(j?.atraso ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center text-blue-600 py-1 bg-amber-50/40 dark:bg-amber-950/10">{fmtHHMM(j?.adiantamento ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center text-green-600 py-1 bg-green-50/40 dark:bg-green-950/10 border-l-2 border-l-green-200">{fmtHHMM(j?.extraBH ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center text-purple-600 py-1 bg-green-50/40 dark:bg-green-950/10">{fmtHHMM(j?.extra100 ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center text-indigo-600 py-1 bg-violet-50/40 dark:bg-violet-950/10 border-l-2 border-l-violet-200">{fmtHHMM(j?.adNoturno ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center text-indigo-600 py-1 bg-violet-50/40 dark:bg-violet-950/10">{fmtHHMM(j?.not100 ?? null)}</TableCell>
-                            <TableCell className={`text-[10px] tabular-nums text-center font-medium py-1 border-l-2 border-l-border ${saldo.className}`}>{saldo.text}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center py-0.5 border-l-2 border-l-gray-300">{fmtHHMM(j?.chPrevista ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center py-0.5">{fmtHHMM(j?.normais ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center text-red-600 py-0.5">{fmtHHMM(j?.faltas ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center text-amber-600 py-0.5 border-l-2 border-l-gray-300">{fmtHHMM(j?.atraso ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center text-blue-600 py-0.5">{fmtHHMM(j?.adiantamento ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center text-green-600 py-0.5 border-l-2 border-l-gray-300">{fmtHHMM(j?.extraBH ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center text-purple-600 py-0.5">{fmtHHMM(j?.extra100 ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center text-indigo-600 py-0.5 border-l-2 border-l-gray-300">{fmtHHMM(j?.adNoturno ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center text-indigo-600 py-0.5">{fmtHHMM(j?.not100 ?? null)}</TableCell>
+                            <TableCell className={`text-[10px] tabular-nums text-center font-medium py-0.5 border-l-2 border-l-gray-300 ${saldo.className}`}>{saldo.text}</TableCell>
                           </>
                         )}
                         {canEdit && (
-                          <TableCell className="print:hidden py-1 px-1">
+                          <TableCell className="print:hidden py-0.5 px-1">
                             <button onClick={() => openAdjustment(r)}
                               className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Editar batida">
                               <Pencil className="w-3 h-3" />
