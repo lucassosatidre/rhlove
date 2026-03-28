@@ -173,8 +173,9 @@ export default function EspelhoPonto() {
       if (selected.intervalo_automatico && selected.intervalo_inicio && selected.intervalo_duracao) {
         const filledPunches = [entrada, saidaInt, retornoInt, saida].filter(Boolean) as string[];
         if (filledPunches.length === 2) {
-          // Two punches = entrada + saída; auto-fill interval between them
-          const sorted = filledPunches.sort();
+          // Two punches = entrada + saída; auto-fill interval between them (overnight-aware sort)
+          const osk = (t: string) => { const h = parseInt(t.split(':')[0]); return h < 3 ? parseInt(t.replace(':', '')) + 2400 : parseInt(t.replace(':', '')); };
+          const sorted = [...filledPunches].sort((a, b) => osk(a) - osk(b));
           entrada = sorted[0];
           saida = sorted[1];
           saidaInt = selected.intervalo_inicio;
@@ -329,9 +330,10 @@ export default function EspelhoPonto() {
     };
     currentValues[field] = newValue;
 
-    // Sort non-null times in ascending order
+    // Sort non-null times in ascending order (overnight-aware: 00:00-02:59 → +24h)
     const times = [currentValues.entrada, currentValues.saida_intervalo, currentValues.retorno_intervalo, currentValues.saida].filter(Boolean) as string[];
-    times.sort();
+    const overnightSortKey = (t: string) => { const h = parseInt(t.split(':')[0]); return h < 3 ? parseInt(t.replace(':', '')) + 2400 : parseInt(t.replace(':', '')); };
+    times.sort((a, b) => overnightSortKey(a) - overnightSortKey(b));
     // Re-assign in order: entrada (smallest), saida_intervalo, retorno_intervalo, saida (largest)
     const sorted = { entrada: null as string | null, saida_intervalo: null as string | null, retorno_intervalo: null as string | null, saida: null as string | null };
     if (times.length >= 1) sorted.entrada = times[0];
