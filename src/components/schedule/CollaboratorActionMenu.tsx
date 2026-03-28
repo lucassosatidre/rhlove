@@ -139,6 +139,35 @@ export default function CollaboratorActionMenu({
     const isDraft = draftCtx?.isDraft ?? false;
 
     try {
+      if (dialogType === 'TROCA_DOMINGO') {
+        if (!newSunday || !currentSundayInfo) {
+          toast({ title: 'Selecione o novo domingo de folga', variant: 'destructive' });
+          setLoading(false);
+          return;
+        }
+
+        const input: ScheduleEventInput = {
+          collaborator_id: collaboratorId,
+          collaborator_name: collaboratorName,
+          event_type: 'TROCA_DOMINGO',
+          event_date: newSunday, // date of new sunday
+          original_day: currentSundayInfo.dateKey, // original sunday date
+          swapped_day: newSunday, // new sunday date
+          observation,
+          created_by: usuario?.nome || usuario?.email || null,
+        };
+
+        if (isDraft) {
+          draftCtx!.addDraftEvent(input);
+        } else {
+          await createEvent.mutateAsync(input);
+        }
+        toast({ title: isDraft ? '[Rascunho] Domingo alterado (simulação)' : 'Domingo de folga alterado com sucesso' });
+        setDialogType(null);
+        setLoading(false);
+        return;
+      }
+
       if (dialogType === 'AJUSTE_FOLGA') {
         if (ajusteMode === 'troca') {
           if (!swapCollaboratorId) {
