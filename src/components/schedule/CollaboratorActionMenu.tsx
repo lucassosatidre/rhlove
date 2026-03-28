@@ -62,6 +62,7 @@ export default function CollaboratorActionMenu({
   const [ajusteMode, setAjusteMode] = useState<'troca' | 'mover'>('troca');
   const [swapCollaboratorId, setSwapCollaboratorId] = useState('');
   const [newDayOff, setNewDayOff] = useState('');
+  const [newSunday, setNewSunday] = useState('');
 
   const { toast } = useToast();
   const { usuario } = useAuth();
