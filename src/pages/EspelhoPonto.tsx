@@ -191,11 +191,17 @@ export default function EspelhoPonto() {
           const sorted = [...filledPunches].sort((a, b) => osk(a) - osk(b));
           entrada = sorted[0];
           saida = sorted[1];
-          saidaInt = selected.intervalo_inicio;
-          const [ih, im] = selected.intervalo_inicio.split(':').map(Number);
-          const totalMin = ih * 60 + im + selected.intervalo_duracao;
-          retornoInt = `${String(Math.floor(totalMin / 60) % 24).padStart(2, '0')}:${String(totalMin % 60).padStart(2, '0')}`;
-          isAutoInterval = true;
+          // Only apply auto-interval if intervalo_inicio falls between entrada and saida
+          const intKey = osk(selected.intervalo_inicio);
+          const entKey = osk(entrada);
+          const saiKey = osk(saida);
+          if (intKey > entKey && intKey < saiKey) {
+            saidaInt = selected.intervalo_inicio;
+            const [ih, im] = selected.intervalo_inicio.split(':').map(Number);
+            const totalMin = ih * 60 + im + selected.intervalo_duracao;
+            retornoInt = `${String(Math.floor(totalMin / 60) % 24).padStart(2, '0')}:${String(totalMin % 60).padStart(2, '0')}`;
+            isAutoInterval = true;
+          }
         }
       }
 
