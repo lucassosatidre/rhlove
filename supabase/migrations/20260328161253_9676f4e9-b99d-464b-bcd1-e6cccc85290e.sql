@@ -1,0 +1,1 @@
+UPDATE punch_records SET saida_intervalo = NULL, retorno_intervalo = NULL WHERE collaborator_id = 'dfb7819c-cc93-451d-92e7-5cb4fdb99150' AND date = '2026-03-10' AND adjusted_by IS NULL;
