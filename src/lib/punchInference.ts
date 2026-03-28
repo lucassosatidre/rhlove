@@ -143,3 +143,14 @@ export function inferPunchSlots(
   const pattern = calculatePattern(historicalRecords);
   return assignPunchSlots(times, pattern);
 }
+
+/**
+ * Overload: given raw times and a pre-calculated pattern, assign slots.
+ */
+export function inferPunchSlotsFromPattern(
+  rawTimes: (string | null | undefined)[],
+  pattern: Record<keyof PunchSlots, number> | null
+): PunchSlots {
+  const times = rawTimes.filter((t): t is string => !!t && t.trim() !== '');
+  return assignPunchSlots(times, pattern);
+}
