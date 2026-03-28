@@ -63,14 +63,14 @@ export function useOpenDemandsCount() {
         .from('demands' as any)
         .select('id, status, assigned_to, due_date')
         .or(`assigned_to.eq.${usuario!.id},created_by.eq.${usuario!.id}`)
-        .in('status', ['aberta', 'em_andamento']);
+        .not('status', 'in', '("concluida","cancelada")');
       if (error) throw error;
       const items = (data || []) as any[];
       const now = new Date().toISOString().slice(0, 10);
       let count = 0;
       for (const d of items) {
-        if (d.assigned_to === usuario!.id && d.status === 'aberta') count++;
-        else if (d.due_date && d.due_date < now && d.status !== 'concluida' && d.status !== 'cancelada') count++;
+        if (d.assigned_to === usuario!.id && !['concluida', 'cancelada'].includes(d.status)) count++;
+        else if (d.due_date && d.due_date < now && !['concluida', 'cancelada'].includes(d.status)) count++;
       }
       return count;
     },
