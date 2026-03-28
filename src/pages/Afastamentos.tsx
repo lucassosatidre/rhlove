@@ -49,6 +49,7 @@ export default function Afastamentos() {
   const [editing, setEditing] = useState<Afastamento | null>(null);
 
   const [collabId, setCollabId] = useState('');
+  const [motivo, setMotivo] = useState('');
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [observacao, setObservacao] = useState('');
