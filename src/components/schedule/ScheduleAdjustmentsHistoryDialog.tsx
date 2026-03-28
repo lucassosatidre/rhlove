@@ -72,6 +72,9 @@ const getDateDisplay = (event: ScheduleEvent) => {
   if (event.event_type === 'TROCA_FOLGA' || event.event_type === 'MUDANCA_FOLGA') {
     return `Semana ${formatDateBR(event.week_start || event.event_date)}`;
   }
+  if (event.event_type === 'TROCA_DOMINGO') {
+    return formatDateBR(event.swapped_day || event.event_date);
+  }
   const start = formatDateBR(event.event_date);
   if (event.event_date_end && event.event_date_end !== event.event_date) {
     return `${start} → ${formatDateBR(event.event_date_end)}`;
