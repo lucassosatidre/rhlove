@@ -733,30 +733,44 @@ export default function EspelhoPonto() {
             <CardContent className="p-0 flex-1 overflow-auto min-h-0">
               <Table>
                 <TableHeader>
+                  {showJornada && (
+                    <TableRow className="border-b-0">
+                      {!showJornada ? null : null}
+                      <TableHead colSpan={1} className="sticky top-0 bg-background z-10"></TableHead>
+                      <TableHead colSpan={4} className="sticky top-0 bg-blue-50/80 dark:bg-blue-950/20 z-10 text-center text-[9px] font-semibold text-blue-600 border-l-2 border-l-blue-200">Batidas</TableHead>
+                      <TableHead colSpan={2} className="sticky top-0 bg-background z-10 text-center text-[9px] font-semibold text-muted-foreground border-l-2 border-l-border">Resumo</TableHead>
+                      <TableHead colSpan={3} className="sticky top-0 bg-gray-50/80 dark:bg-gray-900/20 z-10 text-center text-[9px] font-semibold text-gray-600 border-l-2 border-l-gray-300">Jornada</TableHead>
+                      <TableHead colSpan={2} className="sticky top-0 bg-amber-50/80 dark:bg-amber-950/20 z-10 text-center text-[9px] font-semibold text-amber-600 border-l-2 border-l-amber-200">Desvios</TableHead>
+                      <TableHead colSpan={2} className="sticky top-0 bg-green-50/80 dark:bg-green-950/20 z-10 text-center text-[9px] font-semibold text-green-600 border-l-2 border-l-green-200">Extras</TableHead>
+                      <TableHead colSpan={2} className="sticky top-0 bg-violet-50/80 dark:bg-violet-950/20 z-10 text-center text-[9px] font-semibold text-violet-600 border-l-2 border-l-violet-200">Noturno</TableHead>
+                      <TableHead colSpan={1} className="sticky top-0 bg-background z-10 text-center text-[9px] font-semibold text-muted-foreground border-l-2 border-l-border">BH</TableHead>
+                      {canEdit && <TableHead className="sticky top-0 bg-background z-10"></TableHead>}
+                    </TableRow>
+                  )}
                   <TableRow>
-                    {!showJornada && <TableHead className="sticky top-0 bg-background z-10 text-xs">Colaborador</TableHead>}
-                    <TableHead className={`sticky top-0 ${showJornada ? 'left-0 z-20' : 'z-10'} bg-background text-xs w-20`}>Data</TableHead>
-                    <TableHead className="sticky top-0 bg-background z-10 text-xs">Entrada</TableHead>
-                    <TableHead className="sticky top-0 bg-background z-10 text-xs">Saída Int.</TableHead>
-                    <TableHead className="sticky top-0 bg-background z-10 text-xs">Ret. Int.</TableHead>
-                    <TableHead className="sticky top-0 bg-background z-10 text-xs">Saída</TableHead>
-                    <TableHead className="sticky top-0 bg-background z-10 text-xs">Horas</TableHead>
-                    <TableHead className="sticky top-0 bg-background z-10 text-xs">Status</TableHead>
+                    {!showJornada && <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} bg-background z-10 text-xs`}>Colaborador</TableHead>}
+                    <TableHead className={`sticky ${showJornada ? 'top-6 left-0 z-20' : 'top-0 z-10'} bg-background text-xs w-20`}>Data</TableHead>
+                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} bg-blue-50/80 dark:bg-blue-950/20 z-10 text-xs border-l-2 border-l-blue-200`}>Entrada</TableHead>
+                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} bg-blue-50/80 dark:bg-blue-950/20 z-10 text-xs`}>Saída Int.</TableHead>
+                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} bg-blue-50/80 dark:bg-blue-950/20 z-10 text-xs`}>Ret. Int.</TableHead>
+                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} bg-blue-50/80 dark:bg-blue-950/20 z-10 text-xs`}>Saída</TableHead>
+                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} bg-background z-10 text-xs border-l-2 border-l-border`}>Horas</TableHead>
+                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} bg-background z-10 text-xs`}>Status</TableHead>
                     {showJornada && (
                       <>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs text-center">CH</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs text-center">Norm.</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs text-center">Flt.</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs text-center">Atr.</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs text-center">Adi.</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs text-center">E.BH</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs text-center">E.100</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs text-center">A.Not</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs text-center">N.100</TableHead>
-                        <TableHead className="sticky top-0 bg-background z-10 text-xs text-center">Saldo</TableHead>
+                        <TableHead className="sticky top-6 bg-gray-50/80 dark:bg-gray-900/20 z-10 text-xs text-center border-l-2 border-l-gray-300">CH</TableHead>
+                        <TableHead className="sticky top-6 bg-gray-50/80 dark:bg-gray-900/20 z-10 text-xs text-center">Norm.</TableHead>
+                        <TableHead className="sticky top-6 bg-gray-50/80 dark:bg-gray-900/20 z-10 text-xs text-center">Flt.</TableHead>
+                        <TableHead className="sticky top-6 bg-amber-50/80 dark:bg-amber-950/20 z-10 text-xs text-center border-l-2 border-l-amber-200">Atr.</TableHead>
+                        <TableHead className="sticky top-6 bg-amber-50/80 dark:bg-amber-950/20 z-10 text-xs text-center">Adi.</TableHead>
+                        <TableHead className="sticky top-6 bg-green-50/80 dark:bg-green-950/20 z-10 text-xs text-center border-l-2 border-l-green-200">E.BH</TableHead>
+                        <TableHead className="sticky top-6 bg-green-50/80 dark:bg-green-950/20 z-10 text-xs text-center">E.100</TableHead>
+                        <TableHead className="sticky top-6 bg-violet-50/80 dark:bg-violet-950/20 z-10 text-xs text-center border-l-2 border-l-violet-200">A.Not</TableHead>
+                        <TableHead className="sticky top-6 bg-violet-50/80 dark:bg-violet-950/20 z-10 text-xs text-center">N.100</TableHead>
+                        <TableHead className="sticky top-6 bg-background z-10 text-xs text-center border-l-2 border-l-border">Saldo</TableHead>
                       </>
                     )}
-                    {canEdit && <TableHead className="w-8 sticky top-0 bg-background z-10 print:hidden"></TableHead>}
+                    {canEdit && <TableHead className={`w-8 sticky ${showJornada ? 'top-6' : 'top-0'} bg-background z-10 print:hidden`}></TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -786,27 +800,27 @@ export default function EspelhoPonto() {
                         <TableCell className={`text-[11px] font-medium whitespace-nowrap tabular-nums py-1 px-2 ${showJornada ? 'sticky left-0 bg-background z-10' : ''}`}>
                           {format(r.dateObj, 'dd/MM')} <span className="text-muted-foreground">{r.weekday}</span>
                         </TableCell>
-                        <TableCell className="text-xs tabular-nums p-1">
+                        <TableCell className="text-xs tabular-nums p-1 bg-blue-50/40 dark:bg-blue-950/10 border-l-2 border-l-blue-200">
                           <InlineTimeCell value={r.entrada} canEdit={canEdit} onSave={v => handleInlineSave(r, 'entrada', v)} />
                         </TableCell>
-                        <TableCell className="text-xs tabular-nums p-1">
+                        <TableCell className="text-xs tabular-nums p-1 bg-blue-50/40 dark:bg-blue-950/10">
                           {r.isAutoInterval ? (
                             <span className="italic text-muted-foreground text-[10px]" title="Auto">🤖 {r.saidaInt}</span>
                           ) : (
                             <InlineTimeCell value={r.saidaInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida_intervalo', v)} />
                           )}
                         </TableCell>
-                        <TableCell className="text-xs tabular-nums p-1">
+                        <TableCell className="text-xs tabular-nums p-1 bg-blue-50/40 dark:bg-blue-950/10">
                           {r.isAutoInterval ? (
                             <span className="italic text-muted-foreground text-[10px]" title="Auto">🤖 {r.retornoInt}</span>
                           ) : (
                             <InlineTimeCell value={r.retornoInt} canEdit={canEdit} onSave={v => handleInlineSave(r, 'retorno_intervalo', v)} />
                           )}
                         </TableCell>
-                        <TableCell className="text-xs tabular-nums p-1">
+                        <TableCell className="text-xs tabular-nums p-1 bg-blue-50/40 dark:bg-blue-950/10">
                           <InlineTimeCell value={r.saida} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida', v)} />
                         </TableCell>
-                        <TableCell className="text-[11px] tabular-nums font-medium py-1">{r.hoursMin != null ? formatMinutes(r.hoursMin) : '—'}</TableCell>
+                        <TableCell className="text-[11px] tabular-nums font-medium py-1 border-l-2 border-l-border">{r.hoursMin != null ? formatMinutes(r.hoursMin) : '—'}</TableCell>
                         <TableCell className="py-1">
                           <div className="flex items-center gap-0.5">
                             {renderStatusTag(r)}
@@ -815,16 +829,16 @@ export default function EspelhoPonto() {
                         </TableCell>
                         {showJornada && (
                           <>
-                            <TableCell className="text-[10px] tabular-nums text-center py-1">{fmtHHMM(j?.chPrevista ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center py-1">{fmtHHMM(j?.normais ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center text-red-600 py-1">{fmtHHMM(j?.faltas ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center text-amber-600 py-1">{fmtHHMM(j?.atraso ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center text-blue-600 py-1">{fmtHHMM(j?.adiantamento ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center text-green-600 py-1">{fmtHHMM(j?.extraBH ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center text-purple-600 py-1">{fmtHHMM(j?.extra100 ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center text-indigo-600 py-1">{fmtHHMM(j?.adNoturno ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center text-indigo-600 py-1">{fmtHHMM(j?.not100 ?? null)}</TableCell>
-                            <TableCell className={`text-[10px] tabular-nums text-center font-medium py-1 ${saldo.className}`}>{saldo.text}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center py-1 bg-gray-50/40 dark:bg-gray-900/10 border-l-2 border-l-gray-300">{fmtHHMM(j?.chPrevista ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center py-1 bg-gray-50/40 dark:bg-gray-900/10">{fmtHHMM(j?.normais ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center text-red-600 py-1 bg-gray-50/40 dark:bg-gray-900/10">{fmtHHMM(j?.faltas ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center text-amber-600 py-1 bg-amber-50/40 dark:bg-amber-950/10 border-l-2 border-l-amber-200">{fmtHHMM(j?.atraso ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center text-blue-600 py-1 bg-amber-50/40 dark:bg-amber-950/10">{fmtHHMM(j?.adiantamento ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center text-green-600 py-1 bg-green-50/40 dark:bg-green-950/10 border-l-2 border-l-green-200">{fmtHHMM(j?.extraBH ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center text-purple-600 py-1 bg-green-50/40 dark:bg-green-950/10">{fmtHHMM(j?.extra100 ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center text-indigo-600 py-1 bg-violet-50/40 dark:bg-violet-950/10 border-l-2 border-l-violet-200">{fmtHHMM(j?.adNoturno ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center text-indigo-600 py-1 bg-violet-50/40 dark:bg-violet-950/10">{fmtHHMM(j?.not100 ?? null)}</TableCell>
+                            <TableCell className={`text-[10px] tabular-nums text-center font-medium py-1 border-l-2 border-l-border ${saldo.className}`}>{saldo.text}</TableCell>
                           </>
                         )}
                         {canEdit && (
