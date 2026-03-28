@@ -40,6 +40,7 @@ interface FormData {
   horario_saida: string;
   jornadas_especiais: JornadaEspecial[];
   aviso_previo_reducao: number | null;
+  controla_ponto: boolean;
 }
 
 const emptyForm: FormData = {
@@ -63,6 +64,7 @@ const emptyForm: FormData = {
   horario_saida: '',
   jornadas_especiais: [],
   aviso_previo_reducao: null,
+  controla_ponto: true,
 };
 
 export default function Colaboradores() {
@@ -108,6 +110,7 @@ export default function Colaboradores() {
       horario_saida: c.horario_saida ?? '',
       jornadas_especiais: c.jornadas_especiais ?? [],
       aviso_previo_reducao: c.aviso_previo_reducao ?? null,
+      controla_ponto: c.controla_ponto ?? true,
     });
     setDialogOpen(true);
   };
@@ -133,6 +136,7 @@ export default function Colaboradores() {
     horario_saida: f.horario_saida || null,
     jornadas_especiais: f.jornadas_especiais.length > 0 ? f.jornadas_especiais : null,
     aviso_previo_reducao: f.aviso_previo_reducao,
+    controla_ponto: f.controla_ponto,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -350,6 +354,7 @@ export default function Colaboradores() {
                       <TableCell className="font-medium">
                         <button onClick={() => setProfileCollaborator(c)} className="hover:text-primary hover:underline transition-colors text-left">
                           {c.collaborator_name}
+                          {c.controla_ponto !== false && <span className="ml-1 text-muted-foreground" title="Controle de ponto ativo">🕐</span>}
                         </button>
                         <span className="sm:hidden block text-xs text-muted-foreground">
                           {c.tipo_escala} · {c.folgas_semanais.map(d => DAY_LABELS[d]?.slice(0, 3)).join(', ')}{c.sunday_n > 0 ? ` · Dom ${c.sunday_n}º` : ''}
@@ -600,6 +605,18 @@ export default function Colaboradores() {
                   </Select>
                 </div>
               )}
+            </div>
+
+            {/* Controle de ponto */}
+            <div className="flex items-center justify-between border rounded-lg p-3 bg-muted/30">
+              <div>
+                <p className="text-sm font-medium">Controlar batidas no Espelho de Ponto</p>
+                <p className="text-[11px] text-muted-foreground">Desative para colaboradores que não precisam de controle de ponto</p>
+              </div>
+              <Switch
+                checked={form.controla_ponto}
+                onCheckedChange={v => setForm(f => ({ ...f, controla_ponto: v }))}
+              />
             </div>
 
             {/* Intervalo automático */}

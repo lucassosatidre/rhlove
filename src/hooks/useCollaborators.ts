@@ -23,6 +23,7 @@ export interface CollaboratorInput {
   horario_saida?: string | null;
   jornadas_especiais?: JornadaEspecial[] | null;
   aviso_previo_reducao?: number | null;
+  controla_ponto?: boolean;
   // legacy
   data_retorno?: string | null;
   data_fim_experiencia?: string | null;
@@ -52,6 +53,7 @@ function toDbRow(c: CollaboratorInput) {
     horario_saida: c.horario_saida || null,
     jornadas_especiais: c.jornadas_especiais ? JSON.stringify(c.jornadas_especiais) : null,
     aviso_previo_reducao: c.aviso_previo_reducao ?? null,
+    controla_ponto: c.controla_ponto ?? true,
     data_retorno: c.data_retorno || c.fim_periodo || null,
     data_fim_experiencia: c.data_fim_experiencia || (c.status === 'EXPERIENCIA' ? c.fim_periodo : null) || null,
     data_fim_aviso: c.data_fim_aviso || (c.status === 'AVISO_PREVIO' ? c.fim_periodo : null) || null,
@@ -78,6 +80,7 @@ function fromDbRow(row: any): Collaborator {
     horario_saida: row.horario_saida ?? null,
     jornadas_especiais: row.jornadas_especiais ? (typeof row.jornadas_especiais === 'string' ? JSON.parse(row.jornadas_especiais) : row.jornadas_especiais) : null,
     aviso_previo_reducao: row.aviso_previo_reducao ?? null,
+    controla_ponto: row.controla_ponto ?? true,
   } as Collaborator;
 }
 

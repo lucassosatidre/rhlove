@@ -214,6 +214,7 @@ export type Database = {
           aviso_previo_reducao: number | null
           carga_horaria_diaria: string | null
           collaborator_name: string
+          controla_ponto: boolean
           created_at: string
           data_desligamento: string | null
           data_fim_aviso: string | null
@@ -243,6 +244,7 @@ export type Database = {
           aviso_previo_reducao?: number | null
           carga_horaria_diaria?: string | null
           collaborator_name: string
+          controla_ponto?: boolean
           created_at?: string
           data_desligamento?: string | null
           data_fim_aviso?: string | null
@@ -272,6 +274,7 @@ export type Database = {
           aviso_previo_reducao?: number | null
           carga_horaria_diaria?: string | null
           collaborator_name?: string
+          controla_ponto?: boolean
           created_at?: string
           data_desligamento?: string | null
           data_fim_aviso?: string | null
