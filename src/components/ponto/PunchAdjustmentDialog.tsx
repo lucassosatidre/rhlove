@@ -51,6 +51,22 @@ export function PunchAdjustmentDialog({
     if (error) throw error;
   };
 
+  const sortPunches = (e: string, si: string, ri: string, s: string) => {
+    const times = [e, si, ri, s].filter(t => t && t.trim() !== '');
+    if (times.length === 0) return { entrada: null, saida_intervalo: null, retorno_intervalo: null, saida: null };
+    const toSortKey = (t: string) => {
+      const [h, m] = t.split(':').map(Number);
+      return (h < 3 ? h + 24 : h) * 60 + m;
+    };
+    times.sort((a, b) => toSortKey(a) - toSortKey(b));
+    return {
+      entrada: times[0] || null,
+      saida_intervalo: times[1] || null,
+      retorno_intervalo: times[2] || null,
+      saida: times[3] || null,
+    };
+  };
+
   const handleSave = async () => {
     if (!reason.trim()) {
       toast.error('Justificativa é obrigatória.');
@@ -63,14 +79,12 @@ export function PunchAdjustmentDialog({
         await deleteRecord();
         toast.success('Batidas do dia removidas.');
       } else {
+        const sorted = sortPunches(entradaVal, saidaIntVal, retornoIntVal, saidaVal);
         const record = {
           collaborator_id: collaboratorId,
           collaborator_name: collaboratorName,
           date,
-          entrada: entradaVal || null,
-          saida_intervalo: saidaIntVal || null,
-          retorno_intervalo: retornoIntVal || null,
-          saida: saidaVal || null,
+          ...sorted,
           adjusted_by: usuario?.id ?? null,
           adjusted_at: new Date().toISOString(),
           adjustment_reason: reason.trim(),
