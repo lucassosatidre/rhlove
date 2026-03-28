@@ -108,7 +108,7 @@ const FILTER_TYPES: Record<FilterTab, string[]> = {
   faltas: ['FALTA'],
   atestados: ['ATESTADO'],
   compensacoes: ['COMPENSACAO'],
-  ajustes: ['TROCA_FOLGA', 'MUDANCA_FOLGA'],
+  ajustes: ['TROCA_FOLGA', 'MUDANCA_FOLGA', 'TROCA_DOMINGO'],
 };
 
 export default function ScheduleAdjustmentsHistoryDialog({ open, onOpenChange }: Props) {
