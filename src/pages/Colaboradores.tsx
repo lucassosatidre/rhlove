@@ -354,6 +354,7 @@ export default function Colaboradores() {
                       <TableCell className="font-medium">
                         <button onClick={() => setProfileCollaborator(c)} className="hover:text-primary hover:underline transition-colors text-left">
                           {c.collaborator_name}
+                          {c.controla_ponto !== false && <span className="ml-1 text-muted-foreground" title="Controle de ponto ativo">🕐</span>}
                         </button>
                         <span className="sm:hidden block text-xs text-muted-foreground">
                           {c.tipo_escala} · {c.folgas_semanais.map(d => DAY_LABELS[d]?.slice(0, 3)).join(', ')}{c.sunday_n > 0 ? ` · Dom ${c.sunday_n}º` : ''}
