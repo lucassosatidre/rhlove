@@ -30,7 +30,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { usuario, signOut } = useAuth();
-  const { data: openTasksCount } = useOpenReceivedTasksCount();
+  const { data: openTasksCount } = useOpenDemandsCount();
 
   const visibleItems = NAV_ITEMS.filter(item => 
     usuario && item.roles.includes(usuario.perfil)
