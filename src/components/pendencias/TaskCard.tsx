@@ -2,6 +2,7 @@ import { differenceInDays, parseISO } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { useUsuarios, type Task } from '@/hooks/useTasks';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
@@ -34,6 +35,7 @@ interface Props {
 
 export default function TaskCard({ task, mode, onClick }: Props) {
   const { data: usuarios } = useUsuarios();
+  const { usuario } = useAuth();
   const today = new Date();
   const due = parseISO(task.due_date);
   const daysLeft = differenceInDays(due, today);
@@ -41,6 +43,11 @@ export default function TaskCard({ task, mode, onClick }: Props) {
   const statusInfo = STATUS_MAP[task.status] || STATUS_MAP.aberta;
 
   const otherUser = usuarios?.find(u => u.id === (mode === 'received' ? task.created_by : task.assigned_to));
+
+  // Determine direction tag
+  const isReceived = task.assigned_to === usuario?.id;
+  const isSent = task.created_by === usuario?.id;
+  const directionLabel = isReceived && isSent ? '📤 Enviada / 📥 Recebida' : isReceived ? '📥 Recebida' : '📤 Enviada';
 
   return (
     <Card
@@ -58,6 +65,7 @@ export default function TaskCard({ task, mode, onClick }: Props) {
       <div className="flex flex-wrap gap-1.5 mb-2">
         <Badge variant="secondary" className="text-[10px]">{CATEGORY_LABELS[task.category] || task.category}</Badge>
         <Badge variant="outline" className="text-[10px] capitalize">{task.priority}</Badge>
+        <Badge variant="outline" className="text-[10px]">{directionLabel}</Badge>
       </div>
 
       <p className="text-xs text-muted-foreground mb-1">

@@ -37,13 +37,14 @@ export function useTasks() {
   const { usuario } = useAuth();
   const qc = useQueryClient();
 
-  const receivedQuery = useQuery({
-    queryKey: ['tasks', 'received', usuario?.id],
+  // Unified query: all tasks where user is creator OR assignee
+  const allTasksQuery = useQuery({
+    queryKey: ['tasks', 'all', usuario?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('tasks' as any)
         .select('*')
-        .eq('assigned_to', usuario!.id)
+        .or(`created_by.eq.${usuario!.id},assigned_to.eq.${usuario!.id}`)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return (data || []) as unknown as Task[];
@@ -51,19 +52,15 @@ export function useTasks() {
     enabled: !!usuario,
   });
 
-  const sentQuery = useQuery({
-    queryKey: ['tasks', 'sent', usuario?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tasks' as any)
-        .select('*')
-        .eq('created_by', usuario!.id)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return (data || []) as unknown as Task[];
-    },
-    enabled: !!usuario,
-  });
+  // Keep legacy queries for backward compat (derived from allTasksQuery)
+  const receivedQuery = {
+    ...allTasksQuery,
+    data: allTasksQuery.data?.filter(t => t.assigned_to === usuario?.id),
+  };
+  const sentQuery = {
+    ...allTasksQuery,
+    data: allTasksQuery.data?.filter(t => t.created_by === usuario?.id),
+  };
 
   const createTask = useMutation({
     mutationFn: async (task: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'status'>) => {
@@ -73,7 +70,6 @@ export function useTasks() {
         .select()
         .single();
       if (error) throw error;
-      // Insert initial status history
       await supabase.from('task_status_history' as any).insert({
         task_id: (data as any).id,
         old_status: null,
@@ -106,7 +102,26 @@ export function useTasks() {
     },
   });
 
-  return { receivedQuery, sentQuery, createTask, updateTaskStatus };
+  return { allTasksQuery, receivedQuery, sentQuery, createTask, updateTaskStatus };
+}
+
+/** Count of received tasks with status 'aberta' for badge in nav */
+export function useOpenReceivedTasksCount() {
+  const { usuario } = useAuth();
+  return useQuery({
+    queryKey: ['tasks', 'open_received_count', usuario?.id],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('tasks' as any)
+        .select('*', { count: 'exact', head: true })
+        .eq('assigned_to', usuario!.id)
+        .eq('status', 'aberta');
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: !!usuario,
+    refetchInterval: 30000,
+  });
 }
 
 export function useTaskComments(taskId: string) {
