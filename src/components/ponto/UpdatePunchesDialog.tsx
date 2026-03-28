@@ -259,10 +259,10 @@ export function UpdatePunchesDialog({ open, onOpenChange, collaborators }: Props
             collaborator_id: collab.id,
             collaborator_name: collab.collaborator_name,
             date: day.date,
-            entrada: day.entrada,
+            entrada: entrada,
             saida_intervalo: saidaInt,
             retorno_intervalo: retornoInt,
-            saida: day.saida,
+            saida: saida,
           });
           importedDays++;
         }
