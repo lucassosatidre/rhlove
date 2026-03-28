@@ -164,6 +164,7 @@ export default function Afastamentos() {
                 <TableRow>
                   <TableHead>Colaborador</TableHead>
                   <TableHead>Setor</TableHead>
+                  <TableHead>Motivo</TableHead>
                   <TableHead>Início</TableHead>
                   <TableHead>Fim</TableHead>
                   <TableHead>Status</TableHead>
