@@ -13,7 +13,7 @@ import { useCreateScheduleEvent, type ScheduleEventInput } from '@/hooks/useSche
 import { useHolidayCompensations, useUpdateHolidayCompensation } from '@/hooks/useHolidayCompensations';
 import { useDraftModeOptional } from '@/contexts/DraftModeContext';
 import type { Collaborator } from '@/types/collaborator';
-import { AlertTriangle, FileText, Gift, ArrowLeftRight, ArrowRight } from 'lucide-react';
+import { AlertTriangle, FileText, Gift, ArrowLeftRight, ArrowRight, CalendarDays } from 'lucide-react';
 
 interface Props {
   collaboratorName: string;
