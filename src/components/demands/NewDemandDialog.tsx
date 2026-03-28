@@ -9,7 +9,6 @@ import { DropZone } from '@/components/ui/drop-zone';
 import { Camera, X, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateDemand, useUsuarios } from '@/hooks/useDemands';
-import { useCollaborators } from '@/hooks/useCollaborators';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -17,18 +16,15 @@ const TYPES = [
   { value: 'manutencao', label: '🔧 Manutenção', icon: '🔧' },
   { value: 'compra', label: '🛒 Compra', icon: '🛒' },
   { value: 'tarefa', label: '✅ Tarefa', icon: '✅' },
-  { value: 'acompanhamento', label: '👁️ Acompanhamento', icon: '👁️' },
-  { value: 'ordem', label: '📋 Ordem', icon: '📋' },
-  { value: 'melhoria', label: '💡 Melhoria', icon: '💡' },
 ];
 
 const SECTORS = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'BANHEIRO', 'ÁREA EXTERNA', 'ELÉTRICA', 'HIDRÁULICA', 'OUTRO'];
 
 const PRIORITIES = [
-  { value: 'baixa', label: 'Baixa' },
-  { value: 'media', label: 'Média' },
-  { value: 'alta', label: 'Alta' },
-  { value: 'urgente', label: 'Urgente' },
+  { value: 'imp_urg', label: '🔴 Importante e Urgente' },
+  { value: 'imp_nao_urg', label: '🟠 Importante mas não Urgente' },
+  { value: 'urg_nao_imp', label: '🟡 Urgente mas não Importante' },
+  { value: 'nao_urg_nao_imp', label: '⚪ Não Urgente e Não Importante' },
 ];
 
 interface NewDemandDialogProps {
@@ -40,7 +36,6 @@ export default function NewDemandDialog({ open, onOpenChange }: NewDemandDialogP
   const { usuario } = useAuth();
   const createDemand = useCreateDemand();
   const { data: usuarios = [] } = useUsuarios();
-  const { data: collaborators = [] } = useCollaborators();
 
   const [type, setType] = useState('');
   const [title, setTitle] = useState('');
@@ -48,21 +43,21 @@ export default function NewDemandDialog({ open, onOpenChange }: NewDemandDialogP
   const [assignedTo, setAssignedTo] = useState('');
   const [sector, setSector] = useState('');
   const [dueDate, setDueDate] = useState('');
-  const [priority, setPriority] = useState('media');
+  const [priority, setPriority] = useState('urg_nao_imp');
   const [itemName, setItemName] = useState('');
   const [stockQty, setStockQty] = useState('');
   const [observation, setObservation] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const needsAssignee = ['tarefa', 'ordem', 'acompanhamento'].includes(type);
+  const needsAssignee = type === 'tarefa';
   const needsSector = type === 'manutencao';
   const needsItem = type === 'compra';
   const needsPhotos = type === 'manutencao';
 
   const reset = () => {
     setType(''); setTitle(''); setDescription(''); setAssignedTo('');
-    setSector(''); setDueDate(''); setPriority('media'); setItemName('');
+    setSector(''); setDueDate(''); setPriority('urg_nao_imp'); setItemName('');
     setStockQty(''); setObservation(''); setSelectedFiles([]);
   };
 
@@ -118,11 +113,7 @@ export default function NewDemandDialog({ open, onOpenChange }: NewDemandDialogP
     }
   };
 
-  // Build assignee list from usuarios linked to collaborators
-  const assigneeOptions = usuarios.map(u => ({
-    value: u.id,
-    label: u.nome,
-  }));
+  const assigneeOptions = usuarios.map(u => ({ value: u.id, label: u.nome }));
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>

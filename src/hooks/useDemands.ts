@@ -63,14 +63,14 @@ export function useOpenDemandsCount() {
         .from('demands' as any)
         .select('id, status, assigned_to, due_date')
         .or(`assigned_to.eq.${usuario!.id},created_by.eq.${usuario!.id}`)
-        .in('status', ['aberta', 'em_andamento']);
+        .not('status', 'in', '("concluida","cancelada")');
       if (error) throw error;
       const items = (data || []) as any[];
       const now = new Date().toISOString().slice(0, 10);
       let count = 0;
       for (const d of items) {
-        if (d.assigned_to === usuario!.id && d.status === 'aberta') count++;
-        else if (d.due_date && d.due_date < now && d.status !== 'concluida' && d.status !== 'cancelada') count++;
+        if (d.assigned_to === usuario!.id && !['concluida', 'cancelada'].includes(d.status)) count++;
+        else if (d.due_date && d.due_date < now && !['concluida', 'cancelada'].includes(d.status)) count++;
       }
       return count;
     },
@@ -85,14 +85,14 @@ export function useCreateDemand() {
     mutationFn: async (demand: Partial<Demand> & { created_by: string }) => {
       const { data, error } = await supabase
         .from('demands' as any)
-        .insert({ ...demand, status: 'aberta' } as any)
+        .insert({ ...demand, status: 'em_andamento' } as any)
         .select()
         .single();
       if (error) throw error;
       await supabase.from('demand_status_history' as any).insert({
         demand_id: (data as any).id,
         old_status: null,
-        new_status: 'aberta',
+        new_status: 'em_andamento',
         changed_by: demand.created_by,
       } as any);
       return data;
