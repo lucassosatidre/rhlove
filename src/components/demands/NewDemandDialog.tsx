@@ -94,7 +94,7 @@ export default function NewDemandDialog({ open, onOpenChange }: NewDemandDialogP
         type,
         priority,
         sector: sector || null,
-        assigned_to: assignedTo || null,
+        assigned_to: (assignedTo && assignedTo !== 'none') ? assignedTo : null,
         created_by: usuario.id,
         due_date: dueDate || null,
         photos: photoPaths,
