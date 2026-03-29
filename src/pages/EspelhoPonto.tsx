@@ -377,49 +377,113 @@ export default function EspelhoPonto() {
     return singleCollabRows.map((r, i) => ({ ...r, jornada: jornadaRows[i] }));
   }, [singleCollabRows, jornadaRows]);
 
-  // ── All collaborators rows (no jornada, simpler) ──
+  // ── All collaborators rows — iterate ALL days of month per collaborator ──
   const allCollabRows = useMemo(() => {
     if (selected) return []; // not needed when single collab selected
     const targetCollabs = sectorFilter === 'Todos'
       ? activeCollabs
       : activeCollabs.filter(c => c.sector === sectorFilter);
-    
-    // Build from punch_records for efficiency (only days with punches)
-    const rows: UnifiedRow[] = [];
+
+    // Build punch lookup: collaborator_id -> date -> PunchRecord
+    const punchLookup = new Map<string, Map<string, PunchRecord>>();
     for (const pr of punchRecords) {
-      const collab = collabMap.get(pr.collaborator_id);
-      if (!collab || collab.status === 'DESLIGADO') continue;
-      if (sectorFilter !== 'Todos' && collab.sector !== sectorFilter) continue;
-
-      const dateObj = parse(pr.date, 'yyyy-MM-dd', new Date());
-      const weekday = format(dateObj, 'EEE', { locale: ptBR });
-      const hoursMin = calcHours(pr.entrada, pr.saida, pr.saida_intervalo, pr.retorno_intervalo);
-      const tags = detectTags(pr.entrada, pr.saida, pr.saida_intervalo, pr.retorno_intervalo);
-      
-      let status = '✅ Normal';
-      if (tags.length > 0) {
-        const primary = tags[0];
-        const cfg = TAG_CONFIG[primary];
-        status = `${cfg.emoji} ${cfg.label}`;
-      } else if (!pr.entrada && !pr.saida) {
-        status = '—';
-      }
-
-      rows.push({
-        collaboratorId: pr.collaborator_id, collaboratorName: pr.collaborator_name,
-        date: pr.date, dateObj, weekday,
-        entrada: pr.entrada, saidaInt: pr.saida_intervalo, retornoInt: pr.retorno_intervalo, saida: pr.saida,
-        hoursMin, status, tags,
-        isAdjusted: !!(pr as any).adjusted_at,
-        isAutoInterval: false,
-      });
+      if (!punchLookup.has(pr.collaborator_id)) punchLookup.set(pr.collaborator_id, new Map());
+      punchLookup.get(pr.collaborator_id)!.set(pr.date, pr);
     }
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const rows: UnifiedRow[] = [];
+
+    for (const collab of targetCollabs) {
+      const collabPunchMap = punchLookup.get(collab.id) ?? new Map<string, PunchRecord>();
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateObj = new Date(selectedYear, selectedMonth, d);
+        const iso = format(dateObj, 'yyyy-MM-dd');
+        const wd = WEEKDAY_MAP[getDay(dateObj)];
+        const weekday = format(dateObj, 'EEE', { locale: ptBR });
+
+        // Skip future days
+        if (dateObj >= today) continue;
+
+        // Check vacation
+        const isVacation = vacations.some(v => v.collaborator_id === collab.id && iso >= v.data_inicio_ferias && iso <= v.data_fim_ferias);
+        if (isVacation) continue;
+
+        // Check afastamento/atestado
+        const isAfastamento = afastamentos.some(a => a.collaborator_id === collab.id && iso >= a.data_inicio && iso <= a.data_fim);
+        const dayEvents = eventsMap[iso]?.[collab.id] ?? [];
+        const isAtestado = dayEvents.some(e => e.event_type === 'ATESTADO' && e.status === 'ATIVO');
+        if (isAfastamento || isAtestado) continue;
+
+        // Check compensação
+        const isCompensacao = dayEvents.some(e => e.event_type === 'COMPENSACAO' && e.status === 'ATIVO');
+        if (isCompensacao) continue;
+
+        // Determine folga
+        const weekStart = getWeekStart(dateObj);
+        const overrideKey = `${weekStart}|${collab.id}`;
+        const override = swapOverrides.get(overrideKey);
+        let isBaseFolga = !!collab.folgas_semanais?.includes(wd);
+        if (!isBaseFolga && collab.sunday_n > 0 && getDay(dateObj) === 0) {
+          let sundayCount = 0;
+          for (let day = 1; day <= d; day++) {
+            if (getDay(new Date(selectedYear, selectedMonth, day)) === 0) sundayCount++;
+          }
+          if (sundayCount === collab.sunday_n) isBaseFolga = true;
+        }
+        let isFolga = isBaseFolga;
+        if (override) {
+          const wdLower = wd.toLowerCase();
+          if (override.removeDays.some(rd => rd?.toLowerCase() === wdLower)) isFolga = false;
+          if (override.addDays.some(ad => ad?.toLowerCase() === wdLower)) isFolga = true;
+        }
+
+        // Holiday: only skip if it falls on collaborator's day off
+        const isHoliday = holidaySet.has(iso);
+        if (isHoliday && isFolga) continue;
+        if (isFolga) continue;
+
+        // This is a working day — check punch record
+        const punch = collabPunchMap.get(iso);
+        const entrada = punch?.entrada ?? null;
+        const saida = punch?.saida ?? null;
+        const saidaInt = punch?.saida_intervalo ?? null;
+        const retornoInt = punch?.retorno_intervalo ?? null;
+        const hoursMin = calcHours(entrada, saida, saidaInt, retornoInt);
+
+        let tags: InconsistencyTag[] = [];
+        let status = '✅ Normal';
+
+        if (!punch || (!entrada && !saida && !saidaInt && !retornoInt)) {
+          // No record at all = falta / batida pendente
+          tags = ['batida_pendente'];
+          status = '❌ Falta';
+        } else {
+          tags = detectTags(entrada, saida, saidaInt, retornoInt);
+          if (tags.length > 0) {
+            const cfg = TAG_CONFIG[tags[0]];
+            status = `${cfg.emoji} ${cfg.label}`;
+          }
+        }
+
+        rows.push({
+          collaboratorId: collab.id, collaboratorName: collab.collaborator_name,
+          date: iso, dateObj, weekday,
+          entrada, saidaInt, retornoInt, saida,
+          hoursMin, status, tags,
+          isAdjusted: punch ? !!(punch as any).adjusted_at : false,
+          isAutoInterval: false,
+        });
+      }
+    }
+
     rows.sort((a, b) => {
       const nc = a.collaboratorName.localeCompare(b.collaboratorName);
       return nc !== 0 ? nc : a.date.localeCompare(b.date);
     });
     return rows;
-  }, [selected, punchRecords, collabMap, activeCollabs, sectorFilter]);
+  }, [selected, punchRecords, collabMap, activeCollabs, sectorFilter, daysInMonth, selectedMonth, selectedYear, vacations, afastamentos, eventsMap, swapOverrides, holidaySet]);
 
   // ── Unified display rows ──
   const displayRows = useMemo(() => {
