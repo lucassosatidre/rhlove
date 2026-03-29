@@ -170,6 +170,89 @@ export type Database = {
           },
         ]
       }
+      bonus_10_monthly: {
+        Row: {
+          carga_horaria: number | null
+          collaborator_id: string
+          created_at: string
+          created_by: string | null
+          funcao: string | null
+          id: string
+          month: number
+          pontos: number | null
+          pontos_override: number | null
+          updated_at: string
+          valor_bonus: number | null
+          valor_ponto: number | null
+          year: number
+        }
+        Insert: {
+          carga_horaria?: number | null
+          collaborator_id: string
+          created_at?: string
+          created_by?: string | null
+          funcao?: string | null
+          id?: string
+          month: number
+          pontos?: number | null
+          pontos_override?: number | null
+          updated_at?: string
+          valor_bonus?: number | null
+          valor_ponto?: number | null
+          year: number
+        }
+        Update: {
+          carga_horaria?: number | null
+          collaborator_id?: string
+          created_at?: string
+          created_by?: string | null
+          funcao?: string | null
+          id?: string
+          month?: number
+          pontos?: number | null
+          pontos_override?: number | null
+          updated_at?: string
+          valor_bonus?: number | null
+          valor_ponto?: number | null
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bonus_10_monthly_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bonus_funcao_pontos: {
+        Row: {
+          carga_horaria: number
+          created_at: string
+          funcao: string
+          id: string
+          pontos: number
+          updated_at: string
+        }
+        Insert: {
+          carga_horaria: number
+          created_at?: string
+          funcao: string
+          id?: string
+          pontos: number
+          updated_at?: string
+        }
+        Update: {
+          carga_horaria?: number
+          created_at?: string
+          funcao?: string
+          id?: string
+          pontos?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       checkouts: {
         Row: {
           audio_path: string | null
@@ -216,6 +299,7 @@ export type Database = {
         Row: {
           aviso_previo_reducao: number | null
           carga_horaria_diaria: string | null
+          carga_horaria_mensal: number | null
           collaborator_name: string
           controla_ponto: boolean
           created_at: string
@@ -225,6 +309,7 @@ export type Database = {
           data_retorno: string | null
           fim_periodo: string | null
           folgas_semanais: string[]
+          funcao: string | null
           genero: string
           horario_entrada: string | null
           horario_saida: string | null
@@ -250,6 +335,7 @@ export type Database = {
         Insert: {
           aviso_previo_reducao?: number | null
           carga_horaria_diaria?: string | null
+          carga_horaria_mensal?: number | null
           collaborator_name: string
           controla_ponto?: boolean
           created_at?: string
@@ -259,6 +345,7 @@ export type Database = {
           data_retorno?: string | null
           fim_periodo?: string | null
           folgas_semanais?: string[]
+          funcao?: string | null
           genero?: string
           horario_entrada?: string | null
           horario_saida?: string | null
@@ -284,6 +371,7 @@ export type Database = {
         Update: {
           aviso_previo_reducao?: number | null
           carga_horaria_diaria?: string | null
+          carga_horaria_mensal?: number | null
           collaborator_name?: string
           controla_ponto?: boolean
           created_at?: string
@@ -293,6 +381,7 @@ export type Database = {
           data_retorno?: string | null
           fim_periodo?: string | null
           folgas_semanais?: string[]
+          funcao?: string | null
           genero?: string
           horario_entrada?: string | null
           horario_saida?: string | null
