@@ -159,6 +159,8 @@ export default function Colaboradores() {
     vt_ativo: f.vt_ativo,
     vt_passagens_dia: f.vt_passagens_dia,
     vt_dias_mes: f.vt_dias_mes ? parseInt(f.vt_dias_mes) : null,
+    funcao: f.funcao || null,
+    carga_horaria_mensal: f.carga_horaria_mensal ? parseInt(f.carga_horaria_mensal) : null,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
