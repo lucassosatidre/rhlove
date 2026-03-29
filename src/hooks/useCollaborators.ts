@@ -64,6 +64,8 @@ function toDbRow(c: CollaboratorInput) {
     vt_ativo: c.vt_ativo ?? false,
     vt_passagens_dia: c.vt_passagens_dia ?? 2,
     vt_dias_mes: c.vt_dias_mes ?? null,
+    funcao: c.funcao || null,
+    carga_horaria_mensal: c.carga_horaria_mensal ?? null,
     data_retorno: c.data_retorno || c.fim_periodo || null,
     data_fim_experiencia: c.data_fim_experiencia || (c.status === 'EXPERIENCIA' ? c.fim_periodo : null) || null,
     data_fim_aviso: c.data_fim_aviso || (c.status === 'AVISO_PREVIO' ? c.fim_periodo : null) || null,
