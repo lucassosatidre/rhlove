@@ -24,6 +24,10 @@ export interface CollaboratorInput {
   jornadas_especiais?: JornadaEspecial[] | null;
   aviso_previo_reducao?: number | null;
   controla_ponto?: boolean;
+  salario_base?: number | null;
+  vt_ativo?: boolean;
+  vt_passagens_dia?: number;
+  vt_dias_mes?: number | null;
   // legacy
   data_retorno?: string | null;
   data_fim_experiencia?: string | null;
