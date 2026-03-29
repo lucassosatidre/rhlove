@@ -24,6 +24,10 @@ export interface CollaboratorInput {
   jornadas_especiais?: JornadaEspecial[] | null;
   aviso_previo_reducao?: number | null;
   controla_ponto?: boolean;
+  salario_base?: number | null;
+  vt_ativo?: boolean;
+  vt_passagens_dia?: number;
+  vt_dias_mes?: number | null;
   // legacy
   data_retorno?: string | null;
   data_fim_experiencia?: string | null;
@@ -54,6 +58,10 @@ function toDbRow(c: CollaboratorInput) {
     jornadas_especiais: c.jornadas_especiais ? JSON.stringify(c.jornadas_especiais) : null,
     aviso_previo_reducao: c.aviso_previo_reducao ?? null,
     controla_ponto: c.controla_ponto ?? true,
+    salario_base: c.salario_base ?? null,
+    vt_ativo: c.vt_ativo ?? false,
+    vt_passagens_dia: c.vt_passagens_dia ?? 2,
+    vt_dias_mes: c.vt_dias_mes ?? null,
     data_retorno: c.data_retorno || c.fim_periodo || null,
     data_fim_experiencia: c.data_fim_experiencia || (c.status === 'EXPERIENCIA' ? c.fim_periodo : null) || null,
     data_fim_aviso: c.data_fim_aviso || (c.status === 'AVISO_PREVIO' ? c.fim_periodo : null) || null,

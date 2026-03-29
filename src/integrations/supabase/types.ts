@@ -236,11 +236,15 @@ export type Database = {
           intervalo_inicio: string | null
           jornadas_especiais: Json | null
           pis_matricula: string | null
+          salario_base: number | null
           sector: string
           status: string
           sunday_n: number
           tipo_escala: string
           updated_at: string
+          vt_ativo: boolean
+          vt_dias_mes: number | null
+          vt_passagens_dia: number
           weekly_day_off: string
         }
         Insert: {
@@ -266,11 +270,15 @@ export type Database = {
           intervalo_inicio?: string | null
           jornadas_especiais?: Json | null
           pis_matricula?: string | null
+          salario_base?: number | null
           sector: string
           status?: string
           sunday_n?: number
           tipo_escala?: string
           updated_at?: string
+          vt_ativo?: boolean
+          vt_dias_mes?: number | null
+          vt_passagens_dia?: number
           weekly_day_off?: string
         }
         Update: {
@@ -296,11 +304,15 @@ export type Database = {
           intervalo_inicio?: string | null
           jornadas_especiais?: Json | null
           pis_matricula?: string | null
+          salario_base?: number | null
           sector?: string
           status?: string
           sunday_n?: number
           tipo_escala?: string
           updated_at?: string
+          vt_ativo?: boolean
+          vt_dias_mes?: number | null
+          vt_passagens_dia?: number
           weekly_day_off?: string
         }
         Relationships: []

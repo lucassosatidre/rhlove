@@ -41,6 +41,10 @@ interface FormData {
   jornadas_especiais: JornadaEspecial[];
   aviso_previo_reducao: number | null;
   controla_ponto: boolean;
+  salario_base: string;
+  vt_ativo: boolean;
+  vt_passagens_dia: number;
+  vt_dias_mes: string;
 }
 
 const emptyForm: FormData = {
@@ -65,6 +69,10 @@ const emptyForm: FormData = {
   jornadas_especiais: [],
   aviso_previo_reducao: null,
   controla_ponto: true,
+  salario_base: '',
+  vt_ativo: false,
+  vt_passagens_dia: 2,
+  vt_dias_mes: '',
 };
 
 export default function Colaboradores() {
@@ -111,6 +119,10 @@ export default function Colaboradores() {
       jornadas_especiais: c.jornadas_especiais ?? [],
       aviso_previo_reducao: c.aviso_previo_reducao ?? null,
       controla_ponto: c.controla_ponto ?? true,
+      salario_base: c.salario_base != null ? String(c.salario_base) : '',
+      vt_ativo: c.vt_ativo ?? false,
+      vt_passagens_dia: c.vt_passagens_dia ?? 2,
+      vt_dias_mes: c.vt_dias_mes != null ? String(c.vt_dias_mes) : '',
     });
     setDialogOpen(true);
   };
@@ -137,6 +149,10 @@ export default function Colaboradores() {
     jornadas_especiais: f.jornadas_especiais.length > 0 ? f.jornadas_especiais : null,
     aviso_previo_reducao: f.aviso_previo_reducao,
     controla_ponto: f.controla_ponto,
+    salario_base: f.salario_base ? parseFloat(f.salario_base.replace(',', '.')) : null,
+    vt_ativo: f.vt_ativo,
+    vt_passagens_dia: f.vt_passagens_dia,
+    vt_dias_mes: f.vt_dias_mes ? parseInt(f.vt_dias_mes) : null,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -619,7 +635,56 @@ export default function Colaboradores() {
               />
             </div>
 
-            {/* Intervalo automático */}
+            {/* Financeiro / Benefícios */}
+            <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+              <p className="text-sm font-medium">Financeiro / Benefícios</p>
+              <div className="space-y-1">
+                <Label className="text-xs">Salário Base (R$)</Label>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  value={form.salario_base}
+                  onChange={e => setForm(f => ({ ...f, salario_base: e.target.value }))}
+                  placeholder="Ex: 2592.00"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Recebe Vale Transporte?</p>
+                  <p className="text-[11px] text-muted-foreground">Ativar para colaboradores com VT</p>
+                </div>
+                <Switch
+                  checked={form.vt_ativo}
+                  onCheckedChange={v => setForm(f => ({ ...f, vt_ativo: v }))}
+                />
+              </div>
+              {form.vt_ativo && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Passagens por dia</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={6}
+                      value={form.vt_passagens_dia}
+                      onChange={e => setForm(f => ({ ...f, vt_passagens_dia: Number(e.target.value) || 2 }))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Dias úteis no mês</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={form.vt_dias_mes}
+                      onChange={e => setForm(f => ({ ...f, vt_dias_mes: e.target.value }))}
+                      placeholder="Padrão: 26 (6x1)"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
               <div className="flex items-center justify-between">
                 <div>
