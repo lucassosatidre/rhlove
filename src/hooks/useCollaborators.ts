@@ -93,6 +93,8 @@ function fromDbRow(row: any): Collaborator {
     jornadas_especiais: row.jornadas_especiais ? (typeof row.jornadas_especiais === 'string' ? JSON.parse(row.jornadas_especiais) : row.jornadas_especiais) : null,
     aviso_previo_reducao: row.aviso_previo_reducao ?? null,
     controla_ponto: row.controla_ponto ?? true,
+    funcao: row.funcao ?? null,
+    carga_horaria_mensal: row.carga_horaria_mensal ?? null,
   } as Collaborator;
 }
 
