@@ -20,6 +20,7 @@ import RegistroPonto from "@/pages/RegistroPonto";
 import CheckoutPage from "@/pages/Checkout";
 import EspelhoPonto from "@/pages/EspelhoPonto";
 import Demandas from "@/pages/Demandas";
+import ValeTransporte from "@/pages/ValeTransporte";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -89,6 +90,7 @@ function AppRoutes() {
         <Route path="/produtividade" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Produtividade /></ProtectedRoute>} />
         <Route path="/ferias" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><FeriasProgramadas /></ProtectedRoute>} />
         <Route path="/compensacoes" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Compensacoes /></ProtectedRoute>} />
+        <Route path="/vale-transporte" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><ValeTransporte /></ProtectedRoute>} />
         <Route path="/avisos-previos" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><AvisosPrevios /></ProtectedRoute>} />
         <Route path="/afastamentos" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Afastamentos /></ProtectedRoute>} />
         <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['admin']}><GerenciarUsuarios /></ProtectedRoute>} />

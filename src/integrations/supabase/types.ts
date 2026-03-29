@@ -1217,6 +1217,80 @@ export type Database = {
           },
         ]
       }
+      vt_config: {
+        Row: {
+          id: string
+          updated_at: string
+          updated_by: string | null
+          valor_passagem: number
+        }
+        Insert: {
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor_passagem?: number
+        }
+        Update: {
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor_passagem?: number
+        }
+        Relationships: []
+      }
+      vt_monthly: {
+        Row: {
+          collaborator_id: string
+          created_at: string
+          created_by: string | null
+          custo_empresa: number | null
+          desconto_folha: number | null
+          id: string
+          month: number
+          recarga_integral: number | null
+          recarga_necessaria: number | null
+          saldo_cartao: number | null
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          collaborator_id: string
+          created_at?: string
+          created_by?: string | null
+          custo_empresa?: number | null
+          desconto_folha?: number | null
+          id?: string
+          month: number
+          recarga_integral?: number | null
+          recarga_necessaria?: number | null
+          saldo_cartao?: number | null
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          collaborator_id?: string
+          created_at?: string
+          created_by?: string | null
+          custo_empresa?: number | null
+          desconto_folha?: number | null
+          id?: string
+          month?: number
+          recarga_integral?: number | null
+          recarga_necessaria?: number | null
+          saldo_cartao?: number | null
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vt_monthly_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
