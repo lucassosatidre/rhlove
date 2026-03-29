@@ -119,6 +119,10 @@ export default function Colaboradores() {
       jornadas_especiais: c.jornadas_especiais ?? [],
       aviso_previo_reducao: c.aviso_previo_reducao ?? null,
       controla_ponto: c.controla_ponto ?? true,
+      salario_base: c.salario_base != null ? String(c.salario_base) : '',
+      vt_ativo: c.vt_ativo ?? false,
+      vt_passagens_dia: c.vt_passagens_dia ?? 2,
+      vt_dias_mes: c.vt_dias_mes != null ? String(c.vt_dias_mes) : '',
     });
     setDialogOpen(true);
   };
