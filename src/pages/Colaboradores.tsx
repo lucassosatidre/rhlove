@@ -41,6 +41,10 @@ interface FormData {
   jornadas_especiais: JornadaEspecial[];
   aviso_previo_reducao: number | null;
   controla_ponto: boolean;
+  salario_base: string;
+  vt_ativo: boolean;
+  vt_passagens_dia: number;
+  vt_dias_mes: string;
 }
 
 const emptyForm: FormData = {
@@ -65,6 +69,10 @@ const emptyForm: FormData = {
   jornadas_especiais: [],
   aviso_previo_reducao: null,
   controla_ponto: true,
+  salario_base: '',
+  vt_ativo: false,
+  vt_passagens_dia: 2,
+  vt_dias_mes: '',
 };
 
 export default function Colaboradores() {
