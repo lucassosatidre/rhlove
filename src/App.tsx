@@ -89,6 +89,7 @@ function AppRoutes() {
         <Route path="/calendario-rh" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><CalendarioRH /></ProtectedRoute>} />
         <Route path="/colaboradores" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Colaboradores /></ProtectedRoute>} />
         <Route path="/produtividade" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Produtividade /></ProtectedRoute>} />
+        <Route path="/bonus-10" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Bonus10 /></ProtectedRoute>} />
         <Route path="/ferias" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><FeriasProgramadas /></ProtectedRoute>} />
         <Route path="/compensacoes" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Compensacoes /></ProtectedRoute>} />
         <Route path="/vale-transporte" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><ValeTransporte /></ProtectedRoute>} />

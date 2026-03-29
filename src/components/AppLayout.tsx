@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { to: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'gestor', 'lider', 'visualizador'] },
   { to: '/colaboradores', label: 'Colaboradores', icon: Users, roles: ['admin', 'gestor'] },
   { to: '/produtividade', label: 'Produtividade', icon: BarChart3, roles: ['admin', 'gestor'] },
+  { to: '/bonus-10', label: 'Bônus 10%', icon: Percent, roles: ['admin', 'gestor'] },
   { to: '/ferias', label: 'Férias', icon: Palmtree, roles: ['admin', 'gestor'] },
   { to: '/compensacoes', label: 'Compensações', icon: CalendarCheck, roles: ['admin', 'gestor'] },
   { to: '/vale-transporte', label: 'Vale Transporte', icon: Bus, roles: ['admin', 'gestor'] },
