@@ -45,6 +45,8 @@ interface FormData {
   vt_ativo: boolean;
   vt_passagens_dia: number;
   vt_dias_mes: string;
+  funcao: string;
+  carga_horaria_mensal: string;
 }
 
 const emptyForm: FormData = {
