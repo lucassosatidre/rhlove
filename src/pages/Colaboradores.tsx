@@ -127,6 +127,8 @@ export default function Colaboradores() {
       vt_ativo: c.vt_ativo ?? false,
       vt_passagens_dia: c.vt_passagens_dia ?? 2,
       vt_dias_mes: c.vt_dias_mes != null ? String(c.vt_dias_mes) : '',
+      funcao: c.funcao ?? '',
+      carga_horaria_mensal: c.carga_horaria_mensal != null ? String(c.carga_horaria_mensal) : '',
     });
     setDialogOpen(true);
   };
