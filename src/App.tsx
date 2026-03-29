@@ -21,6 +21,7 @@ import CheckoutPage from "@/pages/Checkout";
 import EspelhoPonto from "@/pages/EspelhoPonto";
 import Demandas from "@/pages/Demandas";
 import ValeTransporte from "@/pages/ValeTransporte";
+import Bonus10 from "@/pages/Bonus10";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
