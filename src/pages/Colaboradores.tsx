@@ -75,6 +75,8 @@ const emptyForm: FormData = {
   vt_ativo: false,
   vt_passagens_dia: 2,
   vt_dias_mes: '',
+  funcao: '',
+  carga_horaria_mensal: '',
 };
 
 export default function Colaboradores() {
