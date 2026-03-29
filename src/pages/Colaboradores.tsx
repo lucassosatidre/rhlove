@@ -635,7 +635,56 @@ export default function Colaboradores() {
               />
             </div>
 
-            {/* Intervalo automático */}
+            {/* Financeiro / Benefícios */}
+            <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+              <p className="text-sm font-medium">Financeiro / Benefícios</p>
+              <div className="space-y-1">
+                <Label className="text-xs">Salário Base (R$)</Label>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  value={form.salario_base}
+                  onChange={e => setForm(f => ({ ...f, salario_base: e.target.value }))}
+                  placeholder="Ex: 2592.00"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">Recebe Vale Transporte?</p>
+                  <p className="text-[11px] text-muted-foreground">Ativar para colaboradores com VT</p>
+                </div>
+                <Switch
+                  checked={form.vt_ativo}
+                  onCheckedChange={v => setForm(f => ({ ...f, vt_ativo: v }))}
+                />
+              </div>
+              {form.vt_ativo && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Passagens por dia</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={6}
+                      value={form.vt_passagens_dia}
+                      onChange={e => setForm(f => ({ ...f, vt_passagens_dia: Number(e.target.value) || 2 }))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Dias úteis no mês</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={form.vt_dias_mes}
+                      onChange={e => setForm(f => ({ ...f, vt_dias_mes: e.target.value }))}
+                      placeholder="Padrão: 26 (6x1)"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
               <div className="flex items-center justify-between">
                 <div>
