@@ -45,6 +45,8 @@ interface FormData {
   vt_ativo: boolean;
   vt_passagens_dia: number;
   vt_dias_mes: string;
+  funcao: string;
+  carga_horaria_mensal: string;
 }
 
 const emptyForm: FormData = {
@@ -73,6 +75,8 @@ const emptyForm: FormData = {
   vt_ativo: false,
   vt_passagens_dia: 2,
   vt_dias_mes: '',
+  funcao: '',
+  carga_horaria_mensal: '',
 };
 
 export default function Colaboradores() {
@@ -123,6 +127,8 @@ export default function Colaboradores() {
       vt_ativo: c.vt_ativo ?? false,
       vt_passagens_dia: c.vt_passagens_dia ?? 2,
       vt_dias_mes: c.vt_dias_mes != null ? String(c.vt_dias_mes) : '',
+      funcao: c.funcao ?? '',
+      carga_horaria_mensal: c.carga_horaria_mensal != null ? String(c.carga_horaria_mensal) : '',
     });
     setDialogOpen(true);
   };
@@ -153,6 +159,8 @@ export default function Colaboradores() {
     vt_ativo: f.vt_ativo,
     vt_passagens_dia: f.vt_passagens_dia,
     vt_dias_mes: f.vt_dias_mes ? parseInt(f.vt_dias_mes) : null,
+    funcao: f.funcao || null,
+    carga_horaria_mensal: f.carga_horaria_mensal ? parseInt(f.carga_horaria_mensal) : null,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -551,6 +559,37 @@ export default function Colaboradores() {
                 </div>
               </div>
             )}
+
+            {/* Função e CH Mensal */}
+            <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
+              <p className="text-sm font-medium">Função / Carga Horária</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">Função/Cargo</Label>
+                  <Input
+                    list="funcoes-list"
+                    value={form.funcao}
+                    onChange={e => setForm(f => ({ ...f, funcao: e.target.value }))}
+                    placeholder="Ex: Pizzaiolo Pleno, Garçonete Junior..."
+                  />
+                  <datalist id="funcoes-list">
+                    {Array.from(new Set(collaborators.map(c => c.funcao).filter(Boolean))).sort().map(fn => (
+                      <option key={fn} value={fn!} />
+                    ))}
+                  </datalist>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Carga Horária Mensal (horas)</Label>
+                  <Input
+                    type="number"
+                    value={form.carga_horaria_mensal}
+                    onChange={e => setForm(f => ({ ...f, carga_horaria_mensal: e.target.value }))}
+                    placeholder="Ex: 220"
+                    min={1}
+                  />
+                </div>
+              </div>
+            </div>
 
             {/* Jornada de trabalho */}
             <div className="space-y-3 border rounded-lg p-3 bg-muted/30">

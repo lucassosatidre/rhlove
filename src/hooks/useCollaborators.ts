@@ -28,6 +28,8 @@ export interface CollaboratorInput {
   vt_ativo?: boolean;
   vt_passagens_dia?: number;
   vt_dias_mes?: number | null;
+  funcao?: string | null;
+  carga_horaria_mensal?: number | null;
   // legacy
   data_retorno?: string | null;
   data_fim_experiencia?: string | null;
@@ -62,6 +64,8 @@ function toDbRow(c: CollaboratorInput) {
     vt_ativo: c.vt_ativo ?? false,
     vt_passagens_dia: c.vt_passagens_dia ?? 2,
     vt_dias_mes: c.vt_dias_mes ?? null,
+    funcao: c.funcao || null,
+    carga_horaria_mensal: c.carga_horaria_mensal ?? null,
     data_retorno: c.data_retorno || c.fim_periodo || null,
     data_fim_experiencia: c.data_fim_experiencia || (c.status === 'EXPERIENCIA' ? c.fim_periodo : null) || null,
     data_fim_aviso: c.data_fim_aviso || (c.status === 'AVISO_PREVIO' ? c.fim_periodo : null) || null,
@@ -89,6 +93,8 @@ function fromDbRow(row: any): Collaborator {
     jornadas_especiais: row.jornadas_especiais ? (typeof row.jornadas_especiais === 'string' ? JSON.parse(row.jornadas_especiais) : row.jornadas_especiais) : null,
     aviso_previo_reducao: row.aviso_previo_reducao ?? null,
     controla_ponto: row.controla_ponto ?? true,
+    funcao: row.funcao ?? null,
+    carga_horaria_mensal: row.carga_horaria_mensal ?? null,
   } as Collaborator;
 }
 
