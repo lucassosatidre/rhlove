@@ -149,6 +149,10 @@ export default function Colaboradores() {
     jornadas_especiais: f.jornadas_especiais.length > 0 ? f.jornadas_especiais : null,
     aviso_previo_reducao: f.aviso_previo_reducao,
     controla_ponto: f.controla_ponto,
+    salario_base: f.salario_base ? parseFloat(f.salario_base.replace(',', '.')) : null,
+    vt_ativo: f.vt_ativo,
+    vt_passagens_dia: f.vt_passagens_dia,
+    vt_dias_mes: f.vt_dias_mes ? parseInt(f.vt_dias_mes) : null,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
