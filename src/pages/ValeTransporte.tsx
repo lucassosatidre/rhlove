@@ -35,6 +35,10 @@ export default function ValeTransporte() {
 
   const [valorPassagem, setValorPassagem] = useState('');
   const [localSaldos, setLocalSaldos] = useState<Record<string, string>>({});
+  const [localRecargas, setLocalRecargas] = useState<Record<string, string>>({});
+  const [importProgress, setImportProgress] = useState<string | null>(null);
+  const [importDone, setImportDone] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (vtConfig) setValorPassagem(String(vtConfig.valor_passagem));
