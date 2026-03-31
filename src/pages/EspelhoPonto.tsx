@@ -699,7 +699,16 @@ export default function EspelhoPonto() {
             ))}
           </div>
           {/* "All" button to deselect */}
-          <button onClick={() => { setSelectedCollaboratorId(null); setOnlyInconsistencies(false); }}
+          <button onClick={() => {
+              setSelectedCollaboratorId(null);
+              setOnlyInconsistencies(false);
+              queryClient.invalidateQueries({ queryKey: ['punch_records'] });
+              queryClient.invalidateQueries({ queryKey: ['schedule_events'] });
+              queryClient.invalidateQueries({ queryKey: ['collaborators'] });
+              queryClient.invalidateQueries({ queryKey: ['scheduled_vacations'] });
+              queryClient.invalidateQueries({ queryKey: ['afastamentos'] });
+              queryClient.invalidateQueries({ queryKey: ['holidays'] });
+            }}
             className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors font-medium ${!selectedCollaboratorId ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}>
             📋 Todos os colaboradores
           </button>
