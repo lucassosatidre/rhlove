@@ -768,6 +768,18 @@ export default function EspelhoPonto() {
                 <AlertTriangle className="w-3.5 h-3.5 mr-1" />
                 ⚠️ Inconsistências ({totalInconsistencies})
               </Button>
+              <Button variant="outline" size="sm" className="text-xs"
+                onClick={() => {
+                  queryClient.invalidateQueries({ queryKey: ['punch_records'] });
+                  queryClient.invalidateQueries({ queryKey: ['schedule_events'] });
+                  queryClient.invalidateQueries({ queryKey: ['collaborators'] });
+                  queryClient.invalidateQueries({ queryKey: ['scheduled_vacations'] });
+                  queryClient.invalidateQueries({ queryKey: ['afastamentos'] });
+                  queryClient.invalidateQueries({ queryKey: ['holidays'] });
+                  toast.success('Dados atualizados');
+                }}>
+                <RefreshCw className="w-3.5 h-3.5 mr-1" /> Atualizar
+              </Button>
               <Button variant="default" size="sm" className="text-xs" onClick={() => setUpdateDialogOpen(true)}>
                 <RefreshCw className="w-3.5 h-3.5 mr-1" /> Atualizar Batidas
               </Button>
