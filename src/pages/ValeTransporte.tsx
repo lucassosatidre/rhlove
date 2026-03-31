@@ -236,7 +236,70 @@ export default function ValeTransporte() {
 
   const fmt = (v: number | null) => v != null ? v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
 
-  return (
+  // === IMPORT VT MARÇO (temporary) ===
+  const handleImportMarco = async () => {
+    if (!session?.user?.id) return;
+    const colaboradores = [
+      { nome: "ALICIA", salario_base: 1625.00 },
+      { nome: "ALINE", salario_base: 2592.00 },
+      { nome: "CICERO", salario_base: 2369.00 },
+      { nome: "GLEPSON", salario_base: 2771.00 },
+      { nome: "JAVIER", salario_base: 2592.00 },
+      { nome: "JENIFFER", salario_base: 2168.00 },
+      { nome: "SHEYLA", salario_base: 2146.00 },
+      { nome: "WELLINGTON", salario_base: 1775.00 },
+      { nome: "VILSON", salario_base: 1755.00 },
+    ];
+    const saldosMap: Record<string, number> = {
+      "ALICIA": 7.80, "ALINE": 79.80, "CICERO": 189.90, "GLEPSON": 123.00,
+      "JAVIER": 123.00, "JENIFFER": 212.55, "SHEYLA": 0.60, "WELLINGTON": 6.75, "VILSON": 0.00,
+    };
+    try {
+      for (let i = 0; i < colaboradores.length; i++) {
+        const c = colaboradores[i];
+        setImportProgress(`Atualizando colaborador ${i + 1} de ${colaboradores.length}: ${c.nome}...`);
+        await supabase.from('collaborators').update({
+          salario_base: c.salario_base, vt_ativo: true, vt_passagens_dia: 2, vt_dias_mes: 26,
+        } as any).ilike('collaborator_name', c.nome + '%');
+      }
+      setImportProgress('Buscando colaboradores atualizados...');
+      const { data: updatedCollabs } = await supabase.from('collaborators').select('id, collaborator_name').eq('vt_ativo', true);
+      if (!updatedCollabs) throw new Error('Falha ao buscar colaboradores');
+      const VP = 7.70;
+      for (let i = 0; i < colaboradores.length; i++) {
+        const c = colaboradores[i];
+        setImportProgress(`Criando registro VT ${i + 1} de ${colaboradores.length}: ${c.nome}...`);
+        const collab = updatedCollabs.find(u => u.collaborator_name.toUpperCase().startsWith(c.nome));
+        if (!collab) continue;
+        const isVilson = c.nome === 'VILSON';
+        const recargaIntegral = isVilson ? 134.00 : +(2 * 26 * VP).toFixed(2);
+        const saldo = saldosMap[c.nome] ?? 0;
+        const recargaNec = Math.max(0, +(recargaIntegral - saldo).toFixed(2));
+        const limite = +(c.salario_base * 0.06).toFixed(2);
+        const desconto = Math.min(recargaNec, limite);
+        const custo = +(recargaNec - desconto).toFixed(2);
+        await supabase.from('vt_monthly').upsert({
+          collaborator_id: collab.id, month: 3, year: 2026,
+          saldo_cartao: saldo, recarga_integral: recargaIntegral,
+          recarga_necessaria: recargaNec, desconto_folha: desconto,
+          custo_empresa: custo, created_by: session.user.id,
+        } as any, { onConflict: 'collaborator_id,month,year' });
+      }
+      setImportProgress('Concluído! Recarregando dados...');
+      await queryClient.invalidateQueries({ queryKey: ['collaborators'] });
+      await queryClient.invalidateQueries({ queryKey: ['vt_monthly', 3, 2026] });
+      setSelectedMonth(3);
+      setSelectedYear(2026);
+      setImportDone(true);
+      toast({ title: 'Importação de VT Março/2026 concluída!' });
+    } catch (err: any) {
+      toast({ title: 'Erro na importação', description: err.message, variant: 'destructive' });
+    } finally {
+      setTimeout(() => setImportProgress(null), 3000);
+    }
+  };
+
+
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
