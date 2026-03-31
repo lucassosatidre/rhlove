@@ -46,7 +46,7 @@ export default function ValeTransporte() {
 
   // Collaborators with VT active
   const vtCollabs = useMemo(() =>
-    collaborators.filter(c => c.status === 'ATIVO' && (c as any).vt_ativo === true),
+    collaborators.filter(c => c.status !== 'DESLIGADO' && (c as any).vt_ativo === true),
     [collaborators]
   );
 
