@@ -357,6 +357,17 @@ export default function Bonus10() {
         <Button variant="outline" size="sm" onClick={handleRecalculate}><RefreshCw className="w-4 h-4 mr-1" /> Recalcular</Button>
         <Button size="sm" onClick={handleSaveAll} disabled={upsertMonthly.isPending}><Save className="w-4 h-4 mr-1" /> Salvar tudo</Button>
         <Button variant="outline" size="sm" onClick={handleExport}><Download className="w-4 h-4 mr-1" /> Excel</Button>
+        {usuario?.perfil === 'admin' && !importDone && (
+          <Button variant="outline" size="sm" onClick={handleImportFuncoes} disabled={importing} className="border-amber-400 text-amber-700 hover:bg-amber-50">
+            <Upload className="w-4 h-4 mr-1" /> Importar funções e pontos 10%
+          </Button>
+        )}
+        {importing && (
+          <div className="w-full mt-2">
+            <p className="text-xs text-muted-foreground mb-1">{importProgress}</p>
+            <Progress value={undefined} className="h-2" />
+          </div>
+        )}
       </CardContent></Card>
 
       {/* Main table grouped by sector */}
