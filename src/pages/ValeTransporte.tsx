@@ -161,18 +161,23 @@ export default function ValeTransporte() {
     setLocalSaldos(prev => ({ ...prev, [collabId]: value }));
   };
 
+  const handleRecargaChange = (collabId: string, value: string) => {
+    setLocalRecargas(prev => ({ ...prev, [collabId]: value }));
+  };
+
   const handleSaldoBlur = useCallback(async (row: typeof rows[0]) => {
     if (!row.recordId) return;
     try {
       await updateSaldo.mutateAsync({
         id: row.recordId,
         saldo_cartao: row.saldoCartao,
+        recarga_integral: row.recargaIntegral,
         recarga_necessaria: row.recargaNecessaria,
         desconto_folha: row.descontoFolha,
         custo_empresa: row.custoEmpresa,
       });
     } catch {
-      toast({ title: 'Erro ao salvar saldo', variant: 'destructive' });
+      toast({ title: 'Erro ao salvar', variant: 'destructive' });
     }
   }, [updateSaldo, toast]);
 
