@@ -89,6 +89,7 @@ export function PunchAdjustmentDialog({
       }
 
       await qc.invalidateQueries({ queryKey: ['punch_records'] });
+      await qc.invalidateQueries({ queryKey: ['schedule_events'] });
       onOpenChange(false);
     } catch (err: any) {
       toast.error('Erro ao salvar: ' + (err.message ?? 'desconhecido'));
@@ -103,6 +104,7 @@ export function PunchAdjustmentDialog({
       await deleteRecord();
       toast.success('Batidas do dia removidas.');
       await qc.invalidateQueries({ queryKey: ['punch_records'] });
+      await qc.invalidateQueries({ queryKey: ['schedule_events'] });
       onOpenChange(false);
     } catch (err: any) {
       toast.error('Erro ao limpar: ' + (err.message ?? 'desconhecido'));
