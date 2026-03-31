@@ -88,13 +88,15 @@ export function useUpsertVtMonthly() {
 export function useUpdateVtMonthlySaldo() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, saldo_cartao, recarga_necessaria, desconto_folha, custo_empresa }: {
-      id: string; saldo_cartao: number | null; recarga_necessaria: number | null;
-      desconto_folha: number | null; custo_empresa: number | null;
+    mutationFn: async ({ id, saldo_cartao, recarga_integral, recarga_necessaria, desconto_folha, custo_empresa }: {
+      id: string; saldo_cartao: number | null; recarga_integral?: number | null;
+      recarga_necessaria: number | null; desconto_folha: number | null; custo_empresa: number | null;
     }) => {
+      const payload: any = { saldo_cartao, recarga_necessaria, desconto_folha, custo_empresa, updated_at: new Date().toISOString() };
+      if (recarga_integral !== undefined) payload.recarga_integral = recarga_integral;
       const { error } = await supabase
         .from('vt_monthly')
-        .update({ saldo_cartao, recarga_necessaria, desconto_folha, custo_empresa, updated_at: new Date().toISOString() } as any)
+        .update(payload)
         .eq('id', id);
       if (error) throw error;
     },
