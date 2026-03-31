@@ -352,7 +352,16 @@ export default function ValeTransporte() {
                     <TableCell className="text-center">{r.passagensDia}</TableCell>
                     <TableCell className="text-center">{r.diasMes}</TableCell>
                     <TableCell className="text-center">{r.totalPassagens}</TableCell>
-                    <TableCell className="text-right">{fmt(r.recargaIntegral)}</TableCell>
+                    <TableCell className="text-right p-1">
+                      <Input
+                        className={`h-7 w-24 text-right text-xs ml-auto ${r.recargaOverridden ? 'border-amber-400 bg-amber-50' : ''}`}
+                        value={r.recargaStr}
+                        onChange={e => handleRecargaChange(r.id, e.target.value)}
+                        onBlur={() => handleSaldoBlur(r)}
+                        onKeyDown={e => { if (e.key === 'Enter') handleSaldoBlur(r); }}
+                        placeholder={fmt(r.recargaCalc)}
+                      />
+                    </TableCell>
                     <TableCell className="text-right p-1">
                       <Input
                         className="h-7 w-24 text-right text-xs ml-auto"
