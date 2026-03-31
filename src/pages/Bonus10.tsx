@@ -1,11 +1,10 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useBonusFuncaoPontos, useCreateBonusFuncao, useUpdateBonusFuncao, useDeleteBonusFuncao, useBonus10Monthly, useUpsertBonus10Monthly } from '@/hooks/useBonus10';
-import type { BonusFuncaoPontos } from '@/hooks/useBonus10';
+import type { BonusFuncaoPontos, Bonus10Monthly } from '@/hooks/useBonus10';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Progress } from '@/components/ui/progress';
-import { Upload } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,10 +14,60 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Download, Save, Settings, Users, DollarSign, Percent, Plus, Pencil, Trash2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Download, Save, Settings, Users, DollarSign, Percent, Plus, Pencil, Trash2, RefreshCw, Upload } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+const IMPORT_COLLABORATORS = [
+  { nome: 'JENIFFER', funcao: 'LIDER DE SALÃO', carga_horaria_mensal: 220 },
+  { nome: 'EMILLY', funcao: 'GARÇONETE PLENA', carga_horaria_mensal: 180 },
+  { nome: 'WELLINGTON', funcao: 'GARÇOM PLENO', carga_horaria_mensal: 180 },
+  { nome: 'JULIA', funcao: 'GARÇONETE PLENA', carga_horaria_mensal: 180 },
+  { nome: 'PAULO', funcao: 'GARÇOM JUNIOR', carga_horaria_mensal: 180 },
+  { nome: 'ALANA', funcao: 'GARÇONETE JUNIOR', carga_horaria_mensal: 220 },
+  { nome: 'DINHO', funcao: 'LIDER DE COZINHA', carga_horaria_mensal: 220 },
+  { nome: 'ALISSON', funcao: 'VICE LIDER DE COZINHA', carga_horaria_mensal: 220 },
+  { nome: 'GLEPSON', funcao: 'LIDER DE PRODUÇÃO', carga_horaria_mensal: 220 },
+  { nome: 'ELIONEL', funcao: 'PIZZAIOLO PLENO', carga_horaria_mensal: 220 },
+  { nome: 'JAVIER', funcao: 'PIZZAIOLO PLENO', carga_horaria_mensal: 220 },
+  { nome: 'ALINE', funcao: 'PIZZAIOLO PLENO', carga_horaria_mensal: 220 },
+  { nome: 'JOSÉ', funcao: 'PIZZAIOLO JUNIOR', carga_horaria_mensal: 220 },
+  { nome: 'CICERO', funcao: 'PIZZAIOLO JUNIOR', carga_horaria_mensal: 220 },
+  { nome: 'DAVI', funcao: 'PIZZAIOLO JUNIOR', carga_horaria_mensal: 220 },
+  { nome: 'DIEGO', funcao: 'AUXILIAR PIZZAIOLO', carga_horaria_mensal: 220 },
+  { nome: 'SHEYLA', funcao: 'AUXILIAR PIZZAIOLO', carga_horaria_mensal: 220 },
+  { nome: 'LUIZ', funcao: 'AUXILIAR PIZZAIOLO', carga_horaria_mensal: 220 },
+  { nome: 'RICHARD', funcao: 'AUXILIAR PIZZAIOLO', carga_horaria_mensal: 220 },
+  { nome: 'GABRIEL', funcao: 'ATENDENTE 3', carga_horaria_mensal: 180 },
+  { nome: 'JOHNNY', funcao: 'ATENDENTE 2', carga_horaria_mensal: 90 },
+  { nome: 'KAYLANE', funcao: 'ATENDENTE 1', carga_horaria_mensal: 150 },
+  { nome: 'ALICIA', funcao: 'LIMPEZA', carga_horaria_mensal: 180 },
+  { nome: 'ANA JULIA', funcao: 'ADM 3', carga_horaria_mensal: 220 },
+  { nome: 'LUCAS MENEZES', funcao: 'ADM 2', carga_horaria_mensal: 220, exactMatch: 'LUCAS MENEZES' },
+  { nome: 'LUANA', funcao: 'ADM 1', carga_horaria_mensal: 220 },
+] as const;
+
+const IMPORT_FUNCOES = [
+  { funcao: 'LIDER DE SALÃO', carga_horaria: 220, pontos: 6 },
+  { funcao: 'GARÇONETE PLENA', carga_horaria: 180, pontos: 4.9 },
+  { funcao: 'GARÇOM PLENO', carga_horaria: 180, pontos: 4.9 },
+  { funcao: 'GARÇOM JUNIOR', carga_horaria: 180, pontos: 4.1 },
+  { funcao: 'GARÇONETE JUNIOR', carga_horaria: 220, pontos: 5 },
+  { funcao: 'LIDER DE COZINHA', carga_horaria: 220, pontos: 9 },
+  { funcao: 'VICE LIDER DE COZINHA', carga_horaria: 220, pontos: 7 },
+  { funcao: 'LIDER DE PRODUÇÃO', carga_horaria: 220, pontos: 7 },
+  { funcao: 'PIZZAIOLO PLENO', carga_horaria: 220, pontos: 7 },
+  { funcao: 'PIZZAIOLO JUNIOR', carga_horaria: 220, pontos: 5 },
+  { funcao: 'AUXILIAR PIZZAIOLO', carga_horaria: 220, pontos: 3 },
+  { funcao: 'ATENDENTE 3', carga_horaria: 180, pontos: 6.9 },
+  { funcao: 'ATENDENTE 2', carga_horaria: 90, pontos: 1 },
+  { funcao: 'ATENDENTE 1', carga_horaria: 150, pontos: 1.5 },
+  { funcao: 'LIMPEZA', carga_horaria: 180, pontos: 2.4 },
+  { funcao: 'ADM 1', carga_horaria: 220, pontos: 11 },
+  { funcao: 'ADM 2', carga_horaria: 220, pontos: 9 },
+  { funcao: 'ADM 3', carga_horaria: 220, pontos: 5 },
+] as const;
 
 export default function Bonus10() {
   const now = new Date();
@@ -40,83 +89,155 @@ export default function Bonus10() {
   const [importProgress, setImportProgress] = useState('');
   const [importDone, setImportDone] = useState(false);
 
+  const activeCollabs = useMemo(() => collaborators.filter(c => c.status !== 'DESLIGADO'), [collaborators]);
+
+  const funcaoMap = useMemo(() => {
+    const m: Record<string, number> = {};
+    funcaoPontos.forEach(fp => {
+      m[`${fp.funcao?.toUpperCase()}|${fp.carga_horaria}`] = fp.pontos;
+    });
+    return m;
+  }, [funcaoPontos]);
+
+  const monthlyMap = useMemo(() => {
+    const m: Record<string, typeof monthlyData[0]> = {};
+    monthlyData.forEach(r => {
+      m[r.collaborator_id] = r;
+    });
+    return m;
+  }, [monthlyData]);
+
+  const refreshMonthlyPoints = async (
+    month: number,
+    year: number,
+    options?: {
+      progressPrefix?: string;
+      onProgress?: (message: string) => void;
+      sourceCollaborators?: Pick<typeof collaborators[number], 'id' | 'funcao' | 'carga_horaria_mensal'>[];
+      sourcePontos?: Pick<BonusFuncaoPontos, 'funcao' | 'carga_horaria' | 'pontos'>[];
+      sourceMonthly?: Pick<Bonus10Monthly, 'id' | 'collaborator_id' | 'pontos_override'>[];
+    }
+  ) => {
+    const monthlyRecords = options?.sourceMonthly ?? (
+      await supabase
+        .from('bonus_10_monthly')
+        .select('id, collaborator_id, pontos_override')
+        .eq('month', month)
+        .eq('year', year)
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return (data ?? []) as Pick<Bonus10Monthly, 'id' | 'collaborator_id' | 'pontos_override'>[];
+        })
+    );
+
+    const allCollabs = options?.sourceCollaborators ?? (
+      await supabase
+        .from('collaborators')
+        .select('id, funcao, carga_horaria_mensal')
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return data ?? [];
+        })
+    );
+
+    const pontosTable = options?.sourcePontos ?? (
+      await supabase
+        .from('bonus_funcao_pontos')
+        .select('funcao, carga_horaria, pontos')
+        .then(({ data, error }) => {
+          if (error) throw error;
+          return (data ?? []) as Pick<BonusFuncaoPontos, 'funcao' | 'carga_horaria' | 'pontos'>[];
+        })
+    );
+
+    const collabMap = new Map(allCollabs.map(c => [c.id, c]));
+    const pontosMap = new Map(pontosTable.map(p => [`${p.funcao.toUpperCase()}|${p.carga_horaria}`, p]));
+
+    let updatedCount = 0;
+
+    for (let i = 0; i < monthlyRecords.length; i++) {
+      const record = monthlyRecords[i];
+      options?.onProgress?.(`${options?.progressPrefix ?? 'Atualizando pontos'} ${i + 1} de ${monthlyRecords.length}...`);
+      const collab = collabMap.get(record.collaborator_id);
+      const funcao = collab?.funcao?.toUpperCase().trim();
+      const cargaHoraria = collab?.carga_horaria_mensal ?? null;
+
+      if (!funcao || !cargaHoraria) continue;
+
+      const match = pontosMap.get(`${funcao}|${cargaHoraria}`);
+      if (!match) continue;
+
+      const { error } = await supabase
+        .from('bonus_10_monthly')
+        .update({
+          pontos: match.pontos,
+          funcao,
+          carga_horaria: cargaHoraria,
+        } as any)
+        .eq('id', record.id);
+
+      if (error) throw error;
+      updatedCount++;
+    }
+
+    return updatedCount;
+  };
+
   const handleImportFuncoes = async () => {
     if (!confirm('Importar funções, cargas horárias e pontos para todos os colaboradores? Isso vai sobrescrever os dados atuais.')) return;
+
     setImporting(true);
     try {
-      const collabs = [
-        { nome: "JENIFFER", funcao: "LIDER DE SALÃO", carga_horaria_mensal: 220 },
-        { nome: "EMILLY", funcao: "GARÇONETE PLENA", carga_horaria_mensal: 180 },
-        { nome: "WELLINGTON", funcao: "GARÇOM PLENO", carga_horaria_mensal: 180 },
-        { nome: "JULIA", funcao: "GARÇONETE PLENA", carga_horaria_mensal: 180 },
-        { nome: "PAULO", funcao: "GARÇOM JUNIOR", carga_horaria_mensal: 180 },
-        { nome: "ALANA", funcao: "GARÇONETE JUNIOR", carga_horaria_mensal: 220 },
-        { nome: "DINHO", funcao: "LIDER DE COZINHA", carga_horaria_mensal: 220 },
-        { nome: "ALISSON", funcao: "VICE LIDER DE COZINHA", carga_horaria_mensal: 220 },
-        { nome: "GLEPSON", funcao: "LIDER DE PRODUÇÃO", carga_horaria_mensal: 220 },
-        { nome: "ELIONEL", funcao: "PIZZAIOLO PLENO", carga_horaria_mensal: 220 },
-        { nome: "JAVIER", funcao: "PIZZAIOLO PLENO", carga_horaria_mensal: 220 },
-        { nome: "ALINE", funcao: "PIZZAIOLO PLENO", carga_horaria_mensal: 220 },
-        { nome: "JOSÉ", funcao: "PIZZAIOLO JUNIOR", carga_horaria_mensal: 220 },
-        { nome: "CICERO", funcao: "PIZZAIOLO JUNIOR", carga_horaria_mensal: 220 },
-        { nome: "DAVI", funcao: "PIZZAIOLO JUNIOR", carga_horaria_mensal: 220 },
-        { nome: "DIEGO", funcao: "AUXILIAR PIZZAIOLO", carga_horaria_mensal: 220 },
-        { nome: "SHEYLA", funcao: "AUXILIAR PIZZAIOLO", carga_horaria_mensal: 220 },
-        { nome: "LUIZ", funcao: "AUXILIAR PIZZAIOLO", carga_horaria_mensal: 220 },
-        { nome: "RICHARD", funcao: "AUXILIAR PIZZAIOLO", carga_horaria_mensal: 220 },
-        { nome: "GABRIEL", funcao: "ATENDENTE 3", carga_horaria_mensal: 180 },
-        { nome: "JOHNNY", funcao: "ATENDENTE 2", carga_horaria_mensal: 90 },
-        { nome: "KAYLANE", funcao: "ATENDENTE 1", carga_horaria_mensal: 150 },
-        { nome: "ALICIA", funcao: "LIMPEZA", carga_horaria_mensal: 180 },
-        { nome: "ANA JULIA", funcao: "ADM 3", carga_horaria_mensal: 220 },
-        { nome: "LUCAS MENEZES", funcao: "ADM 2", carga_horaria_mensal: 220 },
-        { nome: "LUANA", funcao: "ADM 1", carga_horaria_mensal: 220 },
-      ];
+      for (let i = 0; i < IMPORT_COLLABORATORS.length; i++) {
+        const c = IMPORT_COLLABORATORS[i];
+        setImportProgress(`Atualizando colaborador ${i + 1} de ${IMPORT_COLLABORATORS.length}: ${c.nome}...`);
 
-      for (let i = 0; i < collabs.length; i++) {
-        const c = collabs[i];
-        setImportProgress(`Atualizando colaborador ${i + 1} de ${collabs.length}: ${c.nome}...`);
-        const { error } = await supabase.from('collaborators')
-          .update({ funcao: c.funcao, carga_horaria_mensal: c.carga_horaria_mensal } as any)
-          .ilike('collaborator_name', c.nome + '%');
-        if (error) console.error(`Erro ${c.nome}:`, error);
+        let query = supabase
+          .from('collaborators')
+          .update({ funcao: c.funcao, carga_horaria_mensal: c.carga_horaria_mensal } as any);
+
+        if ('exactMatch' in c && c.exactMatch) {
+          query = query.eq('collaborator_name', c.exactMatch);
+        } else {
+          query = query.ilike('collaborator_name', `${c.nome}%`);
+        }
+
+        const { error } = await query;
+        if (error) throw error;
       }
 
-      // Delete existing funcao pontos
       setImportProgress('Limpando tabela de pontos...');
-      await supabase.from('bonus_funcao_pontos' as any).delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      const { error: deleteError } = await supabase
+        .from('bonus_funcao_pontos' as any)
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+      if (deleteError) throw deleteError;
 
-      const funcoes = [
-        { funcao: "LIDER DE SALÃO", carga_horaria: 220, pontos: 6 },
-        { funcao: "GARÇONETE PLENA", carga_horaria: 180, pontos: 4.9 },
-        { funcao: "GARÇOM PLENO", carga_horaria: 180, pontos: 4.9 },
-        { funcao: "GARÇOM JUNIOR", carga_horaria: 180, pontos: 4.1 },
-        { funcao: "GARÇONETE JUNIOR", carga_horaria: 220, pontos: 5 },
-        { funcao: "LIDER DE COZINHA", carga_horaria: 220, pontos: 9 },
-        { funcao: "VICE LIDER DE COZINHA", carga_horaria: 220, pontos: 7 },
-        { funcao: "LIDER DE PRODUÇÃO", carga_horaria: 220, pontos: 7 },
-        { funcao: "PIZZAIOLO PLENO", carga_horaria: 220, pontos: 7 },
-        { funcao: "PIZZAIOLO JUNIOR", carga_horaria: 220, pontos: 5 },
-        { funcao: "AUXILIAR PIZZAIOLO", carga_horaria: 220, pontos: 3 },
-        { funcao: "ATENDENTE 3", carga_horaria: 180, pontos: 6.9 },
-        { funcao: "ATENDENTE 2", carga_horaria: 90, pontos: 1 },
-        { funcao: "ATENDENTE 1", carga_horaria: 150, pontos: 1.5 },
-        { funcao: "LIMPEZA", carga_horaria: 180, pontos: 2.4 },
-        { funcao: "ADM 1", carga_horaria: 220, pontos: 11 },
-        { funcao: "ADM 2", carga_horaria: 220, pontos: 9 },
-        { funcao: "ADM 3", carga_horaria: 220, pontos: 5 },
-      ];
-
-      for (let i = 0; i < funcoes.length; i++) {
-        setImportProgress(`Inserindo função ${i + 1} de ${funcoes.length}: ${funcoes[i].funcao}...`);
-        const { error } = await supabase.from('bonus_funcao_pontos' as any).insert(funcoes[i] as any);
-        if (error) console.error(`Erro função ${funcoes[i].funcao}:`, error);
+      let insertedCount = 0;
+      for (let i = 0; i < IMPORT_FUNCOES.length; i++) {
+        const funcao = IMPORT_FUNCOES[i];
+        setImportProgress(`Inserindo função ${i + 1} de ${IMPORT_FUNCOES.length}: ${funcao.funcao}...`);
+        const { data, error } = await supabase
+          .from('bonus_funcao_pontos' as any)
+          .insert(funcao as any)
+          .select('id');
+        if (error) throw error;
+        insertedCount += data?.length ?? 0;
+        console.log(`[Bônus 10%] ${insertedCount} registros inseridos em bonus_funcao_pontos`);
       }
 
+      toast({ title: `${insertedCount} funções inseridas com sucesso` });
+
+      const updatedCount = await refreshMonthlyPoints(3, 2026, {
+        progressPrefix: 'Atualizando pontos de Março/2026',
+        onProgress: setImportProgress,
+      });
+
+      setAutoGenerated(false);
       setImportProgress('Concluído! Recarregando...');
       setImportDone(true);
-      toast({ title: 'Importação concluída com sucesso!' });
-      setTimeout(() => window.location.reload(), 1500);
+      toast({ title: `${updatedCount} registros atualizados com pontos` });
+      setTimeout(() => window.location.reload(), 1200);
     } catch (err) {
       console.error(err);
       toast({ title: 'Erro na importação', variant: 'destructive' });
@@ -125,34 +246,18 @@ export default function Bonus10() {
     }
   };
 
-  // Active collaborators
-  const activeCollabs = useMemo(() =>
-    collaborators.filter(c => c.status !== 'DESLIGADO'),
-    [collaborators]
-  );
+  useEffect(() => {
+    setAutoGenerated(false);
+  }, [selectedMonth, selectedYear]);
 
-  // Map funcao+ch to pontos
-  const funcaoMap = useMemo(() => {
-    const m: Record<string, number> = {};
-    funcaoPontos.forEach(fp => { m[`${fp.funcao?.toUpperCase()}|${fp.carga_horaria}`] = fp.pontos; });
-    return m;
-  }, [funcaoPontos]);
-
-  // Monthly map by collaborator_id
-  const monthlyMap = useMemo(() => {
-    const m: Record<string, typeof monthlyData[0]> = {};
-    monthlyData.forEach(r => { m[r.collaborator_id] = r; });
-    return m;
-  }, [monthlyData]);
-
-  // Reset auto-gen on month change
-  useEffect(() => { setAutoGenerated(false); }, [selectedMonth, selectedYear]);
-
-  // Auto-generate records
   useEffect(() => {
     if (isLoading || autoGenerated) return;
     if (activeCollabs.length === 0) return;
-    if (monthlyData.length > 0) { setAutoGenerated(true); return; }
+    if (monthlyData.length > 0) {
+      setAutoGenerated(true);
+      return;
+    }
+
     const rows = activeCollabs.map(c => {
       const key = `${(c.funcao || '').toUpperCase()}|${c.carga_horaria_mensal || 0}`;
       const pontos = funcaoMap[key] ?? 0;
@@ -169,14 +274,14 @@ export default function Bonus10() {
         created_by: session?.user?.id || null,
       };
     });
+
     upsertMonthly.mutate(rows);
     setAutoGenerated(true);
-  }, [isLoading, autoGenerated, activeCollabs, monthlyData, funcaoMap, selectedMonth, selectedYear, session]);
+  }, [isLoading, autoGenerated, activeCollabs, monthlyData, funcaoMap, selectedMonth, selectedYear, session, upsertMonthly]);
 
-  // Build rows with calculations
   const rows = useMemo(() => {
     const receitaNum = parseFloat(receita.replace(',', '.')) || 0;
-    
+
     const collabRows = activeCollabs.map(c => {
       const record = monthlyMap[c.id];
       const funcao = c.funcao || null;
@@ -221,7 +326,6 @@ export default function Bonus10() {
     };
   }, [activeCollabs, monthlyMap, funcaoMap, localOverrides, receita]);
 
-  // Group by sector
   const sectors = useMemo(() => {
     const groups: Record<string, typeof rows.collabRows> = {};
     rows.collabRows.forEach(r => {
@@ -244,6 +348,7 @@ export default function Bonus10() {
       valor_bonus: r.valorBonus,
       created_by: session?.user?.id || null,
     }));
+
     try {
       await upsertMonthly.mutateAsync(allRows);
       setLocalOverrides({});
@@ -253,9 +358,34 @@ export default function Bonus10() {
     }
   };
 
-  const handleRecalculate = () => {
-    setAutoGenerated(false);
-    setLocalOverrides({});
+  const handleRecalculate = async () => {
+    try {
+      setImporting(true);
+      setImportProgress(`Recalculando pontos de ${MONTHS[selectedMonth - 1]}/${selectedYear}...`);
+      const updatedCount = await refreshMonthlyPoints(selectedMonth, selectedYear, {
+        progressPrefix: `Recalculando ${MONTHS[selectedMonth - 1]}/${selectedYear}`,
+        onProgress: setImportProgress,
+        sourceCollaborators: activeCollabs.map(c => ({
+          id: c.id,
+          funcao: c.funcao,
+          carga_horaria_mensal: c.carga_horaria_mensal,
+        })),
+        sourcePontos: funcaoPontos,
+        sourceMonthly: monthlyData.map(r => ({
+          id: r.id,
+          collaborator_id: r.collaborator_id,
+          pontos_override: r.pontos_override,
+        })),
+      });
+      setAutoGenerated(false);
+      setLocalOverrides({});
+      toast({ title: `${updatedCount} registros atualizados com pontos` });
+    } catch {
+      toast({ title: 'Erro ao recalcular', variant: 'destructive' });
+    } finally {
+      setImporting(false);
+      setImportProgress('');
+    }
   };
 
   const handleExport = () => {
@@ -388,7 +518,6 @@ export default function Bonus10() {
             {sectors.map(([sector, sectorRows]) => {
               const sectorPontos = sectorRows.reduce((s, r) => s + r.pontosEfetivo, 0);
               const sectorBonus = sectorRows.reduce((s, r) => s + r.valorBonus, 0);
-              let seq = 0;
               return (
                 <SectorGroup
                   key={sector}
