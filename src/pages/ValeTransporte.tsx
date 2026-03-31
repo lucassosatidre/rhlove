@@ -258,8 +258,22 @@ export default function ValeTransporte() {
           <Button size="sm" onClick={handleSaveAll} disabled={upsertVt.isPending}>
             <Save className="w-4 h-4 mr-1" /> Salvar tudo
           </Button>
+          {isAdmin && !importDone && (
+            <Button size="sm" variant="outline" onClick={handleImportMarco} disabled={!!importProgress} className="border-amber-500 text-amber-700 hover:bg-amber-50">
+              <Upload className="w-4 h-4 mr-1" /> Importar VT Março
+            </Button>
+          )}
         </div>
       </div>
+
+      {importProgress && (
+        <Card className="border-amber-300 bg-amber-50">
+          <CardContent className="p-4">
+            <p className="text-sm font-medium text-amber-800">{importProgress}</p>
+            <Progress className="mt-2 h-2" value={importProgress.includes('Concluído') ? 100 : undefined} />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
