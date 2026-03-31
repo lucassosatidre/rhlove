@@ -43,7 +43,7 @@ const IMPORT_COLLABORATORS = [
   { nome: 'JOHNNY', funcao: 'ATENDENTE 2', carga_horaria_mensal: 90 },
   { nome: 'KAYLANE', funcao: 'ATENDENTE 1', carga_horaria_mensal: 150 },
   { nome: 'ALICIA', funcao: 'LIMPEZA', carga_horaria_mensal: 180 },
-  { nome: 'ANA JULIA', funcao: 'ADM 3', carga_horaria_mensal: 220 },
+  { nome: 'ANA JULLIA', funcao: 'ADM 3', carga_horaria_mensal: 220 },
   { nome: 'LUCAS MENEZES', funcao: 'ADM 2', carga_horaria_mensal: 220, exactMatch: 'LUCAS MENEZES' },
   { nome: 'LUANA', funcao: 'ADM 1', carga_horaria_mensal: 220 },
 ] as const;
