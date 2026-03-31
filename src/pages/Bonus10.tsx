@@ -518,7 +518,6 @@ export default function Bonus10() {
             {sectors.map(([sector, sectorRows]) => {
               const sectorPontos = sectorRows.reduce((s, r) => s + r.pontosEfetivo, 0);
               const sectorBonus = sectorRows.reduce((s, r) => s + r.valorBonus, 0);
-              let seq = 0;
               return (
                 <SectorGroup
                   key={sector}
