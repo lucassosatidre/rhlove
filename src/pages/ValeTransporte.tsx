@@ -98,8 +98,21 @@ export default function ValeTransporte() {
       const passagensDia = (c as any).vt_passagens_dia ?? 2;
       const diasMes = (c as any).vt_dias_mes ?? 26;
       const totalPassagens = passagensDia * diasMes;
-      const recargaIntegral = +(totalPassagens * vp).toFixed(2);
+      const recargaCalc = +(totalPassagens * vp).toFixed(2);
       const record = monthlyMap[c.id];
+      // Allow override of recarga_integral from DB or local edit
+      const recargaOverrideStr = localRecargas[c.id];
+      const recargaFromDb = record?.recarga_integral;
+      let recargaIntegral = recargaCalc;
+      let recargaOverridden = false;
+      if (recargaOverrideStr !== undefined && recargaOverrideStr !== '') {
+        const parsed = parseFloat(recargaOverrideStr.replace(',', '.'));
+        if (!isNaN(parsed)) { recargaIntegral = parsed; recargaOverridden = Math.abs(parsed - recargaCalc) > 0.01; }
+      } else if (recargaFromDb != null && Math.abs(recargaFromDb - recargaCalc) > 0.01) {
+        recargaIntegral = recargaFromDb;
+        recargaOverridden = true;
+      }
+      const recargaStr = localRecargas[c.id] ?? (recargaOverridden ? String(recargaIntegral) : '');
       const saldoStr = localSaldos[c.id] ?? (record?.saldo_cartao != null ? String(record.saldo_cartao) : '');
       const saldoCartao = saldoStr !== '' ? parseFloat(saldoStr.replace(',', '.')) : null;
       const recargaNecessaria = saldoCartao != null ? Math.max(0, +(recargaIntegral - saldoCartao).toFixed(2)) : null;
@@ -117,7 +130,10 @@ export default function ValeTransporte() {
         passagensDia,
         diasMes,
         totalPassagens,
+        recargaCalc,
         recargaIntegral,
+        recargaOverridden,
+        recargaStr,
         saldoStr,
         saldoCartao,
         recargaNecessaria,
@@ -128,7 +144,7 @@ export default function ValeTransporte() {
         custoEmpresa,
       };
     });
-  }, [vtCollabs, monthlyMap, localSaldos, vp]);
+  }, [vtCollabs, monthlyMap, localSaldos, localRecargas, vp]);
 
   const totals = useMemo(() => {
     let recargaTotal = 0, recargaNecTotal = 0, descontoTotal = 0, custoTotal = 0;
