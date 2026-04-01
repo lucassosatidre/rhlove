@@ -80,11 +80,12 @@ function useHolidays() {
 }
 
 // ── Inconsistency types ──
-type InconsistencyTag = 'batida_pendente' | 'falta' | 'sem_intervalo' | 'incompleta' | 'jornada_longa' | 'jornada_curta';
+type InconsistencyTag = 'batida_pendente' | 'falta' | 'folga_bh' | 'sem_intervalo' | 'incompleta' | 'jornada_longa' | 'jornada_curta';
 
 const TAG_CONFIG: Record<InconsistencyTag, { label: string; emoji: string; className: string; isInconsistency: boolean }> = {
   batida_pendente: { label: 'Batida pendente', emoji: '🔴', className: 'bg-red-100 text-red-700 border-red-200', isInconsistency: true },
   falta: { label: 'Falta', emoji: '❌', className: 'bg-muted text-muted-foreground border-border', isInconsistency: false },
+  folga_bh: { label: 'Folga BH', emoji: '💜', className: 'bg-purple-100 text-purple-700 border-purple-200', isInconsistency: false },
   jornada_curta: { label: 'Jornada < 2h', emoji: '🟡', className: 'bg-yellow-100 text-yellow-700 border-yellow-200', isInconsistency: true },
   jornada_longa: { label: 'Jornada > 14h', emoji: '🟠', className: 'bg-orange-100 text-orange-700 border-orange-200', isInconsistency: true },
   sem_intervalo: { label: 'Sem intervalo', emoji: '🟡', className: 'bg-yellow-100 text-yellow-700 border-yellow-200', isInconsistency: true },
@@ -217,6 +218,30 @@ export default function EspelhoPonto() {
   const { data: bankBalances = [] } = useBankHoursBalance(selectedCollaboratorId);
   const upsertBalance = useUpsertBankHoursBalance();
 
+  // Fetch Folga BH records for this month
+  const { data: folgasBH = [] } = useQuery({
+    queryKey: ['bank_hours_folgas', selectedMonth, selectedYear],
+    queryFn: async () => {
+      const startDate = format(new Date(selectedYear, selectedMonth, 1), 'yyyy-MM-dd');
+      const endDate = format(new Date(selectedYear, selectedMonth, getDaysInMonth(new Date(selectedYear, selectedMonth))), 'yyyy-MM-dd');
+      const { data, error } = await supabase
+        .from('bank_hours_folgas')
+        .select('collaborator_id, folga_date')
+        .gte('folga_date', startDate)
+        .lte('folga_date', endDate);
+      if (error) throw error;
+      return data as { collaborator_id: string; folga_date: string }[];
+    },
+  });
+
+  const folgaBHSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const f of folgasBH) {
+      set.add(`${f.collaborator_id}|${f.folga_date}`);
+    }
+    return set;
+  }, [folgasBH]);
+
   const activeCollabs = useMemo(
     () => collaborators.filter(c => c.status !== 'DESLIGADO' && c.controla_ponto !== false),
     [collaborators]
@@ -325,12 +350,14 @@ export default function EspelhoPonto() {
       const isCompensacao = dayEvents.some(e => e.event_type === 'COMPENSACAO' && e.status === 'ATIVO');
       const isFaltaJustificada = dayEvents.some(e => e.event_type === 'FALTA' && e.status === 'ATIVO');
       const isTrocaFolga = override && override.addDays.some(ad => ad?.toLowerCase() === wd.toLowerCase());
+      const isFolgaBH = folgaBHSet.has(`${collab.id}|${iso}`);
 
       let status = isFuture ? '—' : '❌ Falta';
       if (isVacation) status = '🌴 Férias';
       else if (isAfastamento || isAtestado) status = '🏥 Afastado';
       else if (isHoliday) status = '🎉 Feriado';
       else if (isCompensacao) { status = '🎉 Compensação'; isFolga = true; }
+      else if (isFolgaBH) { status = '💜 Folga BH'; isFolga = true; }
       else if (isFolga && isTrocaFolga) status = '🔄 Folga (troca)';
       else if (isFolga) status = '🏖️ Folga';
       else if (isFaltaJustificada && !entrada) status = '❌ Falta justificada';
@@ -363,7 +390,7 @@ export default function EspelhoPonto() {
       });
     }
     return result;
-  }, [daysInMonth, selectedMonth, selectedYear, punchRecords, swapOverrides, eventsMap, vacations, afastamentos, holidaySet, avisosLookup, lastPunchUpdateDate]);
+  }, [daysInMonth, selectedMonth, selectedYear, punchRecords, swapOverrides, eventsMap, vacations, afastamentos, holidaySet, avisosLookup, lastPunchUpdateDate, folgaBHSet]);
 
   // ── Single collaborator rows (with jornada) ──
   const singleCollabRows = useMemo(() => {

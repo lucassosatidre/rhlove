@@ -9,6 +9,8 @@ import { useScheduleEvents, buildEventsMap, buildSwapOverrides, type ScheduleEve
 import { useHolidays } from '@/hooks/useHolidayCompensations';
 import { usePunchRecords } from '@/hooks/usePunchRecords';
 import { INTEGRATION_START_DATE } from '@/lib/constants';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { generateSchedule, getMonthLabel, getFirstMondayOfMonthGrid, getWeekCount, getScheduledCollaboratorIdsBySectorOnDate, type ScheduleWeek } from '@/lib/scheduleEngine';
 import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { DraftModeProvider, useDraftMode, type DraftSalesEntry } from '@/contexts/DraftModeContext';
@@ -60,6 +62,27 @@ function EscalaInner() {
   const { data: holidays = [] } = useHolidays();
   const { data: punchRecords = [] } = usePunchRecords(month, year);
 
+  // Fetch Folga BH records for displayed month range
+  const { data: folgasBH = [] } = useQuery({
+    queryKey: ['bank_hours_folgas_escala', month, year],
+    queryFn: async () => {
+      const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+      const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(new Date(year, month + 1, 0).getDate()).padStart(2, '0')}`;
+      const { data, error } = await supabase
+        .from('bank_hours_folgas')
+        .select('collaborator_id, folga_date')
+        .gte('folga_date', startDate)
+        .lte('folga_date', endDate);
+      if (error) throw error;
+      return data as { collaborator_id: string; folga_date: string }[];
+    },
+  });
+
+  const folgaBHSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const f of folgasBH) set.add(`${f.collaborator_id}|${f.folga_date}`);
+    return set;
+  }, [folgasBH]);
   // Helper: get upcoming holiday warnings for a week start date (within 21 days)
   const getHolidayWarnings = (weekStartDate: Date) => {
     const warnings: { name: string; daysUntil: number }[] = [];
@@ -441,6 +464,7 @@ function EscalaInner() {
       const collab = collaborators.find(c => c.id === id);
       if (!collab || !collab.controla_ponto) continue;
       if (punchSet.has(`${id}|${dateKey}`)) continue;
+      if (folgaBHSet.has(`${id}|${dateKey}`)) continue;
       // Check schedule events for this collaborator on this date
       const collabEvents = eventsMap[dateKey]?.[id] || [];
       const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
@@ -534,7 +558,8 @@ function EscalaInner() {
                         const hasTroca = collabEvents.some(e => e.event_type === 'TROCA_FOLGA' || e.event_type === 'MUDANCA_FOLGA' || e.event_type === 'TROCA_DOMINGO');
 
                         // Check confirmed absence from punch records
-                        const isPunchFalta = collab && collab.controla_ponto && lastPunchDate && dateKey >= INTEGRATION_START_DATE && dateKey <= lastPunchDate && !punchSet.has(`${collab.id}|${dateKey}`) && !hasFalta && !hasAtestado && !hasCompensacao;
+                        const isFolgaBH = collab && folgaBHSet.has(`${collab.id}|${dateKey}`);
+                        const isPunchFalta = collab && collab.controla_ponto && lastPunchDate && dateKey >= INTEGRATION_START_DATE && dateKey <= lastPunchDate && !punchSet.has(`${collab.id}|${dateKey}`) && !hasFalta && !hasAtestado && !hasCompensacao && !isFolgaBH;
 
                         const cellClasses = [
                           'border border-border px-2 text-left',
@@ -545,6 +570,7 @@ function EscalaInner() {
                           hasAtestado ? 'bg-blue-50 dark:bg-blue-950/30' : '',
                           hasCompensacao ? 'bg-green-50 dark:bg-green-950/30' : '',
                           hasTroca ? 'bg-orange-50 dark:bg-orange-950/30' : '',
+                          isFolgaBH ? 'bg-purple-50 dark:bg-purple-950/30' : '',
                         ].filter(Boolean).join(' ');
 
                         if (!rawName) {
@@ -562,6 +588,7 @@ function EscalaInner() {
                             {alertSuffix && <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 shrink-0 border-amber-500 text-amber-700 dark:text-amber-400 whitespace-nowrap">{alertSuffix}</Badge>}
                             {hasFalta && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4 shrink-0">faltou</Badge>}
                             {isPunchFalta && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4 shrink-0">FALTA</Badge>}
+                            {isFolgaBH && <Badge className="text-[9px] px-1 py-0 h-4 shrink-0 bg-purple-500 text-white">FOLGA BH</Badge>}
                             {hasAtestado && <Badge className="text-[9px] px-1 py-0 h-4 shrink-0 bg-blue-500 text-white">atestado</Badge>}
                             {hasCompensacao && <Badge className="text-[9px] px-1 py-0 h-4 shrink-0 bg-green-600 text-white">compensação</Badge>}
                             {hasTroca && <Badge className="text-[9px] px-1 py-0 h-4 shrink-0 bg-orange-500 text-white">ajuste</Badge>}
