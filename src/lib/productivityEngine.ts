@@ -35,7 +35,8 @@ function buildScheduledCountMap(
   scheduledVacations: ScheduledVacation[] = [],
   dayOffOverrides?: DayOffOverridesMap,
   afastamentos: Afastamento[] = [],
-  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
+  punchFaltaSet?: PunchFaltaSet
 ): Record<string, number> {
   const map: Record<string, number> = {};
 
@@ -51,7 +52,11 @@ function buildScheduledCountMap(
     );
 
     for (const [sector, collaboratorIds] of Object.entries(collaboratorsBySector)) {
-      map[`${sale.date}|${sector}`] = collaboratorIds.filter(id => !absentCollaboratorIds?.has(id)).length;
+      map[`${sale.date}|${sector}`] = collaboratorIds.filter(id => {
+        if (absentCollaboratorIds?.has(id)) return false;
+        if (punchFaltaSet?.has(`${id}|${sale.date}`)) return false;
+        return true;
+      }).length;
     }
   }
 
