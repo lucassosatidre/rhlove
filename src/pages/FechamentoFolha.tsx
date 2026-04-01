@@ -556,7 +556,7 @@ export default function FechamentoFolha() {
         // Col C
         const cellC = row.getCell(3);
         cellC.value = tplRow.colC;
-        cellC.font = normalFont; cellC.border = thinBorder;
+        cellC.font = normalFont; cellC.border = thinBorder; cellC.alignment = { horizontal: 'left' };
 
         // Cols D-O (4 to 15)
         for (let col = 4; col <= 15; col++) {
