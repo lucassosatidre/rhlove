@@ -341,13 +341,15 @@ export default function BancoHoras() {
             }
 
             dayInfos.push({
+              date: iso,
               isFolga: false,
+              isFuture: false,
               isVacation: false,
               isAfastamento: false,
               isHoliday,
               hoursWorkedMin,
-              punch: { entrada: p?.entrada ?? undefined },
-              chOverride: chOverrideMin,
+              punch: { entrada: p?.entrada ?? null, saida: p?.saida ?? null, saidaInt: p?.saida_intervalo ?? null, retornoInt: p?.retorno_intervalo ?? null },
+              chOverride: chOverrideMin ?? undefined,
             });
           }
 
