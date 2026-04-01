@@ -665,10 +665,11 @@ function EscalaInner() {
                           const dateKey = formatDateKey(d.date);
                           const scheduled = getPresentScheduledCount(d.date, sector);
                           const frees = getTotalFrees(dateKey, sector);
-                          const total = scheduled + frees;
+                          const faltas = getPunchFaltaCount(d.date, sector);
+                          const total = scheduled + frees - faltas;
                           return (
                             <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
-                              Total: {total}
+                              Total: {total}{faltas > 0 && <span className="text-destructive ml-1">({faltas} falta{faltas > 1 ? 's' : ''})</span>}
                             </td>
                           );
                         })}
