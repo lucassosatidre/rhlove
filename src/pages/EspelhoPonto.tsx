@@ -350,12 +350,14 @@ export default function EspelhoPonto() {
       const isCompensacao = dayEvents.some(e => e.event_type === 'COMPENSACAO' && e.status === 'ATIVO');
       const isFaltaJustificada = dayEvents.some(e => e.event_type === 'FALTA' && e.status === 'ATIVO');
       const isTrocaFolga = override && override.addDays.some(ad => ad?.toLowerCase() === wd.toLowerCase());
+      const isFolgaBH = folgaBHSet.has(`${collab.id}|${iso}`);
 
       let status = isFuture ? '—' : '❌ Falta';
       if (isVacation) status = '🌴 Férias';
       else if (isAfastamento || isAtestado) status = '🏥 Afastado';
       else if (isHoliday) status = '🎉 Feriado';
       else if (isCompensacao) { status = '🎉 Compensação'; isFolga = true; }
+      else if (isFolgaBH) { status = '💜 Folga BH'; isFolga = true; }
       else if (isFolga && isTrocaFolga) status = '🔄 Folga (troca)';
       else if (isFolga) status = '🏖️ Folga';
       else if (isFaltaJustificada && !entrada) status = '❌ Falta justificada';
