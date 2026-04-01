@@ -27,6 +27,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const clearAuthState = () => {
+    setUsuario(null);
+    setSession(null);
+  };
+
   const fetchUsuario = async (userId: string): Promise<Usuario | null> => {
     const { data, error } = await supabase
       .from('usuarios')
@@ -37,46 +42,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data as Usuario;
   };
 
+  const resolveUsuario = async (currentSession: Session | null) => {
+    setSession(currentSession);
+
+    if (!currentSession?.user) {
+      setUsuario(null);
+      setLoading(false);
+      return;
+    }
+
+    const u = await fetchUsuario(currentSession.user.id);
+
+    if (!u || u.status === 'inativo') {
+      await supabase.auth.signOut();
+      clearAuthState();
+      setLoading(false);
+      return;
+    }
+
+    setUsuario(u);
+    setLoading(false);
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        if (session?.user) {
-          // Use setTimeout to avoid Supabase client deadlock
-          setTimeout(async () => {
-            const u = await fetchUsuario(session.user.id);
-            if (u && u.status === 'inativo') {
-              await supabase.auth.signOut();
-              setUsuario(null);
-              setSession(null);
-            } else {
-              setUsuario(u);
-            }
-            setLoading(false);
-          }, 0);
-        } else {
-          setUsuario(null);
-          setLoading(false);
-        }
+      async (_event, currentSession) => {
+        setLoading(true);
+        setTimeout(() => {
+          resolveUsuario(currentSession);
+        }, 0);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        fetchUsuario(session.user.id).then(u => {
-          if (u && u.status === 'inativo') {
-            supabase.auth.signOut();
-            setUsuario(null);
-            setSession(null);
-          } else {
-            setUsuario(u);
-          }
-          setLoading(false);
-        });
-      } else {
-        setLoading(false);
-      }
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      resolveUsuario(currentSession);
     });
 
     return () => subscription.unsubscribe();
@@ -85,13 +84,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string): Promise<string | null> => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return 'Email ou senha incorretos';
-    
+
     if (data.user) {
       const u = await fetchUsuario(data.user.id);
       if (!u || u.status === 'inativo') {
         await supabase.auth.signOut();
+        clearAuthState();
         return 'Email ou senha incorretos';
       }
+      setSession(data.session);
       setUsuario(u);
     }
     return null;
@@ -99,8 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    setUsuario(null);
-    setSession(null);
+    clearAuthState();
   };
 
   return (
