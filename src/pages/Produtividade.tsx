@@ -4,11 +4,13 @@ import { useDailySales, useUpsertDailySales, useBulkInsertDailySales, useDeleteD
 import { useFreelancers, useBulkUpsertFreelancers } from '@/hooks/useFreelancers';
 import { useFreelancerEntries, useBulkInsertFreelancerEntries } from '@/hooks/useFreelancerEntries';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
-import { useScheduleEvents, buildSwapOverrides } from '@/hooks/useScheduleEvents';
+import { useScheduleEvents, buildSwapOverrides, buildEventsMap } from '@/hooks/useScheduleEvents';
 import { useAfastamentos } from '@/hooks/useAfastamentos';
 import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
+import { usePunchRecords } from '@/hooks/usePunchRecords';
+import { INTEGRATION_START_DATE } from '@/lib/constants';
 import { supabase } from '@/integrations/supabase/client';
-import { generateProductivityData, formatCurrency, formatDecimal, formatDateBR, getSectorOrder } from '@/lib/productivityEngine';
+import { generateProductivityData, formatCurrency, formatDecimal, formatDateBR, getSectorOrder, type PunchFaltaSet } from '@/lib/productivityEngine';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
