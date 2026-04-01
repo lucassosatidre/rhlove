@@ -10,7 +10,7 @@ import { format, getDaysInMonth, getDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
-import type ExcelJS from 'exceljs';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { usePunchRecords } from '@/hooks/usePunchRecords';
