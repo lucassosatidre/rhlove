@@ -444,13 +444,13 @@ export default function EspelhoPonto() {
   // ── Unified display rows ──
   const displayRows = useMemo(() => {
     const source = selected ? singleCollabRowsWithJornada : allCollabRows;
-    if (onlyInconsistencies) return source.filter(r => r.tags.length > 0);
+    if (onlyInconsistencies) return source.filter(r => r.tags.some(t => TAG_CONFIG[t].isInconsistency));
     return source;
   }, [selected, singleCollabRowsWithJornada, allCollabRows, onlyInconsistencies]);
 
   const totalInconsistencies = useMemo(() => {
     const source = selected ? singleCollabRowsWithJornada : allCollabRows;
-    return source.filter(r => r.tags.length > 0).length;
+    return source.filter(r => r.tags.some(t => TAG_CONFIG[t].isInconsistency)).length;
   }, [selected, singleCollabRowsWithJornada, allCollabRows]);
 
   // Bank hours
