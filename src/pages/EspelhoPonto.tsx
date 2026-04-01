@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -627,16 +628,18 @@ export default function EspelhoPonto() {
             className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors font-medium ${!selectedCollaboratorId ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-muted-foreground'}`}>
             📋 Todos os colaboradores
           </button>
-          <div className="flex-1 overflow-y-auto space-y-0.5 min-h-0">
-            {filteredCollabs.map(c => (
-              <button key={c.id} onClick={() => { setSelectedCollaboratorId(c.id); setOnlyInconsistencies(false); }}
-                className={`w-full text-left px-2 py-1.5 rounded text-sm transition-colors ${selectedCollaboratorId === c.id ? 'bg-primary text-primary-foreground font-medium' : 'hover:bg-muted'}`}>
-                <span className="block truncate text-xs">{c.collaborator_name}</span>
-                <span className={`text-[10px] ${selectedCollaboratorId === c.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{c.sector}</span>
-              </button>
-            ))}
-            {filteredCollabs.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Nenhum encontrado</p>}
-          </div>
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="space-y-0.5 pr-2">
+              {filteredCollabs.map(c => (
+                <button key={c.id} onClick={() => { setSelectedCollaboratorId(c.id); setOnlyInconsistencies(false); }}
+                  className={`w-full text-left px-2 py-1.5 rounded text-sm transition-colors ${selectedCollaboratorId === c.id ? 'bg-primary text-primary-foreground font-medium' : 'hover:bg-muted'}`}>
+                  <span className="block truncate text-xs">{c.collaborator_name}</span>
+                  <span className={`text-[10px] ${selectedCollaboratorId === c.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{c.sector}</span>
+                </button>
+              ))}
+              {filteredCollabs.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Nenhum encontrado</p>}
+            </div>
+          </ScrollArea>
         </div>
 
         {/* Main content */}
