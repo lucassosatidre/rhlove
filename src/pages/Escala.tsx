@@ -427,6 +427,30 @@ function EscalaInner() {
     return (collaboratorsBySector[sector] || []).filter(id => !absentIds?.has(id)).length;
   };
 
+  /** Count punch-confirmed faltas for a sector on a date (collaborators scheduled but no punch, no event justification) */
+  const getPunchFaltaCount = (date: Date, sector: string): number => {
+    const dateKey = formatDateKey(date);
+    if (!lastPunchDate || dateKey < INTEGRATION_START_DATE || dateKey > lastPunchDate) return 0;
+    const collaboratorsBySector = getScheduledCollaboratorIdsBySectorOnDate(
+      collaborators, date, scheduledVacations, swapOverrides, afastamentos
+    );
+    const absentIds = absentCollaboratorIdsByDate.get(dateKey);
+    const scheduledIds = (collaboratorsBySector[sector] || []).filter(id => !absentIds?.has(id));
+    let count = 0;
+    for (const id of scheduledIds) {
+      const collab = collaborators.find(c => c.id === id);
+      if (!collab || !collab.controla_ponto) continue;
+      if (punchSet.has(`${id}|${dateKey}`)) continue;
+      // Check schedule events for this collaborator on this date
+      const collabEvents = eventsMap[dateKey]?.[id] || [];
+      const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
+      const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
+      const hasCompensacao = collabEvents.some(e => e.event_type === 'COMPENSACAO');
+      if (!hasFalta && !hasAtestado && !hasCompensacao) count++;
+    }
+    return count;
+  };
+
   const renderWeek = (week: ScheduleWeek) => {
     const allSectors = new Set<string>();
     week.days.forEach(d => Object.keys(d.collaboratorsBySector).forEach(s => allSectors.add(s)));
