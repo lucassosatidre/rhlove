@@ -464,8 +464,8 @@ export default function FechamentoFolha() {
       ];
 
       // Styles
-      const headerFill: ExcelJS.FillPattern = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F4F4F' } };
-      const headerFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Arial' };
+      const headerFill: ExcelJS.FillPattern = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC0C0C0' } };
+      const headerFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: 'FF000000' }, size: 10, name: 'Arial' };
       const titleFont: Partial<ExcelJS.Font> = { bold: true, size: 12, name: 'Arial' };
       const labelFont: Partial<ExcelJS.Font> = { bold: true, size: 10, name: 'Arial' };
       const normalFont: Partial<ExcelJS.Font> = { size: 10, name: 'Arial' };
@@ -484,16 +484,17 @@ export default function FechamentoFolha() {
       titleCell.alignment = { horizontal: 'center' };
 
       // Rows 3-6: Company info
-      ws.getCell('A3').value = 'Codigo Empresa:'; ws.getCell('A3').font = labelFont;
+      const silverFill: ExcelJS.FillPattern = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC0C0C0' } };
+      ws.getCell('A3').value = 'Codigo Empresa:'; ws.getCell('A3').font = labelFont; ws.getCell('A3').fill = silverFill;
       ws.getCell('C3').value = '582'; ws.getCell('C3').font = normalFont;
-      ws.getCell('A4').value = 'Razão Social:'; ws.getCell('A4').font = labelFont;
+      ws.getCell('A4').value = 'Razão Social:'; ws.getCell('A4').font = labelFont; ws.getCell('A4').fill = silverFill;
       ws.getCell('C4').value = 'PROPOSITO SOLUCOES LTDA'; ws.getCell('C4').font = normalFont;
-      ws.getCell('A5').value = 'Inscrição Cnpj:'; ws.getCell('A5').font = labelFont;
+      ws.getCell('A5').value = 'Inscrição Cnpj:'; ws.getCell('A5').font = labelFont; ws.getCell('A5').fill = silverFill;
       ws.getCell('C5').value = '58.483.608/0001-02'; ws.getCell('C5').font = normalFont;
-      ws.getCell('A6').value = 'Competencia:'; ws.getCell('A6').font = labelFont;
+      ws.getCell('A6').value = 'Competencia:'; ws.getCell('A6').font = labelFont; ws.getCell('A6').fill = silverFill;
       const compCell = ws.getCell('C6');
       compCell.value = new Date(selectedYear, selectedMonth, 1);
-      compCell.numFmt = 'YYYY-MM-DD';
+      compCell.numFmt = 'MM/YYYY';
       compCell.font = normalFont;
 
       // Row 9: Header group names
@@ -555,7 +556,7 @@ export default function FechamentoFolha() {
         // Col C
         const cellC = row.getCell(3);
         cellC.value = tplRow.colC;
-        cellC.font = normalFont; cellC.border = thinBorder;
+        cellC.font = normalFont; cellC.border = thinBorder; cellC.alignment = { horizontal: 'left' };
 
         // Cols D-O (4 to 15)
         for (let col = 4; col <= 15; col++) {
@@ -577,18 +578,19 @@ export default function FechamentoFolha() {
         rowIndex++;
       }
 
-      // Total row
+      // Total row with silver fill
       const totalRow = ws.getRow(rowIndex);
       const totalCellA = totalRow.getCell(1);
-      totalCellA.value = 'TOTAL'; totalCellA.font = labelFont; totalCellA.border = thinBorder; totalCellA.alignment = { horizontal: 'center' };
+      totalCellA.value = 'TOTAL'; totalCellA.font = labelFont; totalCellA.border = thinBorder; totalCellA.alignment = { horizontal: 'center' }; totalCellA.fill = headerFill;
       const totalCellB = totalRow.getCell(2);
-      totalCellB.value = templateRows.length; totalCellB.font = labelFont; totalCellB.border = thinBorder; totalCellB.alignment = { horizontal: 'center' };
+      totalCellB.value = templateRows.length; totalCellB.font = labelFont; totalCellB.border = thinBorder; totalCellB.alignment = { horizontal: 'center' }; totalCellB.fill = headerFill;
       const totalCellC = totalRow.getCell(3);
-      totalCellC.value = 'Colaboradores'; totalCellC.font = labelFont; totalCellC.border = thinBorder;
+      totalCellC.value = 'Colaboradores'; totalCellC.font = labelFont; totalCellC.border = thinBorder; totalCellC.fill = headerFill;
       for (let col = 4; col <= 15; col++) {
         const cell = totalRow.getCell(col);
         cell.border = thinBorder;
         cell.numFmt = NUM_FMT;
+        cell.fill = headerFill;
       }
 
       // Generate and download
