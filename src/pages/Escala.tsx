@@ -427,6 +427,30 @@ function EscalaInner() {
     return (collaboratorsBySector[sector] || []).filter(id => !absentIds?.has(id)).length;
   };
 
+  /** Count punch-confirmed faltas for a sector on a date (collaborators scheduled but no punch, no event justification) */
+  const getPunchFaltaCount = (date: Date, sector: string): number => {
+    const dateKey = formatDateKey(date);
+    if (!lastPunchDate || dateKey < INTEGRATION_START_DATE || dateKey > lastPunchDate) return 0;
+    const collaboratorsBySector = getScheduledCollaboratorIdsBySectorOnDate(
+      collaborators, date, scheduledVacations, swapOverrides, afastamentos
+    );
+    const absentIds = absentCollaboratorIdsByDate.get(dateKey);
+    const scheduledIds = (collaboratorsBySector[sector] || []).filter(id => !absentIds?.has(id));
+    let count = 0;
+    for (const id of scheduledIds) {
+      const collab = collaborators.find(c => c.id === id);
+      if (!collab || !collab.controla_ponto) continue;
+      if (punchSet.has(`${id}|${dateKey}`)) continue;
+      // Check schedule events for this collaborator on this date
+      const collabEvents = eventsMap[dateKey]?.[id] || [];
+      const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
+      const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
+      const hasCompensacao = collabEvents.some(e => e.event_type === 'COMPENSACAO');
+      if (!hasFalta && !hasAtestado && !hasCompensacao) count++;
+    }
+    return count;
+  };
+
   const renderWeek = (week: ScheduleWeek) => {
     const allSectors = new Set<string>();
     week.days.forEach(d => Object.keys(d.collaboratorsBySector).forEach(s => allSectors.add(s)));
@@ -510,7 +534,7 @@ function EscalaInner() {
                         const hasTroca = collabEvents.some(e => e.event_type === 'TROCA_FOLGA' || e.event_type === 'MUDANCA_FOLGA' || e.event_type === 'TROCA_DOMINGO');
 
                         // Check confirmed absence from punch records
-                        const isPunchFalta = collab && collab.controla_ponto && lastPunchDate && dateKey >= INTEGRATION_START_DATE && dateKey <= lastPunchDate && !punchSet.has(`${collab.id}|${dateKey}`) && !hasFalta && !hasAtestado;
+                        const isPunchFalta = collab && collab.controla_ponto && lastPunchDate && dateKey >= INTEGRATION_START_DATE && dateKey <= lastPunchDate && !punchSet.has(`${collab.id}|${dateKey}`) && !hasFalta && !hasAtestado && !hasCompensacao;
 
                         const cellClasses = [
                           'border border-border px-2 text-left',
@@ -641,10 +665,11 @@ function EscalaInner() {
                           const dateKey = formatDateKey(d.date);
                           const scheduled = getPresentScheduledCount(d.date, sector);
                           const frees = getTotalFrees(dateKey, sector);
-                          const total = scheduled + frees;
+                          const faltas = getPunchFaltaCount(d.date, sector);
+                          const total = scheduled + frees - faltas;
                           return (
                             <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
-                              Total: {total}
+                              Total: {total}{faltas > 0 && <span className="text-destructive ml-1">({faltas} falta{faltas > 1 ? 's' : ''})</span>}
                             </td>
                           );
                         })}
@@ -658,7 +683,8 @@ function EscalaInner() {
                           }
                           const scheduled = getPresentScheduledCount(d.date, sector);
                           const frees = getTotalFrees(dateKey, sector);
-                          const total = scheduled + frees;
+                          const faltas = getPunchFaltaCount(d.date, sector);
+                          const total = scheduled + frees - faltas;
                           const { vendas } = getSectorSales(sale, sector);
                           const tmp = total > 0 ? vendas / total : 0;
                           return (
@@ -677,7 +703,8 @@ function EscalaInner() {
                           }
                           const scheduled = getPresentScheduledCount(d.date, sector);
                           const frees = getTotalFrees(dateKey, sector);
-                          const total = scheduled + frees;
+                          const faltas = getPunchFaltaCount(d.date, sector);
+                          const total = scheduled + frees - faltas;
                           const { pedidos } = getSectorSales(sale, sector);
                           const ppp = total > 0 ? pedidos / total : 0;
                           return (

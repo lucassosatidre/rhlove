@@ -1,13 +1,16 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useDailySales, useUpsertDailySales, useBulkInsertDailySales, useDeleteDailySales, type DailySalesInput } from '@/hooks/useDailySales';
 import { useFreelancers, useBulkUpsertFreelancers } from '@/hooks/useFreelancers';
 import { useFreelancerEntries, useBulkInsertFreelancerEntries } from '@/hooks/useFreelancerEntries';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
-import { useScheduleEvents, buildSwapOverrides } from '@/hooks/useScheduleEvents';
+import { useScheduleEvents, buildSwapOverrides, buildEventsMap } from '@/hooks/useScheduleEvents';
 import { useAfastamentos } from '@/hooks/useAfastamentos';
 import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
+import { INTEGRATION_START_DATE } from '@/lib/constants';
 import { supabase } from '@/integrations/supabase/client';
+import { getScheduledCollaboratorIdsBySectorOnDate } from '@/lib/scheduleEngine';
 import { generateProductivityData, formatCurrency, formatDecimal, formatDateBR, getSectorOrder } from '@/lib/productivityEngine';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -128,16 +131,77 @@ export default function Produtividade() {
     return { start: toStr(prevStart), end: toStr(prevEnd) };
   }, [startDate, endDate]);
 
+  const { data: prevSalesData = [] } = useDailySales(prevPeriod.start, prevPeriod.end);
+  const { data: prevFreelancersData = [] } = useFreelancers(prevPeriod.start, prevPeriod.end);
+  const { data: prevFreelancerEntriesData = [] } = useFreelancerEntries(prevPeriod.start, prevPeriod.end);
+
   const { data: scheduleEvents = [] } = useScheduleEvents(prevPeriod.start, endDate);
   const swapOverrides = useMemo(() => buildSwapOverrides(scheduleEvents), [scheduleEvents]);
+  const eventsMap = useMemo(() => buildEventsMap(scheduleEvents), [scheduleEvents]);
   const absentCollaboratorIdsByDate = useMemo(
     () => buildAbsentCollaboratorIdsByDate(scheduleEvents),
     [scheduleEvents]
   );
 
-  const { data: prevSalesData = [] } = useDailySales(prevPeriod.start, prevPeriod.end);
-  const { data: prevFreelancersData = [] } = useFreelancers(prevPeriod.start, prevPeriod.end);
-  const { data: prevFreelancerEntriesData = [] } = useFreelancerEntries(prevPeriod.start, prevPeriod.end);
+  // Punch records for punch-confirmed falta detection
+  const { data: punchRecordsForRange = [] } = useQuery({
+    queryKey: ['punch_records_range', prevPeriod.start, endDate],
+    queryFn: async () => {
+      if (!prevPeriod.start || !endDate) return [];
+      const { data, error } = await supabase
+        .from('punch_records')
+        .select('collaborator_id, date, entrada')
+        .gte('date', prevPeriod.start)
+        .lte('date', endDate);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!prevPeriod.start && !!endDate,
+  });
+
+  // Build punchFaltaSet: collaborators scheduled to work but with no punch, no justification event
+  const punchFaltaSet = useMemo(() => {
+    const set = new Set<string>();
+    let maxPunchDate = '';
+    const punchSet = new Set<string>();
+    for (const p of punchRecordsForRange) {
+      if (p.entrada) {
+        punchSet.add(`${p.collaborator_id}|${p.date}`);
+        if (p.date > maxPunchDate) maxPunchDate = p.date;
+      }
+    }
+    if (!maxPunchDate) return set;
+
+    const allDates = new Set<string>();
+    for (const s of salesData) allDates.add(s.date);
+    for (const s of prevSalesData) allDates.add(s.date);
+
+    for (const dateStr of allDates) {
+      if (dateStr < INTEGRATION_START_DATE || dateStr > maxPunchDate) continue;
+      const date = new Date(dateStr + 'T00:00:00');
+      const collaboratorsBySector = getScheduledCollaboratorIdsBySectorOnDate(
+        collaborators, date, scheduledVacations, swapOverrides, afastamentos
+      );
+      const absentIds = absentCollaboratorIdsByDate.get(dateStr);
+
+      for (const [, ids] of Object.entries(collaboratorsBySector)) {
+        for (const id of ids) {
+          if (absentIds?.has(id)) continue;
+          if (punchSet.has(`${id}|${dateStr}`)) continue;
+          const collab = collaborators.find(c => c.id === id);
+          if (!collab || !collab.controla_ponto) continue;
+          const collabEvents = eventsMap[dateStr]?.[id] || [];
+          const hasJustification = collabEvents.some(e =>
+            e.event_type === 'FALTA' || e.event_type === 'ATESTADO' || e.event_type === 'COMPENSACAO'
+          );
+          if (!hasJustification) {
+            set.add(`${id}|${dateStr}`);
+          }
+        }
+      }
+    }
+    return set;
+  }, [punchRecordsForRange, salesData, prevSalesData, collaborators, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, eventsMap]);
 
   const upsertMut = useUpsertDailySales();
   const bulkMut = useBulkInsertDailySales();
@@ -146,13 +210,13 @@ export default function Produtividade() {
   const bulkFreeEntriesMut = useBulkInsertFreelancerEntries();
 
   const productivityRows = useMemo(
-    () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, freelancerEntriesData),
-    [salesData, collaborators, freelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, freelancerEntriesData]
+    () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, freelancerEntriesData, punchFaltaSet),
+    [salesData, collaborators, freelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, freelancerEntriesData, punchFaltaSet]
   );
 
   const prevProductivityRows = useMemo(
-    () => generateProductivityData(prevSalesData, collaborators, prevFreelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, prevFreelancerEntriesData),
-    [prevSalesData, collaborators, prevFreelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, prevFreelancerEntriesData]
+    () => generateProductivityData(prevSalesData, collaborators, prevFreelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, prevFreelancerEntriesData, punchFaltaSet),
+    [prevSalesData, collaborators, prevFreelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, prevFreelancerEntriesData, punchFaltaSet]
   );
 
   const groupedByDate = useMemo(() => {

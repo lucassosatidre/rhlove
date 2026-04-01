@@ -8,6 +8,9 @@ import type { DayOffOverridesMap } from '@/lib/scheduleEngine';
 import { getScheduledCollaboratorIdsBySectorOnDate } from '@/lib/scheduleEngine';
 import type { AbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 
+/** Set of "collaboratorId|date" keys for punch-confirmed faltas */
+export type PunchFaltaSet = Set<string>;
+
 export interface ProductivityRow {
   date: string;
   sector: string;
@@ -32,7 +35,8 @@ function buildScheduledCountMap(
   scheduledVacations: ScheduledVacation[] = [],
   dayOffOverrides?: DayOffOverridesMap,
   afastamentos: Afastamento[] = [],
-  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
+  punchFaltaSet?: PunchFaltaSet
 ): Record<string, number> {
   const map: Record<string, number> = {};
 
@@ -48,7 +52,11 @@ function buildScheduledCountMap(
     );
 
     for (const [sector, collaboratorIds] of Object.entries(collaboratorsBySector)) {
-      map[`${sale.date}|${sector}`] = collaboratorIds.filter(id => !absentCollaboratorIds?.has(id)).length;
+      map[`${sale.date}|${sector}`] = collaboratorIds.filter(id => {
+        if (absentCollaboratorIds?.has(id)) return false;
+        if (punchFaltaSet?.has(`${id}|${sale.date}`)) return false;
+        return true;
+      }).length;
     }
   }
 
@@ -62,7 +70,8 @@ export function countPeopleBySectorOnDate(
   scheduledVacations: ScheduledVacation[] = [],
   dayOffOverrides?: DayOffOverridesMap,
   afastamentos: Afastamento[] = [],
-  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
+  punchFaltaSet?: PunchFaltaSet
 ): number {
   const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   const absentCollaboratorIds = absentCollaboratorIdsByDate?.get(dateKey);
@@ -74,7 +83,11 @@ export function countPeopleBySectorOnDate(
     afastamentos
   );
 
-  return (collaboratorsBySector[sector] ?? []).filter(id => !absentCollaboratorIds?.has(id)).length;
+  return (collaboratorsBySector[sector] ?? []).filter(id => {
+    if (absentCollaboratorIds?.has(id)) return false;
+    if (punchFaltaSet?.has(`${id}|${dateKey}`)) return false;
+    return true;
+  }).length;
 }
 
 export function generateProductivityData(
@@ -85,7 +98,8 @@ export function generateProductivityData(
   dayOffOverrides?: DayOffOverridesMap,
   afastamentos: Afastamento[] = [],
   absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
-  freelancerEntries: FreelancerEntry[] = []
+  freelancerEntries: FreelancerEntry[] = [],
+  punchFaltaSet?: PunchFaltaSet
 ): ProductivityRow[] {
   const rows: ProductivityRow[] = [];
   const scheduledCountMap = buildScheduledCountMap(
@@ -94,7 +108,8 @@ export function generateProductivityData(
     scheduledVacations,
     dayOffOverrides,
     afastamentos,
-    absentCollaboratorIdsByDate
+    absentCollaboratorIdsByDate,
+    punchFaltaSet
   );
 
   const getScheduledCount = (date: string, sector: string) => scheduledCountMap[`${date}|${sector}`] || 0;
