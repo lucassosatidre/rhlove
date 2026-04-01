@@ -54,7 +54,7 @@ export default function BancoHoras() {
   const now = new Date();
   const [semesterStart, setSemesterStart] = useState(getSemesterStart(now));
   const semesterOptions = useMemo(() => getSemesterOptions(), []);
-  const semesterMonths = useMemo(() => getSemesterMonths(semesterStart), [semesterStart]);
+  const _semesterMonths = useMemo(() => getSemesterMonths(semesterStart), [semesterStart]);
 
   const { data: collaborators = [] } = useCollaborators();
   const { data: allTransactions = [], isLoading } = useBHTransactions(semesterStart);
