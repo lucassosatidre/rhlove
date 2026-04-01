@@ -769,6 +769,8 @@ export default function FechamentoFolha() {
         const isAtestado = dayEvents.some((e: any) => e.event_type === 'ATESTADO' && e.status === 'ATIVO');
         const isCompensacao = dayEvents.some((e: any) => e.event_type === 'COMPENSACAO' && e.status === 'ATIVO');
         if (isFolga || isCompensacao || isAtestado) continue;
+        // Check Folga BH
+        if (folgaBHSet.has(`${collab.id}|${iso}`)) continue;
 
         // Check holiday
         if (holidaySet.has(iso)) continue;
