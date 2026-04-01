@@ -183,12 +183,14 @@ export default function FechamentoFolha() {
           const row = rows[i];
           if (!row) continue;
           const colA = String(row[0] ?? '').trim();
-          if (colA.toUpperCase() === 'TOTAL' || colA === '') {
-            if (colA.toUpperCase() === 'TOTAL') break;
-            continue;
-          }
+          if (colA.toUpperCase() === 'TOTAL') break;
+          // Only consider rows where column A is "11"
+          if (colA !== '11') continue;
           const colC = String(row[2] ?? '').trim();
           if (!colC) continue;
+          // Skip header-like values in column C
+          const colCUpper = colC.toUpperCase().trim();
+          if (colCUpper === 'COLABORADORES' || colCUpper === 'NOME DOS' || colCUpper.startsWith('COLABORADORES')) continue;
           matched.push({
             sheetName: colC,
             sheetRow: i,
@@ -361,14 +363,14 @@ export default function FechamentoFolha() {
         const not100 = collab.genero === 'F' ? Math.round((totals.not100 / 60) * 100) / 100 : 0;
         const adNoturno = Math.round((totals.adNoturno / 60) * 100) / 100;
 
-        // Bonus 10%
+        // Bonus 10% — arredondar para CIMA
         const bonus = bonusMap.get(collab.id);
         const bonus10 = bonus?.valor_bonus ? Math.ceil(Number(bonus.valor_bonus)) : 0;
         if (!bonus) warnings.push('Sem bônus 10%');
 
-        // VT
+        // VT — arredondar para BAIXO
         const vt = vtMap.get(collab.id);
-        const vtDesconto = vt?.desconto_folha ? Number(vt.desconto_folha) : 0;
+        const vtDesconto = vt?.desconto_folha ? Math.floor(Number(vt.desconto_folha)) : 0;
         if (!vt && collab.vt_ativo) warnings.push('Sem VT');
 
         if (!collab.genero) warnings.push('Gênero não definido');
@@ -636,15 +638,15 @@ export default function FechamentoFolha() {
             </Card>
             <Card><CardContent className="p-3">
               <p className="text-[10px] text-muted-foreground">Total Bônus 10%</p>
-              <p className="text-lg font-bold tabular-nums">R$ {totals.bonus10.toLocaleString('pt-BR')}</p>
+              <p className="text-lg font-bold tabular-nums">R$ {totals.bonus10.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </CardContent></Card>
             <Card><CardContent className="p-3">
               <p className="text-[10px] text-muted-foreground">Total VT</p>
-              <p className="text-lg font-bold tabular-nums">R$ {totals.vtDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              <p className="text-lg font-bold tabular-nums">R$ {totals.vtDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </CardContent></Card>
             <Card><CardContent className="p-3">
               <p className="text-[10px] text-muted-foreground">Total A.Not (dec)</p>
-              <p className="text-lg font-bold tabular-nums">{totals.adNoturno.toFixed(2)}</p>
+              <p className="text-lg font-bold tabular-nums">{totals.adNoturno.toFixed(2).replace('.', ',')}</p>
             </CardContent></Card>
           </div>
 
@@ -684,11 +686,11 @@ export default function FechamentoFolha() {
                         <TableCell className="text-xs font-medium">{p.collaboratorName}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{p.sector}</TableCell>
                         <TableCell className="text-xs text-center">{p.genero}</TableCell>
-                        <TableCell className="text-xs tabular-nums text-center">{p.extra100 > 0 ? p.extra100.toFixed(2) : '—'}</TableCell>
-                        <TableCell className="text-xs tabular-nums text-center">{p.not100 > 0 ? p.not100.toFixed(2) : '—'}</TableCell>
-                        <TableCell className="text-xs tabular-nums text-center">{p.adNoturno > 0 ? p.adNoturno.toFixed(2) : '—'}</TableCell>
-                        <TableCell className="text-xs tabular-nums text-center font-medium">{p.bonus10 > 0 ? `R$ ${p.bonus10}` : '—'}</TableCell>
-                        <TableCell className="text-xs tabular-nums text-center">{p.vtDesconto > 0 ? `R$ ${p.vtDesconto.toFixed(2)}` : '—'}</TableCell>
+                        <TableCell className="text-xs tabular-nums text-center">{p.extra100 > 0 ? p.extra100.toFixed(2).replace('.', ',') : '—'}</TableCell>
+                        <TableCell className="text-xs tabular-nums text-center">{p.not100 > 0 ? p.not100.toFixed(2).replace('.', ',') : '—'}</TableCell>
+                        <TableCell className="text-xs tabular-nums text-center">{p.adNoturno > 0 ? p.adNoturno.toFixed(2).replace('.', ',') : '—'}</TableCell>
+                        <TableCell className="text-xs tabular-nums text-center font-medium">{p.bonus10 > 0 ? `R$ ${p.bonus10.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}</TableCell>
+                        <TableCell className="text-xs tabular-nums text-center">{p.vtDesconto > 0 ? `R$ ${p.vtDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {p.warnings.map((w, j) => (
@@ -704,11 +706,11 @@ export default function FechamentoFolha() {
                   <TableFooter>
                     <TableRow className="font-semibold bg-muted/50">
                       <TableCell colSpan={3} className="text-xs text-right">TOTAIS</TableCell>
-                      <TableCell className="text-xs tabular-nums text-center">{totals.extra100.toFixed(2)}</TableCell>
-                      <TableCell className="text-xs tabular-nums text-center">{totals.not100.toFixed(2)}</TableCell>
-                      <TableCell className="text-xs tabular-nums text-center">{totals.adNoturno.toFixed(2)}</TableCell>
-                      <TableCell className="text-xs tabular-nums text-center font-bold">R$ {totals.bonus10.toLocaleString('pt-BR')}</TableCell>
-                      <TableCell className="text-xs tabular-nums text-center font-bold">R$ {totals.vtDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-xs tabular-nums text-center">{totals.extra100.toFixed(2).replace('.', ',')}</TableCell>
+                      <TableCell className="text-xs tabular-nums text-center">{totals.not100.toFixed(2).replace('.', ',')}</TableCell>
+                      <TableCell className="text-xs tabular-nums text-center">{totals.adNoturno.toFixed(2).replace('.', ',')}</TableCell>
+                      <TableCell className="text-xs tabular-nums text-center font-bold">R$ {totals.bonus10.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-xs tabular-nums text-center font-bold">R$ {totals.vtDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell />
                     </TableRow>
                   </TableFooter>
