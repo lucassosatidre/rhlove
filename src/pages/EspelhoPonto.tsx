@@ -797,14 +797,14 @@ export default function EspelhoPonto() {
                 <TableHeader>
                 {showJornada && (
                     <TableRow className="border-b-0">
-                      <TableHead colSpan={1} className="sticky top-0 z-20 bg-gray-700 text-white text-[10px] font-semibold h-6 py-0"></TableHead>
-                      <TableHead colSpan={4} className="sticky top-0 z-20 bg-gray-700 text-white text-center text-[10px] font-semibold border-l-2 border-l-gray-500 h-6 py-0">Batidas</TableHead>
-                      <TableHead colSpan={2} className="sticky top-0 z-20 bg-gray-700 text-white text-center text-[10px] font-semibold border-l-2 border-l-gray-500 h-6 py-0">Resumo</TableHead>
-                      <TableHead colSpan={3} className="sticky top-0 z-20 bg-gray-700 text-white text-center text-[10px] font-semibold border-l-2 border-l-gray-500 h-6 py-0">Jornada</TableHead>
-                      <TableHead colSpan={2} className="sticky top-0 z-20 bg-gray-700 text-white text-center text-[10px] font-semibold border-l-2 border-l-gray-500 h-6 py-0">Desvios</TableHead>
-                      <TableHead colSpan={2} className="sticky top-0 z-20 bg-gray-700 text-white text-center text-[10px] font-semibold border-l-2 border-l-gray-500 h-6 py-0">Extras</TableHead>
-                      <TableHead colSpan={2} className="sticky top-0 z-20 bg-gray-700 text-white text-center text-[10px] font-semibold border-l-2 border-l-gray-500 h-6 py-0">Noturno</TableHead>
-                      <TableHead colSpan={1} className="sticky top-0 z-20 bg-gray-700 text-white text-center text-[10px] font-semibold border-l-2 border-l-gray-500 h-6 py-0">BH</TableHead>
+                      <TableHead colSpan={1} className="sticky top-0 z-20 bg-foreground/80 text-background text-[10px] font-semibold h-6 py-0"></TableHead>
+                      <TableHead colSpan={4} className="sticky top-0 z-20 bg-foreground/80 text-background text-center text-[10px] font-semibold border-l-2 border-l-foreground/40 h-6 py-0">Batidas</TableHead>
+                      <TableHead colSpan={2} className="sticky top-0 z-20 bg-foreground/80 text-background text-center text-[10px] font-semibold border-l-2 border-l-foreground/40 h-6 py-0">Resumo</TableHead>
+                      <TableHead colSpan={3} className="sticky top-0 z-20 bg-foreground/80 text-background text-center text-[10px] font-semibold border-l-2 border-l-foreground/40 h-6 py-0">Jornada</TableHead>
+                      <TableHead colSpan={2} className="sticky top-0 z-20 bg-foreground/80 text-background text-center text-[10px] font-semibold border-l-2 border-l-foreground/40 h-6 py-0">Desvios</TableHead>
+                      <TableHead colSpan={2} className="sticky top-0 z-20 bg-foreground/80 text-background text-center text-[10px] font-semibold border-l-2 border-l-foreground/40 h-6 py-0">Extras</TableHead>
+                      <TableHead colSpan={2} className="sticky top-0 z-20 bg-foreground/80 text-background text-center text-[10px] font-semibold border-l-2 border-l-foreground/40 h-6 py-0">Noturno</TableHead>
+                      <TableHead colSpan={1} className="sticky top-0 z-20 bg-foreground/80 text-background text-center text-[10px] font-semibold border-l-2 border-l-foreground/40 h-6 py-0">BH</TableHead>
                       {canEdit && <TableHead className="sticky top-0 z-20 bg-gray-700 h-6 py-0"></TableHead>}
                     </TableRow>
                   )}
