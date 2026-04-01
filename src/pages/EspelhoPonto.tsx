@@ -218,6 +218,30 @@ export default function EspelhoPonto() {
   const { data: bankBalances = [] } = useBankHoursBalance(selectedCollaboratorId);
   const upsertBalance = useUpsertBankHoursBalance();
 
+  // Fetch Folga BH records for this month
+  const { data: folgasBH = [] } = useQuery({
+    queryKey: ['bank_hours_folgas', selectedMonth, selectedYear],
+    queryFn: async () => {
+      const startDate = format(new Date(selectedYear, selectedMonth, 1), 'yyyy-MM-dd');
+      const endDate = format(new Date(selectedYear, selectedMonth, getDaysInMonth(new Date(selectedYear, selectedMonth))), 'yyyy-MM-dd');
+      const { data, error } = await supabase
+        .from('bank_hours_folgas')
+        .select('collaborator_id, folga_date')
+        .gte('folga_date', startDate)
+        .lte('folga_date', endDate);
+      if (error) throw error;
+      return data as { collaborator_id: string; folga_date: string }[];
+    },
+  });
+
+  const folgaBHSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const f of folgasBH) {
+      set.add(`${f.collaborator_id}|${f.folga_date}`);
+    }
+    return set;
+  }, [folgasBH]);
+
   const activeCollabs = useMemo(
     () => collaborators.filter(c => c.status !== 'DESLIGADO' && c.controla_ponto !== false),
     [collaborators]
