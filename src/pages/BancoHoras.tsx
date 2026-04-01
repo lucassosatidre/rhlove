@@ -22,7 +22,6 @@ import {
   getSemesterOptions,
   getSemesterMonths,
   getSemesterLabel,
-  type BHTransaction,
 } from '@/hooks/useBancoHoras';
 import * as XLSX from 'xlsx';
 
