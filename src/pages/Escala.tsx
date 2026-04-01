@@ -8,6 +8,7 @@ import { useAfastamentos } from '@/hooks/useAfastamentos';
 import { useScheduleEvents, buildEventsMap, buildSwapOverrides, type ScheduleEvent } from '@/hooks/useScheduleEvents';
 import { useHolidays } from '@/hooks/useHolidayCompensations';
 import { usePunchRecords } from '@/hooks/usePunchRecords';
+import { INTEGRATION_START_DATE } from '@/lib/constants';
 import { generateSchedule, getMonthLabel, getFirstMondayOfMonthGrid, getWeekCount, getScheduledCollaboratorIdsBySectorOnDate, type ScheduleWeek } from '@/lib/scheduleEngine';
 import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { DraftModeProvider, useDraftMode, type DraftSalesEntry } from '@/contexts/DraftModeContext';
