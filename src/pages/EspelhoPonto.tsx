@@ -345,7 +345,7 @@ export default function EspelhoPonto() {
         if (!entrada && !saida && !saidaInt && !retornoInt && status.includes('Falta')) {
           // If day <= lastPunchUpdateDate → confirmed absence (not inconsistency)
           // If day > lastPunchUpdateDate → pending punch (inconsistency)
-          if (lastPunchUpdateDate && iso <= lastPunchUpdateDate) {
+          if (lastPunchUpdateDate && iso <= lastPunchUpdateDate && iso >= INTEGRATION_START_DATE) {
             tags = ['falta'];
             status = '❌ Falta';
           } else {
