@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, UserMinus, Mic, ClipboardList, ClipboardCheck, Bus, Percent, FileSpreadsheet, ChevronRight, Clock, Wallet, CalendarMinus, type LucideIcon } from 'lucide-react';
+import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, UserMinus, Mic, ClipboardList, ClipboardCheck, Bus, Percent, FileSpreadsheet, ChevronRight, Clock, Wallet, CalendarMinus, Landmark, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -55,6 +55,7 @@ const GROUPS: NavGroup[] = [
     icon: Clock,
     items: [
       { to: '/espelho-ponto', label: 'Espelho de Ponto', icon: ClipboardList, roles: ['admin', 'gestor'] },
+      { to: '/banco-horas', label: 'Banco de Horas', icon: Landmark, roles: ['admin', 'gestor'] },
       { to: '/checkout', label: 'Checkout', icon: Mic, roles: ['admin', 'gestor', 'lider'] },
     ],
   },
