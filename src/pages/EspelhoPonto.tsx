@@ -231,6 +231,15 @@ export default function EspelhoPonto() {
     return list;
   }, [activeCollabs, searchName, sectorFilter]);
 
+  // Determine the last date with actual punch data (entrada filled)
+  const lastPunchUpdateDate = useMemo(() => {
+    let maxDate = '';
+    for (const p of punchRecords) {
+      if (p.entrada && p.date > maxDate) maxDate = p.date;
+    }
+    return maxDate || null;
+  }, [punchRecords]);
+
   const daysInMonth = getDaysInMonth(new Date(selectedYear, selectedMonth));
   const holidaySet = useMemo(() => new Set(holidays.map(h => h.date)), [holidays]);
   const swapOverrides = useMemo(() => buildSwapOverrides(scheduleEvents), [scheduleEvents]);
