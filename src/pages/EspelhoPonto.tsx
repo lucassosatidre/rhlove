@@ -340,8 +340,18 @@ export default function EspelhoPonto() {
       let tags: InconsistencyTag[] = [];
       if (!isFuture && !isFolga && !isVacation && !(isAfastamento || isAtestado) && !isCompensacao) {
         tags = detectTags(entrada, saida, saidaInt, retornoInt);
-        // Falta is also an inconsistency
-        if (status === '❌ Falta') tags = ['batida_pendente'];
+        // Day without any punches on a working day
+        if (!entrada && !saida && !saidaInt && !retornoInt && status.includes('Falta')) {
+          // If day <= lastPunchUpdateDate → confirmed absence (not inconsistency)
+          // If day > lastPunchUpdateDate → pending punch (inconsistency)
+          if (lastPunchUpdateDate && iso <= lastPunchUpdateDate) {
+            tags = ['falta'];
+            status = '❌ Falta';
+          } else {
+            tags = ['batida_pendente'];
+            status = '🔴 Batida pendente';
+          }
+        }
       }
 
       const isAdjusted = punch ? !!(punch as any).adjusted_at : false;
