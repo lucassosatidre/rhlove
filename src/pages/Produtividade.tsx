@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useDailySales, useUpsertDailySales, useBulkInsertDailySales, useDeleteDailySales, type DailySalesInput } from '@/hooks/useDailySales';
 import { useFreelancers, useBulkUpsertFreelancers } from '@/hooks/useFreelancers';
