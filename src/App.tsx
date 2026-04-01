@@ -19,6 +19,7 @@ import GerenciarUsuarios from "@/pages/GerenciarUsuarios";
 import RegistroPonto from "@/pages/RegistroPonto";
 import CheckoutPage from "@/pages/Checkout";
 import EspelhoPonto from "@/pages/EspelhoPonto";
+import BancoHoras from "@/pages/BancoHoras";
 import FechamentoFolha from "@/pages/FechamentoFolha";
 import Demandas from "@/pages/Demandas";
 import ValeTransporte from "@/pages/ValeTransporte";
