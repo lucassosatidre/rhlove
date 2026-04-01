@@ -507,14 +507,16 @@ function EscalaInner() {
                         const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
                         const hasCompensacao = collabEvents.some(e => e.event_type === 'COMPENSACAO');
                         const hasTroca = collabEvents.some(e => e.event_type === 'TROCA_FOLGA' || e.event_type === 'MUDANCA_FOLGA' || e.event_type === 'TROCA_DOMINGO');
-                        const hasEvent = hasFalta || hasAtestado || hasCompensacao || hasTroca;
+
+                        // Check confirmed absence from punch records
+                        const isPunchFalta = collab && collab.controla_ponto && lastPunchDate && dateKey <= lastPunchDate && !punchSet.has(`${collab.id}|${dateKey}`) && !hasFalta && !hasAtestado;
 
                         const cellClasses = [
                           'border border-border px-2 text-left',
                           compact ? 'py-0.5' : 'py-1',
                           di === 6 ? 'bg-accent/30' : '',
                           hasAlert ? 'bg-warning/20 font-semibold' : '',
-                          hasFalta ? 'bg-destructive/10' : '',
+                          (hasFalta || isPunchFalta) ? 'bg-destructive/10' : '',
                           hasAtestado ? 'bg-blue-50 dark:bg-blue-950/30' : '',
                           hasCompensacao ? 'bg-green-50 dark:bg-green-950/30' : '',
                           hasTroca ? 'bg-orange-50 dark:bg-orange-950/30' : '',
@@ -529,11 +531,12 @@ function EscalaInner() {
 
                         const nameContent = (
                           <span className="flex items-center gap-1 overflow-hidden max-w-full">
-                            <span className={`truncate min-w-0 ${hasFalta ? 'line-through text-destructive/70' : ''} ${hasAtestado ? 'text-blue-600 dark:text-blue-400' : ''} ${hasAlert ? 'text-amber-700 dark:text-amber-400' : ''}`}>
+                            <span className={`truncate min-w-0 ${(hasFalta || isPunchFalta) ? 'line-through text-destructive/70' : ''} ${hasAtestado ? 'text-blue-600 dark:text-blue-400' : ''} ${hasAlert ? 'text-amber-700 dark:text-amber-400' : ''}`}>
                               {displayName}
                             </span>
                             {alertSuffix && <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 shrink-0 border-amber-500 text-amber-700 dark:text-amber-400 whitespace-nowrap">{alertSuffix}</Badge>}
                             {hasFalta && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4 shrink-0">faltou</Badge>}
+                            {isPunchFalta && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4 shrink-0">FALTA</Badge>}
                             {hasAtestado && <Badge className="text-[9px] px-1 py-0 h-4 shrink-0 bg-blue-500 text-white">atestado</Badge>}
                             {hasCompensacao && <Badge className="text-[9px] px-1 py-0 h-4 shrink-0 bg-green-600 text-white">compensação</Badge>}
                             {hasTroca && <Badge className="text-[9px] px-1 py-0 h-4 shrink-0 bg-orange-500 text-white">ajuste</Badge>}
