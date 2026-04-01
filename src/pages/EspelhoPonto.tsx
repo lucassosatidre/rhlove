@@ -843,13 +843,13 @@ export default function EspelhoPonto() {
                     </TableRow>
                   ) : displayRows.map((r, idx) => {
                     const j = r.jornada;
-                    const isWeekend = [0, 6].includes(getDay(r.dateObj));
                     const isExtra100 = !!(j?.extra100 && j.extra100 > 0);
-                    const hasInconsistency = r.tags.length > 0;
+                    const hasInconsistency = r.tags.some(t => TAG_CONFIG[t].isInconsistency);
+                    const isFaltaConfirmada = r.tags.includes('falta');
                     const saldo = j ? fmtSaldo(j.saldoBH) : { text: '', className: '' };
                     return (
                       <TableRow key={`${r.collaboratorId}-${r.date}`}
-                        className={`${isExtra100 ? 'bg-pink-50 dark:bg-pink-950/20' : hasInconsistency ? 'bg-destructive/5' : idx % 2 === 1 ? 'bg-gray-50/60 dark:bg-gray-900/20' : ''}`}>
+                        className={`${isExtra100 ? 'bg-pink-50 dark:bg-pink-950/20' : hasInconsistency ? 'bg-destructive/5' : isFaltaConfirmada ? 'bg-gray-100 dark:bg-gray-800/30' : idx % 2 === 1 ? 'bg-gray-50/60 dark:bg-gray-900/20' : ''}`}>
                         {!showJornada && (
                           <TableCell className="text-xs font-medium py-0.5 px-2">
                             <button onClick={() => { setSelectedCollaboratorId(r.collaboratorId); setOnlyInconsistencies(false); }}
