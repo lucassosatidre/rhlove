@@ -363,14 +363,14 @@ export default function FechamentoFolha() {
         const not100 = collab.genero === 'F' ? Math.round((totals.not100 / 60) * 100) / 100 : 0;
         const adNoturno = Math.round((totals.adNoturno / 60) * 100) / 100;
 
-        // Bonus 10%
+        // Bonus 10% — arredondar para CIMA
         const bonus = bonusMap.get(collab.id);
         const bonus10 = bonus?.valor_bonus ? Math.ceil(Number(bonus.valor_bonus)) : 0;
         if (!bonus) warnings.push('Sem bônus 10%');
 
-        // VT
+        // VT — arredondar para BAIXO
         const vt = vtMap.get(collab.id);
-        const vtDesconto = vt?.desconto_folha ? Number(vt.desconto_folha) : 0;
+        const vtDesconto = vt?.desconto_folha ? Math.floor(Number(vt.desconto_folha)) : 0;
         if (!vt && collab.vt_ativo) warnings.push('Sem VT');
 
         if (!collab.genero) warnings.push('Gênero não definido');
