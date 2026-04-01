@@ -98,7 +98,8 @@ export function generateProductivityData(
   dayOffOverrides?: DayOffOverridesMap,
   afastamentos: Afastamento[] = [],
   absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
-  freelancerEntries: FreelancerEntry[] = []
+  freelancerEntries: FreelancerEntry[] = [],
+  punchFaltaSet?: PunchFaltaSet
 ): ProductivityRow[] {
   const rows: ProductivityRow[] = [];
   const scheduledCountMap = buildScheduledCountMap(
@@ -107,7 +108,8 @@ export function generateProductivityData(
     scheduledVacations,
     dayOffOverrides,
     afastamentos,
-    absentCollaboratorIdsByDate
+    absentCollaboratorIdsByDate,
+    punchFaltaSet
   );
 
   const getScheduledCount = (date: string, sector: string) => scheduledCountMap[`${date}|${sector}`] || 0;
