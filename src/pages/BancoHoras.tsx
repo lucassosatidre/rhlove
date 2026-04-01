@@ -179,6 +179,24 @@ export default function BancoHoras() {
     if (!session) return;
     setSyncing(true);
     try {
+      // Helper: same overnight adjustment as Espelho's calcHours
+      const toMin = (t: string) => { const [hh, mm] = t.split(':').map(Number); return hh * 60 + mm; };
+      const adj = (timeMin: number, refMin: number) => (timeMin < 180 && refMin > timeMin) ? timeMin + 1440 : timeMin;
+
+      const calcHoursSync = (entrada: string | null, saida: string | null, saidaInt: string | null, retornoInt: string | null): number | null => {
+        if (!entrada || !saida) return null;
+        const entradaMin = toMin(entrada);
+        let saidaMin = adj(toMin(saida), entradaMin);
+        let total = saidaMin - entradaMin;
+        if (saidaInt && retornoInt) {
+          const siMin = toMin(saidaInt);
+          total -= (adj(toMin(retornoInt), siMin) - siMin);
+        }
+        return total > 0 ? total : 0;
+      };
+
+      const WEEKDAY_NAME_MAP: Record<number, string> = { 0: 'domingo', 1: 'segunda', 2: 'terca', 3: 'quarta', 4: 'quinta', 5: 'sexta', 6: 'sabado' };
+
       let syncedCount = 0;
       for (const sm of semesterMonths) {
         const monthIdx = sm.month - 1;
@@ -234,16 +252,24 @@ export default function BancoHoras() {
           .lte('folga_date', endDate);
         const folgaBHSet = new Set((folgasBH ?? []).map(f => `${f.collaborator_id}|${f.folga_date}`));
 
-        // Build swap overrides
+        // Build swap overrides AND events map (per date per collaborator)
         const swapOverrides: Record<string, Record<string, { removeDays: string[]; addDays: (string | null)[] }>> = {};
+        const eventsMap: Record<string, Record<string, any[]>> = {};
         for (const ev of events ?? []) {
-          if (!['TROCA_FOLGA', 'MUDANCA_FOLGA'].includes(ev.event_type)) continue;
-          const ws = ev.week_start ?? ev.event_date;
-          if (!swapOverrides[ev.collaborator_id]) swapOverrides[ev.collaborator_id] = {};
-          if (!swapOverrides[ev.collaborator_id][ws]) swapOverrides[ev.collaborator_id][ws] = { removeDays: [], addDays: [] };
-          const entry = swapOverrides[ev.collaborator_id][ws];
-          if (ev.original_day) entry.removeDays.push(ev.original_day.toLowerCase());
-          if (ev.swapped_day) entry.addDays.push(ev.swapped_day.toLowerCase());
+          // Swap overrides
+          if (['TROCA_FOLGA', 'MUDANCA_FOLGA'].includes(ev.event_type)) {
+            const ws = ev.week_start ?? ev.event_date;
+            if (!swapOverrides[ev.collaborator_id]) swapOverrides[ev.collaborator_id] = {};
+            if (!swapOverrides[ev.collaborator_id][ws]) swapOverrides[ev.collaborator_id][ws] = { removeDays: [], addDays: [] };
+            const entry = swapOverrides[ev.collaborator_id][ws];
+            if (ev.original_day) entry.removeDays.push(ev.original_day.toLowerCase());
+            if (ev.swapped_day) entry.addDays.push(ev.swapped_day.toLowerCase());
+          }
+          // Events map for ATESTADO, COMPENSACAO, FALTA
+          const dateKey = ev.event_date;
+          if (!eventsMap[dateKey]) eventsMap[dateKey] = {};
+          if (!eventsMap[dateKey][ev.collaborator_id]) eventsMap[dateKey][ev.collaborator_id] = [];
+          eventsMap[dateKey][ev.collaborator_id].push(ev);
         }
 
         // Determine last punch update date for this month
@@ -264,16 +290,20 @@ export default function BancoHoras() {
 
           const defaultFolgas = (collab.folgas_semanais ?? []).map(f => f.toLowerCase());
           const chDiariaStr = collab.carga_horaria_diaria;
-          const chOverrideMin = chDiariaStr ? (() => {
+          const defaultChMin = chDiariaStr ? (() => {
             const parts = chDiariaStr.split(':');
             return parts.length === 2 ? parseInt(parts[0]) * 60 + parseInt(parts[1]) : null;
           })() : null;
+
+          const avisoReducao = (collab.status === 'AVISO_PREVIO' && collab.aviso_previo_reducao === 2) ? 120 : 0;
+          const jornadas = collab.jornadas_especiais as any[] | null;
 
           const dayInfos: DayInfo[] = [];
           for (let d = 1; d <= daysCount; d++) {
             const dt = new Date(year, monthIdx, d);
             const iso = format(dt, 'yyyy-MM-dd');
             const wd = WEEKDAYS[dt.getDay()];
+            const wdNorm = WEEKDAY_NAME_MAP[dt.getDay()];
 
             // Skip days before integration start or after last punch
             if (iso < INTEGRATION_START_DATE || iso > lastPunchDate) continue;
@@ -281,6 +311,11 @@ export default function BancoHoras() {
             const punch = punchMap[iso];
             const isHoliday = holidaySet.has(iso);
             const isFolgaBH = folgaBHSet.has(`${collab.id}|${iso}`);
+
+            // Check event types (same as Espelho)
+            const dayEvents = eventsMap[iso]?.[collab.id] ?? [];
+            const isAtestado = dayEvents.some((e: any) => e.event_type === 'ATESTADO' && e.status === 'ATIVO');
+            const isCompensacao = dayEvents.some((e: any) => e.event_type === 'COMPENSACAO' && e.status === 'ATIVO');
 
             // Determine folga for this day
             const getWeekMonday = (date: Date): string => {
@@ -293,6 +328,14 @@ export default function BancoHoras() {
             const ws = getWeekMonday(dt);
             const override = swapOverrides[collab.id]?.[ws];
             let isFolga = defaultFolgas.includes(wd);
+            // sunday_n logic (same as Espelho)
+            if (!isFolga && collab.sunday_n > 0 && dt.getDay() === 0) {
+              let sundayCount = 0;
+              for (let day = 1; day <= d; day++) {
+                if (new Date(year, monthIdx, day).getDay() === 0) sundayCount++;
+              }
+              if (sundayCount === collab.sunday_n) isFolga = true;
+            }
             if (override) {
               if (override.removeDays.includes(wd)) isFolga = false;
               if (override.addDays.some(ad => ad?.toLowerCase() === wd)) isFolga = true;
@@ -310,8 +353,9 @@ export default function BancoHoras() {
 
             const emptyPunch = { entrada: null, saida: null, saidaInt: null, retornoInt: null };
 
-            if (isFolgaBH || isVacation || isAfastamento) {
-              dayInfos.push({ date: iso, isFolga: true, isFuture: false, isVacation, isAfastamento, isHoliday, hoursWorkedMin: null, punch: emptyPunch });
+            // Mark as folga if: folgaBH, vacation, afastamento, atestado, compensacao
+            if (isFolgaBH || isVacation || isAfastamento || isAtestado || isCompensacao) {
+              dayInfos.push({ date: iso, isFolga: true, isFuture: false, isVacation, isAfastamento: isAfastamento || isAtestado, isHoliday, hoursWorkedMin: null, punch: emptyPunch });
               continue;
             }
 
@@ -320,24 +364,42 @@ export default function BancoHoras() {
               continue;
             }
 
-            // Calculate hours worked
-            let hoursWorkedMin: number | null = null;
-            const p = punch;
-            if (p?.entrada && p?.saida) {
-              const toMin = (t: string) => { const [hh, mm] = t.split(':').map(Number); return hh * 60 + mm; };
-              const entradaMin = toMin(p.entrada);
-              const saidaMin = toMin(p.saida);
-              let worked = saidaMin - entradaMin;
+            // ── Auto-interval inference (same as Espelho) ──
+            let entrada = punch?.entrada ?? null;
+            let saida = punch?.saida ?? null;
+            let saidaInt = punch?.saida_intervalo ?? null;
+            let retornoInt = punch?.retorno_intervalo ?? null;
 
-              if (p.saida_intervalo && p.retorno_intervalo) {
-                const intSaida = toMin(p.saida_intervalo);
-                const intRetorno = toMin(p.retorno_intervalo);
-                worked -= (intRetorno - intSaida);
-              } else if (collab.intervalo_automatico && collab.intervalo_duracao) {
-                worked -= collab.intervalo_duracao;
+            if (collab.intervalo_automatico && collab.intervalo_inicio && collab.intervalo_duracao) {
+              const filledPunches = [entrada, saidaInt, retornoInt, saida].filter(Boolean) as string[];
+              if (filledPunches.length === 2) {
+                const osk = (t: string) => { const h = parseInt(t.split(':')[0]); return h < 3 ? parseInt(t.replace(':', '')) + 2400 : parseInt(t.replace(':', '')); };
+                const sorted = [...filledPunches].sort((a, b) => osk(a) - osk(b));
+                entrada = sorted[0]; saida = sorted[1];
+                const intKey = osk(collab.intervalo_inicio!); const entKey = osk(entrada); const saiKey = osk(saida);
+                if (intKey > entKey && intKey < saiKey) {
+                  saidaInt = collab.intervalo_inicio!;
+                  const [ih, im] = collab.intervalo_inicio!.split(':').map(Number);
+                  const totalMin = ih * 60 + im + collab.intervalo_duracao!;
+                  retornoInt = `${String(Math.floor(totalMin / 60) % 24).padStart(2, '0')}:${String(totalMin % 60).padStart(2, '0')}`;
+                }
               }
+            }
 
-              hoursWorkedMin = Math.max(0, worked);
+            // Calculate hours (same as Espelho — with overnight handling)
+            const hoursWorkedMin = calcHoursSync(entrada, saida, saidaInt, retornoInt);
+
+            // Per-day CH override (jornadas_especiais + aviso_previo)
+            let chForDay = defaultChMin ?? 420;
+            if (jornadas && jornadas.length > 0) {
+              const especial = jornadas.find((je: any) => je.dias?.includes(wdNorm));
+              if (especial && especial.ch) {
+                const [eh, em] = especial.ch.split(':').map(Number);
+                chForDay = eh * 60 + (em || 0);
+              }
+            }
+            if (avisoReducao > 0) {
+              chForDay = Math.max(0, chForDay - avisoReducao);
             }
 
             dayInfos.push({
@@ -348,14 +410,14 @@ export default function BancoHoras() {
               isAfastamento: false,
               isHoliday,
               hoursWorkedMin,
-              punch: { entrada: p?.entrada ?? null, saida: p?.saida ?? null, saidaInt: p?.saida_intervalo ?? null, retornoInt: p?.retorno_intervalo ?? null },
-              chOverride: chOverrideMin ?? undefined,
+              punch: { entrada, saida, saidaInt, retornoInt },
+              chOverride: chForDay,
             });
           }
 
           if (dayInfos.length === 0) continue;
 
-          const result = calculateJornada(dayInfos, chOverrideMin ?? undefined);
+          const result = calculateJornada(dayInfos, defaultChMin ?? 420, collab.genero ?? 'M');
           const saldoBH = result.totals.saldoBH;
 
           // Delete existing auto_espelho for this month and insert new
