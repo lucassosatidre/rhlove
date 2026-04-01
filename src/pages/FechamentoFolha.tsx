@@ -464,8 +464,8 @@ export default function FechamentoFolha() {
       ];
 
       // Styles
-      const headerFill: ExcelJS.FillPattern = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F4F4F' } };
-      const headerFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: 'FFFFFFFF' }, size: 10, name: 'Arial' };
+      const headerFill: ExcelJS.FillPattern = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC0C0C0' } };
+      const headerFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: 'FF000000' }, size: 10, name: 'Arial' };
       const titleFont: Partial<ExcelJS.Font> = { bold: true, size: 12, name: 'Arial' };
       const labelFont: Partial<ExcelJS.Font> = { bold: true, size: 10, name: 'Arial' };
       const normalFont: Partial<ExcelJS.Font> = { size: 10, name: 'Arial' };
