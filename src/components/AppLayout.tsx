@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { to: '/afastamentos', label: 'Afastamentos', icon: UserMinus, roles: ['admin', 'gestor'] },
   
   { to: '/espelho-ponto', label: 'Espelho de Ponto', icon: ClipboardList, roles: ['admin', 'gestor'] },
+  { to: '/fechamento-folha', label: 'Fechamento Folha', icon: FileSpreadsheet, roles: ['admin', 'gestor'] },
   { to: '/checkout', label: 'Checkout', icon: Mic, roles: ['admin', 'gestor', 'lider'] },
   { to: '/demandas', label: 'Demandas', icon: ClipboardCheck, roles: ['admin', 'gestor', 'lider', 'visualizador'], badge: true },
   { to: '/usuarios', label: 'Usuários', icon: Shield, roles: ['admin'] },
