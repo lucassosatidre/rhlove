@@ -100,6 +100,7 @@ function AppRoutes() {
         <Route path="/usuarios" element={<ProtectedRoute allowedRoles={['admin']}><GerenciarUsuarios /></ProtectedRoute>} />
         <Route path="/registro-ponto" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><RegistroPonto /></ProtectedRoute>} />
         <Route path="/espelho-ponto" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><EspelhoPonto /></ProtectedRoute>} />
+        <Route path="/banco-horas" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><BancoHoras /></ProtectedRoute>} />
         <Route path="/fechamento-folha" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><FechamentoFolha /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute allowedRoles={['admin', 'gestor', 'lider']}><CheckoutPage /></ProtectedRoute>} />
         <Route path="/demandas" element={<ProtectedRoute><Demandas /></ProtectedRoute>} />

@@ -55,6 +55,7 @@ const GROUPS: NavGroup[] = [
     icon: Clock,
     items: [
       { to: '/espelho-ponto', label: 'Espelho de Ponto', icon: ClipboardList, roles: ['admin', 'gestor'] },
+      { to: '/banco-horas', label: 'Banco de Horas', icon: Landmark, roles: ['admin', 'gestor'] },
       { to: '/checkout', label: 'Checkout', icon: Mic, roles: ['admin', 'gestor', 'lider'] },
     ],
   },
