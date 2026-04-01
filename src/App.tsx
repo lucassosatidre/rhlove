@@ -42,16 +42,8 @@ function ProtectedRoute({ children, allowedRoles }: { children: ReactNode; allow
     );
   }
 
-  if (!session) {
+  if (!session || !usuario) {
     return <Navigate to="/login" replace />;
-  }
-
-  if (!usuario) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
   }
 
   if (allowedRoles && !allowedRoles.includes(usuario.perfil)) {
