@@ -57,6 +57,7 @@ function EscalaInner() {
   const { data: scheduledVacations = [] } = useScheduledVacations();
   const { data: afastamentos = [] } = useAfastamentos();
   const { data: holidays = [] } = useHolidays();
+  const { data: punchRecords = [] } = usePunchRecords(month, year);
 
   // Helper: get upcoming holiday warnings for a week start date (within 21 days)
   const getHolidayWarnings = (weekStartDate: Date) => {
