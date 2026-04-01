@@ -683,7 +683,8 @@ function EscalaInner() {
                           }
                           const scheduled = getPresentScheduledCount(d.date, sector);
                           const frees = getTotalFrees(dateKey, sector);
-                          const total = scheduled + frees;
+                          const faltas = getPunchFaltaCount(d.date, sector);
+                          const total = scheduled + frees - faltas;
                           const { vendas } = getSectorSales(sale, sector);
                           const tmp = total > 0 ? vendas / total : 0;
                           return (
