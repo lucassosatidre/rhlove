@@ -41,7 +41,7 @@ interface PunchDay {
   retornoInt: string | null;
 }
 
-interface DayInfo {
+export interface DayInfo {
   date: string;
   isFolga: boolean;
   isVacation: boolean;
