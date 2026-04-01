@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Download, Calendar, AlertTriangle, Pencil, Wrench, Banknote, RefreshCw } from 'lucide-react';
+import { INTEGRATION_START_DATE } from '@/lib/constants';
 import { InlineTimeCell } from '@/components/ponto/InlineTimeCell';
 import { format, getDaysInMonth, getDay, parse } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
