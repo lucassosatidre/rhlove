@@ -308,13 +308,15 @@ export default function BancoHoras() {
               a.collaborator_id === collab.id && iso >= a.data_inicio && iso <= a.data_fim
             );
 
+            const emptyPunch = { entrada: null, saida: null, saidaInt: null, retornoInt: null };
+
             if (isFolgaBH || isVacation || isAfastamento) {
-              dayInfos.push({ isFolga: true, isVacation, isAfastamento, isHoliday, hoursWorkedMin: null, punch: {}, chOverride: null });
+              dayInfos.push({ date: iso, isFolga: true, isFuture: false, isVacation, isAfastamento, isHoliday, hoursWorkedMin: null, punch: emptyPunch });
               continue;
             }
 
             if (isFolga) {
-              dayInfos.push({ isFolga: true, isVacation: false, isAfastamento: false, isHoliday, hoursWorkedMin: null, punch: {}, chOverride: null });
+              dayInfos.push({ date: iso, isFolga: true, isFuture: false, isVacation: false, isAfastamento: false, isHoliday, hoursWorkedMin: null, punch: emptyPunch });
               continue;
             }
 
