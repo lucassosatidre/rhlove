@@ -474,6 +474,12 @@ export default function FechamentoFolha() {
         top: { style: 'thin' }, bottom: { style: 'thin' },
         left: { style: 'thin' }, right: { style: 'thin' },
       };
+      const headerTopBorder: Partial<ExcelJS.Borders> = {
+        top: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' },
+      };
+      const headerBottomBorder: Partial<ExcelJS.Borders> = {
+        bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' },
+      };
       const NUM_FMT = '#,##0.00';
       const CODE_FMT = '0000';
 
