@@ -9,16 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Users, TrendingUp, TrendingDown, AlertTriangle, Plus, ArrowUpDown, Download, Pencil, Gift, RefreshCw, Scale } from 'lucide-react';
 import { useCollaborators } from '@/hooks/useCollaborators';
-import { usePunchRecords } from '@/hooks/usePunchRecords';
-import { useScheduleEvents } from '@/hooks/useScheduleEvents';
-import { useScheduledVacations } from '@/hooks/useScheduledVacations';
-import { useAfastamentos } from '@/hooks/useAfastamentos';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   useBHTransactions,
