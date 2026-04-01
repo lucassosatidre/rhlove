@@ -428,6 +428,7 @@ export default function EspelhoPonto() {
     for (const collab of targetCollabs) {
       const collabRows = buildCollabRows(collab);
       for (const row of collabRows) {
+        // Include rows with punches, inconsistencies, OR confirmed faltas
         if (row.entrada || row.saida || row.saidaInt || row.retornoInt || row.tags.length > 0) {
           rows.push(row);
         }
