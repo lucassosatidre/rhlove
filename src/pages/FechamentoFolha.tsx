@@ -902,7 +902,7 @@ export default function FechamentoFolha() {
       {step === 'review' && (
         <>
           {/* Summary cards */}
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-6 gap-3">
             <Card><CardContent className="p-3">
               <p className="text-[10px] text-muted-foreground">Colaboradores</p>
               <p className="text-lg font-bold tabular-nums">{processedData.length}</p>
