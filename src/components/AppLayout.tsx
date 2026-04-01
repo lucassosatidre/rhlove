@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, UserMinus, Fingerprint, Mic, ClipboardList, ClipboardCheck, Bus, Percent } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useOpenDemandsCount } from '@/hooks/useDemands';
 import rhLoveIcon from '@/assets/rh-love-icon.png';
 import clienteIcon from '@/assets/cliente-estrela-icon.png';
@@ -90,12 +91,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           <div className="h-px bg-gradient-to-r from-sidebar-primary/40 via-sidebar-primary/20 to-transparent" />
         </div>
 
-        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
-          {visibleItems.map(item => {
-            const active = location.pathname === item.to;
-            return renderNavItem(item, active);
-          })}
-        </nav>
+        <ScrollArea className="flex-1 min-h-0">
+          <nav className="px-3 space-y-0.5 pb-3">
+            {visibleItems.map(item => {
+              const active = location.pathname === item.to;
+              return renderNavItem(item, active);
+            })}
+          </nav>
+        </ScrollArea>
 
         {/* User info + developer credit */}
         <div className="p-4 border-t border-sidebar-border space-y-3">
