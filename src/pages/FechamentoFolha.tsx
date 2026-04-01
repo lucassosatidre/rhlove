@@ -948,15 +948,15 @@ export default function FechamentoFolha() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8">Colaborador</TableHead>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8">Setor</TableHead>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8 text-center">Gên.</TableHead>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8 text-center">E.100</TableHead>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8 text-center">N.100</TableHead>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8 text-center">A.Not</TableHead>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8 text-center">Bônus 10%</TableHead>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8 text-center">VT</TableHead>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8">Avisos</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8">Colaborador</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8">Setor</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8 text-center">Gên.</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8 text-center">E.100</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8 text-center">N.100</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8 text-center">A.Not</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8 text-center">Bônus 10%</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8 text-center">VT</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8">Avisos</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
