@@ -99,3 +99,42 @@ export function useUpsertBonus10Monthly() {
     },
   });
 }
+
+export interface Bonus10Config {
+  id: string;
+  month: number;
+  year: number;
+  receita_taxa_servico: number;
+  created_by: string | null;
+}
+
+export function useBonus10Config(month: number, year: number) {
+  return useQuery({
+    queryKey: ['bonus_10_config', month, year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('bonus_10_config' as any)
+        .select('*')
+        .eq('month', month)
+        .eq('year', year)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as unknown as Bonus10Config | null;
+    },
+  });
+}
+
+export function useUpsertBonus10Config() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (row: { month: number; year: number; receita_taxa_servico: number; created_by: string | null }) => {
+      const { error } = await supabase
+        .from('bonus_10_config' as any)
+        .upsert(row as any, { onConflict: 'month,year' });
+      if (error) throw error;
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['bonus_10_config', vars.month, vars.year] });
+    },
+  });
+}
