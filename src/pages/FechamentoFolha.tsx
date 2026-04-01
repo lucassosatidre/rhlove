@@ -183,12 +183,14 @@ export default function FechamentoFolha() {
           const row = rows[i];
           if (!row) continue;
           const colA = String(row[0] ?? '').trim();
-          if (colA.toUpperCase() === 'TOTAL' || colA === '') {
-            if (colA.toUpperCase() === 'TOTAL') break;
-            continue;
-          }
+          if (colA.toUpperCase() === 'TOTAL') break;
+          // Only consider rows where column A is "11"
+          if (colA !== '11') continue;
           const colC = String(row[2] ?? '').trim();
           if (!colC) continue;
+          // Skip header-like values in column C
+          const colCUpper = colC.toUpperCase().trim();
+          if (colCUpper === 'COLABORADORES' || colCUpper === 'NOME DOS' || colCUpper.startsWith('COLABORADORES')) continue;
           matched.push({
             sheetName: colC,
             sheetRow: i,
