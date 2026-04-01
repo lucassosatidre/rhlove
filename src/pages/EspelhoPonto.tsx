@@ -83,7 +83,7 @@ type InconsistencyTag = 'batida_pendente' | 'falta' | 'sem_intervalo' | 'incompl
 
 const TAG_CONFIG: Record<InconsistencyTag, { label: string; emoji: string; className: string; isInconsistency: boolean }> = {
   batida_pendente: { label: 'Batida pendente', emoji: '🔴', className: 'bg-red-100 text-red-700 border-red-200', isInconsistency: true },
-  falta: { label: 'Falta', emoji: '❌', className: 'bg-gray-200 text-gray-700 border-gray-300', isInconsistency: false },
+  falta: { label: 'Falta', emoji: '❌', className: 'bg-muted text-muted-foreground border-border', isInconsistency: false },
   jornada_curta: { label: 'Jornada < 2h', emoji: '🟡', className: 'bg-yellow-100 text-yellow-700 border-yellow-200', isInconsistency: true },
   jornada_longa: { label: 'Jornada > 14h', emoji: '🟠', className: 'bg-orange-100 text-orange-700 border-orange-200', isInconsistency: true },
   sem_intervalo: { label: 'Sem intervalo', emoji: '🟡', className: 'bg-yellow-100 text-yellow-700 border-yellow-200', isInconsistency: true },
@@ -626,7 +626,7 @@ export default function EspelhoPonto() {
       );
     }
     if (row.status.includes('Férias')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-emerald-100 text-emerald-700 border border-emerald-200">🌴 Férias</span>;
-    if (row.status.includes('Afastado')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-gray-100 text-gray-600 border border-gray-200">📋 Ajuste</span>;
+    if (row.status.includes('Afastado')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-muted/60 text-muted-foreground border border-border">📋 Ajuste</span>;
     if (row.status.includes('Feriado')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-700 border border-amber-200">🎉 Feriado</span>;
     if (row.status.includes('Compensação')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-700 border border-amber-200">🎉 Compensação</span>;
     if (row.status === '—') return <span className="text-[10px] text-muted-foreground">—</span>;
@@ -805,7 +805,7 @@ export default function EspelhoPonto() {
                       <TableHead colSpan={2} className="sticky top-0 z-20 bg-foreground/80 text-background text-center text-[10px] font-semibold border-l-2 border-l-foreground/40 h-6 py-0">Extras</TableHead>
                       <TableHead colSpan={2} className="sticky top-0 z-20 bg-foreground/80 text-background text-center text-[10px] font-semibold border-l-2 border-l-foreground/40 h-6 py-0">Noturno</TableHead>
                       <TableHead colSpan={1} className="sticky top-0 z-20 bg-foreground/80 text-background text-center text-[10px] font-semibold border-l-2 border-l-foreground/40 h-6 py-0">BH</TableHead>
-                      {canEdit && <TableHead className="sticky top-0 z-20 bg-gray-700 h-6 py-0"></TableHead>}
+                      {canEdit && <TableHead className="sticky top-0 z-20 bg-foreground/80 h-6 py-0"></TableHead>}
                     </TableRow>
                   )}
                   <TableRow>
