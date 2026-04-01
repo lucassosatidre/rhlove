@@ -173,7 +173,8 @@ export function calculateJornada(
     if (day.hoursWorkedMin === null || day.hoursWorkedMin === 0) {
       if (!day.punch.entrada) {
         row.faltas = dayCH;
-        row.saldoBH = -dayCH;
+        // Full-day absence does NOT impact BH — company rule
+        row.saldoBH = 0;
       }
       jornadaRows.push(row);
       continue;
