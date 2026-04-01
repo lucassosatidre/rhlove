@@ -557,7 +557,8 @@ function EscalaInner() {
                         const hasTroca = collabEvents.some(e => e.event_type === 'TROCA_FOLGA' || e.event_type === 'MUDANCA_FOLGA' || e.event_type === 'TROCA_DOMINGO');
 
                         // Check confirmed absence from punch records
-                        const isPunchFalta = collab && collab.controla_ponto && lastPunchDate && dateKey >= INTEGRATION_START_DATE && dateKey <= lastPunchDate && !punchSet.has(`${collab.id}|${dateKey}`) && !hasFalta && !hasAtestado && !hasCompensacao;
+                        const isFolgaBH = collab && folgaBHSet.has(`${collab.id}|${dateKey}`);
+                        const isPunchFalta = collab && collab.controla_ponto && lastPunchDate && dateKey >= INTEGRATION_START_DATE && dateKey <= lastPunchDate && !punchSet.has(`${collab.id}|${dateKey}`) && !hasFalta && !hasAtestado && !hasCompensacao && !isFolgaBH;
 
                         const cellClasses = [
                           'border border-border px-2 text-left',
@@ -568,6 +569,7 @@ function EscalaInner() {
                           hasAtestado ? 'bg-blue-50 dark:bg-blue-950/30' : '',
                           hasCompensacao ? 'bg-green-50 dark:bg-green-950/30' : '',
                           hasTroca ? 'bg-orange-50 dark:bg-orange-950/30' : '',
+                          isFolgaBH ? 'bg-purple-50 dark:bg-purple-950/30' : '',
                         ].filter(Boolean).join(' ');
 
                         if (!rawName) {
@@ -585,6 +587,7 @@ function EscalaInner() {
                             {alertSuffix && <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 shrink-0 border-amber-500 text-amber-700 dark:text-amber-400 whitespace-nowrap">{alertSuffix}</Badge>}
                             {hasFalta && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4 shrink-0">faltou</Badge>}
                             {isPunchFalta && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4 shrink-0">FALTA</Badge>}
+                            {isFolgaBH && <Badge className="text-[9px] px-1 py-0 h-4 shrink-0 bg-purple-500 text-white">FOLGA BH</Badge>}
                             {hasAtestado && <Badge className="text-[9px] px-1 py-0 h-4 shrink-0 bg-blue-500 text-white">atestado</Badge>}
                             {hasCompensacao && <Badge className="text-[9px] px-1 py-0 h-4 shrink-0 bg-green-600 text-white">compensação</Badge>}
                             {hasTroca && <Badge className="text-[9px] px-1 py-0 h-4 shrink-0 bg-orange-500 text-white">ajuste</Badge>}
