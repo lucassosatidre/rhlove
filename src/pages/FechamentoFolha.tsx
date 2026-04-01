@@ -484,16 +484,17 @@ export default function FechamentoFolha() {
       titleCell.alignment = { horizontal: 'center' };
 
       // Rows 3-6: Company info
-      ws.getCell('A3').value = 'Codigo Empresa:'; ws.getCell('A3').font = labelFont;
+      const silverFill: ExcelJS.FillPattern = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC0C0C0' } };
+      ws.getCell('A3').value = 'Codigo Empresa:'; ws.getCell('A3').font = labelFont; ws.getCell('A3').fill = silverFill;
       ws.getCell('C3').value = '582'; ws.getCell('C3').font = normalFont;
-      ws.getCell('A4').value = 'Razão Social:'; ws.getCell('A4').font = labelFont;
+      ws.getCell('A4').value = 'Razão Social:'; ws.getCell('A4').font = labelFont; ws.getCell('A4').fill = silverFill;
       ws.getCell('C4').value = 'PROPOSITO SOLUCOES LTDA'; ws.getCell('C4').font = normalFont;
-      ws.getCell('A5').value = 'Inscrição Cnpj:'; ws.getCell('A5').font = labelFont;
+      ws.getCell('A5').value = 'Inscrição Cnpj:'; ws.getCell('A5').font = labelFont; ws.getCell('A5').fill = silverFill;
       ws.getCell('C5').value = '58.483.608/0001-02'; ws.getCell('C5').font = normalFont;
-      ws.getCell('A6').value = 'Competencia:'; ws.getCell('A6').font = labelFont;
+      ws.getCell('A6').value = 'Competencia:'; ws.getCell('A6').font = labelFont; ws.getCell('A6').fill = silverFill;
       const compCell = ws.getCell('C6');
       compCell.value = new Date(selectedYear, selectedMonth, 1);
-      compCell.numFmt = 'YYYY-MM-DD';
+      compCell.numFmt = 'MM/YYYY';
       compCell.font = normalFont;
 
       // Row 9: Header group names
