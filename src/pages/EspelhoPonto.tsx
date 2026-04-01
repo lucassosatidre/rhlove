@@ -254,7 +254,7 @@ export default function EspelhoPonto() {
   };
 
   // Build day rows for a specific collaborator
-  const buildCollabRows = useCallback((collab: Collaborator, _lastPunchDate: string | null = lastPunchUpdateDate) => {
+  const buildCollabRows = useCallback((collab: Collaborator) => {
     const collabPunches = punchRecords.filter(p => p.collaborator_id === collab.id);
     const punchMap = new Map<string, typeof punchRecords[0]>();
     collabPunches.forEach(p => punchMap.set(p.date, p));
