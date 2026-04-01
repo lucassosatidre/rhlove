@@ -464,6 +464,7 @@ function EscalaInner() {
       const collab = collaborators.find(c => c.id === id);
       if (!collab || !collab.controla_ponto) continue;
       if (punchSet.has(`${id}|${dateKey}`)) continue;
+      if (folgaBHSet.has(`${id}|${dateKey}`)) continue;
       // Check schedule events for this collaborator on this date
       const collabEvents = eventsMap[dateKey]?.[id] || [];
       const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
