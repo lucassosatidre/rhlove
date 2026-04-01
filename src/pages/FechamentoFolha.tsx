@@ -527,7 +527,7 @@ export default function FechamentoFolha() {
         cell.value = h;
         cell.font = headerFont;
         cell.fill = silverFill;
-        cell.border = thinBorder;
+        cell.border = headerTopBorder;
         // Col C and cols 9(Prêmio),11(Gorjetas),14(Assiduidade) use vertical middle; rest use bottom
         const colNum = i + 1;
         const useMiddle = colNum === 3 || colNum === 9 || colNum === 11 || colNum === 14;
