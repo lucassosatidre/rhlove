@@ -157,6 +157,19 @@ export default function EspelhoPonto() {
   const { data: vacations = [] } = useScheduledVacations();
   const { data: afastamentos = [] } = useAfastamentos();
   const { data: holidays = [] } = useHolidays();
+  const { data: avisosPrevios = [] } = useAvisosPrevios();
+
+  // Lookup: collaborator_id → data_fim do aviso prévio (use earliest active/concluded)
+  const avisosLookup = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const a of avisosPrevios) {
+      const existing = map.get(a.collaborator_id);
+      if (!existing || a.data_fim < existing) {
+        map.set(a.collaborator_id, a.data_fim);
+      }
+    }
+    return map;
+  }, [avisosPrevios]);
 
   useEffect(() => {
     const channel = supabase
