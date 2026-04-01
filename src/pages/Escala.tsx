@@ -8,6 +8,7 @@ import { useAfastamentos } from '@/hooks/useAfastamentos';
 import { useScheduleEvents, buildEventsMap, buildSwapOverrides, type ScheduleEvent } from '@/hooks/useScheduleEvents';
 import { useHolidays } from '@/hooks/useHolidayCompensations';
 import { usePunchRecords } from '@/hooks/usePunchRecords';
+import { INTEGRATION_START_DATE } from '@/lib/constants';
 import { generateSchedule, getMonthLabel, getFirstMondayOfMonthGrid, getWeekCount, getScheduledCollaboratorIdsBySectorOnDate, type ScheduleWeek } from '@/lib/scheduleEngine';
 import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { DraftModeProvider, useDraftMode, type DraftSalesEntry } from '@/contexts/DraftModeContext';
@@ -509,7 +510,7 @@ function EscalaInner() {
                         const hasTroca = collabEvents.some(e => e.event_type === 'TROCA_FOLGA' || e.event_type === 'MUDANCA_FOLGA' || e.event_type === 'TROCA_DOMINGO');
 
                         // Check confirmed absence from punch records
-                        const isPunchFalta = collab && collab.controla_ponto && lastPunchDate && dateKey <= lastPunchDate && !punchSet.has(`${collab.id}|${dateKey}`) && !hasFalta && !hasAtestado;
+                        const isPunchFalta = collab && collab.controla_ponto && lastPunchDate && dateKey >= INTEGRATION_START_DATE && dateKey <= lastPunchDate && !punchSet.has(`${collab.id}|${dateKey}`) && !hasFalta && !hasAtestado;
 
                         const cellClasses = [
                           'border border-border px-2 text-left',
