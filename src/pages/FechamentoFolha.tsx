@@ -578,18 +578,19 @@ export default function FechamentoFolha() {
         rowIndex++;
       }
 
-      // Total row
+      // Total row with silver fill
       const totalRow = ws.getRow(rowIndex);
       const totalCellA = totalRow.getCell(1);
-      totalCellA.value = 'TOTAL'; totalCellA.font = labelFont; totalCellA.border = thinBorder; totalCellA.alignment = { horizontal: 'center' };
+      totalCellA.value = 'TOTAL'; totalCellA.font = labelFont; totalCellA.border = thinBorder; totalCellA.alignment = { horizontal: 'center' }; totalCellA.fill = headerFill;
       const totalCellB = totalRow.getCell(2);
-      totalCellB.value = templateRows.length; totalCellB.font = labelFont; totalCellB.border = thinBorder; totalCellB.alignment = { horizontal: 'center' };
+      totalCellB.value = templateRows.length; totalCellB.font = labelFont; totalCellB.border = thinBorder; totalCellB.alignment = { horizontal: 'center' }; totalCellB.fill = headerFill;
       const totalCellC = totalRow.getCell(3);
-      totalCellC.value = 'Colaboradores'; totalCellC.font = labelFont; totalCellC.border = thinBorder;
+      totalCellC.value = 'Colaboradores'; totalCellC.font = labelFont; totalCellC.border = thinBorder; totalCellC.fill = headerFill;
       for (let col = 4; col <= 15; col++) {
         const cell = totalRow.getCell(col);
         cell.border = thinBorder;
         cell.numFmt = NUM_FMT;
+        cell.fill = headerFill;
       }
 
       // Generate and download
