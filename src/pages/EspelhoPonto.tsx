@@ -79,14 +79,15 @@ function useHolidays() {
 }
 
 // ── Inconsistency types ──
-type InconsistencyTag = 'batida_pendente' | 'sem_intervalo' | 'incompleta' | 'jornada_longa' | 'jornada_curta';
+type InconsistencyTag = 'batida_pendente' | 'falta' | 'sem_intervalo' | 'incompleta' | 'jornada_longa' | 'jornada_curta';
 
-const TAG_CONFIG: Record<InconsistencyTag, { label: string; emoji: string; className: string }> = {
-  batida_pendente: { label: 'Batida pendente', emoji: '🔴', className: 'bg-red-100 text-red-700 border-red-200' },
-  jornada_curta: { label: 'Jornada < 2h', emoji: '🟡', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-  jornada_longa: { label: 'Jornada > 14h', emoji: '🟠', className: 'bg-orange-100 text-orange-700 border-orange-200' },
-  sem_intervalo: { label: 'Sem intervalo', emoji: '🟡', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-  incompleta: { label: 'Incompleta', emoji: '🔴', className: 'bg-red-100 text-red-700 border-red-200' },
+const TAG_CONFIG: Record<InconsistencyTag, { label: string; emoji: string; className: string; isInconsistency: boolean }> = {
+  batida_pendente: { label: 'Batida pendente', emoji: '🔴', className: 'bg-red-100 text-red-700 border-red-200', isInconsistency: true },
+  falta: { label: 'Falta', emoji: '❌', className: 'bg-gray-200 text-gray-700 border-gray-300', isInconsistency: false },
+  jornada_curta: { label: 'Jornada < 2h', emoji: '🟡', className: 'bg-yellow-100 text-yellow-700 border-yellow-200', isInconsistency: true },
+  jornada_longa: { label: 'Jornada > 14h', emoji: '🟠', className: 'bg-orange-100 text-orange-700 border-orange-200', isInconsistency: true },
+  sem_intervalo: { label: 'Sem intervalo', emoji: '🟡', className: 'bg-yellow-100 text-yellow-700 border-yellow-200', isInconsistency: true },
+  incompleta: { label: 'Incompleta', emoji: '🔴', className: 'bg-red-100 text-red-700 border-red-200', isInconsistency: true },
 };
 
 function detectTags(entrada: string | null, saida: string | null, saidaInt: string | null, retornoInt: string | null): InconsistencyTag[] {
@@ -230,6 +231,15 @@ export default function EspelhoPonto() {
     return list;
   }, [activeCollabs, searchName, sectorFilter]);
 
+  // Determine the last date with actual punch data (entrada filled)
+  const lastPunchUpdateDate = useMemo(() => {
+    let maxDate = '';
+    for (const p of punchRecords) {
+      if (p.entrada && p.date > maxDate) maxDate = p.date;
+    }
+    return maxDate || null;
+  }, [punchRecords]);
+
   const daysInMonth = getDaysInMonth(new Date(selectedYear, selectedMonth));
   const holidaySet = useMemo(() => new Set(holidays.map(h => h.date)), [holidays]);
   const swapOverrides = useMemo(() => buildSwapOverrides(scheduleEvents), [scheduleEvents]);
@@ -330,8 +340,18 @@ export default function EspelhoPonto() {
       let tags: InconsistencyTag[] = [];
       if (!isFuture && !isFolga && !isVacation && !(isAfastamento || isAtestado) && !isCompensacao) {
         tags = detectTags(entrada, saida, saidaInt, retornoInt);
-        // Falta is also an inconsistency
-        if (status === '❌ Falta') tags = ['batida_pendente'];
+        // Day without any punches on a working day
+        if (!entrada && !saida && !saidaInt && !retornoInt && status.includes('Falta')) {
+          // If day <= lastPunchUpdateDate → confirmed absence (not inconsistency)
+          // If day > lastPunchUpdateDate → pending punch (inconsistency)
+          if (lastPunchUpdateDate && iso <= lastPunchUpdateDate) {
+            tags = ['falta'];
+            status = '❌ Falta';
+          } else {
+            tags = ['batida_pendente'];
+            status = '🔴 Batida pendente';
+          }
+        }
       }
 
       const isAdjusted = punch ? !!(punch as any).adjusted_at : false;
@@ -342,7 +362,7 @@ export default function EspelhoPonto() {
       });
     }
     return result;
-  }, [daysInMonth, selectedMonth, selectedYear, punchRecords, swapOverrides, eventsMap, vacations, afastamentos, holidaySet, avisosLookup]);
+  }, [daysInMonth, selectedMonth, selectedYear, punchRecords, swapOverrides, eventsMap, vacations, afastamentos, holidaySet, avisosLookup, lastPunchUpdateDate]);
 
   // ── Single collaborator rows (with jornada) ──
   const singleCollabRows = useMemo(() => {
@@ -408,6 +428,7 @@ export default function EspelhoPonto() {
     for (const collab of targetCollabs) {
       const collabRows = buildCollabRows(collab);
       for (const row of collabRows) {
+        // Include rows with punches, inconsistencies, OR confirmed faltas
         if (row.entrada || row.saida || row.saidaInt || row.retornoInt || row.tags.length > 0) {
           rows.push(row);
         }
@@ -423,13 +444,13 @@ export default function EspelhoPonto() {
   // ── Unified display rows ──
   const displayRows = useMemo(() => {
     const source = selected ? singleCollabRowsWithJornada : allCollabRows;
-    if (onlyInconsistencies) return source.filter(r => r.tags.length > 0);
+    if (onlyInconsistencies) return source.filter(r => r.tags.some(t => TAG_CONFIG[t].isInconsistency));
     return source;
   }, [selected, singleCollabRowsWithJornada, allCollabRows, onlyInconsistencies]);
 
   const totalInconsistencies = useMemo(() => {
     const source = selected ? singleCollabRowsWithJornada : allCollabRows;
-    return source.filter(r => r.tags.length > 0).length;
+    return source.filter(r => r.tags.some(t => TAG_CONFIG[t].isInconsistency)).length;
   }, [selected, singleCollabRowsWithJornada, allCollabRows]);
 
   // Bank hours
@@ -685,7 +706,6 @@ export default function EspelhoPonto() {
             </CardContent></Card>
           </div>
 
-          {/* Month selector + actions */}
           <div className="flex items-center justify-between shrink-0 print:hidden">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -697,6 +717,11 @@ export default function EspelhoPonto() {
                 <SelectTrigger className="w-20 h-8 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
               </Select>
+              {lastPunchUpdateDate && (
+                <span className="text-[10px] text-muted-foreground bg-muted px-2 py-1 rounded">
+                  📋 Batidas até: {lastPunchUpdateDate.split('-').reverse().join('/')}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm"
@@ -818,13 +843,13 @@ export default function EspelhoPonto() {
                     </TableRow>
                   ) : displayRows.map((r, idx) => {
                     const j = r.jornada;
-                    const isWeekend = [0, 6].includes(getDay(r.dateObj));
                     const isExtra100 = !!(j?.extra100 && j.extra100 > 0);
-                    const hasInconsistency = r.tags.length > 0;
+                    const hasInconsistency = r.tags.some(t => TAG_CONFIG[t].isInconsistency);
+                    const isFaltaConfirmada = r.tags.includes('falta');
                     const saldo = j ? fmtSaldo(j.saldoBH) : { text: '', className: '' };
                     return (
                       <TableRow key={`${r.collaboratorId}-${r.date}`}
-                        className={`${isExtra100 ? 'bg-pink-50 dark:bg-pink-950/20' : hasInconsistency ? 'bg-destructive/5' : idx % 2 === 1 ? 'bg-gray-50/60 dark:bg-gray-900/20' : ''}`}>
+                        className={`${isExtra100 ? 'bg-pink-50 dark:bg-pink-950/20' : hasInconsistency ? 'bg-destructive/5' : isFaltaConfirmada ? 'bg-gray-100 dark:bg-gray-800/30' : idx % 2 === 1 ? 'bg-gray-50/60 dark:bg-gray-900/20' : ''}`}>
                         {!showJornada && (
                           <TableCell className="text-xs font-medium py-0.5 px-2">
                             <button onClick={() => { setSelectedCollaboratorId(r.collaboratorId); setOnlyInconsistencies(false); }}
