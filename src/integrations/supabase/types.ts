@@ -170,6 +170,106 @@ export type Database = {
           },
         ]
       }
+      bank_hours_folgas: {
+        Row: {
+          collaborator_id: string
+          created_at: string
+          created_by: string | null
+          folga_date: string
+          hours_debited: number
+          id: string
+          reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          collaborator_id: string
+          created_at?: string
+          created_by?: string | null
+          folga_date: string
+          hours_debited?: number
+          id?: string
+          reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          collaborator_id?: string
+          created_at?: string
+          created_by?: string | null
+          folga_date?: string
+          hours_debited?: number
+          id?: string
+          reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_hours_folgas_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_hours_transactions: {
+        Row: {
+          balance_after_minutes: number
+          collaborator_id: string
+          created_at: string
+          created_by: string | null
+          credit_minutes: number
+          debit_minutes: number
+          description: string | null
+          id: string
+          reference_month: number | null
+          reference_year: number | null
+          semester_start: string
+          transaction_date: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          balance_after_minutes?: number
+          collaborator_id: string
+          created_at?: string
+          created_by?: string | null
+          credit_minutes?: number
+          debit_minutes?: number
+          description?: string | null
+          id?: string
+          reference_month?: number | null
+          reference_year?: number | null
+          semester_start: string
+          transaction_date: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          balance_after_minutes?: number
+          collaborator_id?: string
+          created_at?: string
+          created_by?: string | null
+          credit_minutes?: number
+          debit_minutes?: number
+          description?: string | null
+          id?: string
+          reference_month?: number | null
+          reference_year?: number | null
+          semester_start?: string
+          transaction_date?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_hours_transactions_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bonus_10_config: {
         Row: {
           created_at: string
