@@ -148,7 +148,7 @@ export default function BancoHoras() {
         hours_debited: mins,
         reason: formReason,
         created_by: session?.user.id ?? null,
-        updated_at: new Date().toISOString(),
+        
       });
       await insertTx.mutateAsync({
         collaborator_id: formCollabId,
