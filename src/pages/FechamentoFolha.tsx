@@ -35,6 +35,8 @@ const WEEKDAY_MAP: Record<number, DayOfWeek> = {
 const NAME_ALIASES: Record<string, string[]> = {
   'DINHO': ['JOEDILSON'],
   'JOEDILSON': ['DINHO'],
+  'JHONNY': ['JOHNNY'],
+  'JOHNNY': ['JHONNY'],
 };
 
 function calcHours(entrada: string | null, saida: string | null, saidaInt: string | null, retornoInt: string | null): number | null {
