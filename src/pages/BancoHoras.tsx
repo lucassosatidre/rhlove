@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Users, TrendingUp, TrendingDown, AlertTriangle, Landmark, Plus, Calendar, ArrowUpDown, Download, RefreshCw, Pencil, Gift } from 'lucide-react';
+import { Users, TrendingUp, TrendingDown, AlertTriangle, Plus, ArrowUpDown, Download, Pencil, Gift } from 'lucide-react';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
