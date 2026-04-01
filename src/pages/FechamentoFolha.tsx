@@ -505,10 +505,6 @@ export default function FechamentoFolha() {
         const cellC = r.getCell(3);
         cellC.value = value; cellC.font = labelValueFont; cellC.alignment = { horizontal: 'left' }; cellC.border = thinBorder;
         if (numFmt) cellC.numFmt = numFmt;
-        // Apply borders to all remaining columns D-O
-        for (let col = 4; col <= 15; col++) {
-          r.getCell(col).border = thinBorder;
-        }
       });
 
       // Row 9: Header group names
