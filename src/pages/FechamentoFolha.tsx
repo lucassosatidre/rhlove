@@ -702,7 +702,7 @@ export default function FechamentoFolha() {
       if (m.collaborator) sheetNameMap.set(m.collaborator.id, m.sheetName);
     });
 
-    const faltas: { date: string; name: string }[] = [];
+    const faltas: { date: string; name: string; collaboratorId: string }[] = [];
 
     for (const p of processedData) {
       if (!p.collaboratorId) continue;
@@ -758,7 +758,7 @@ export default function FechamentoFolha() {
         // If no punch → falta
         if (!punchSet.has(`${collab.id}|${iso}`)) {
           const displayName = sheetNameMap.get(collab.id) || collab.collaborator_name;
-          faltas.push({ date: iso, name: displayName });
+          faltas.push({ date: iso, name: displayName, collaboratorId: collab.id });
         }
       }
     }
@@ -768,10 +768,113 @@ export default function FechamentoFolha() {
     return faltas;
   }, [processedData, punchRecords, matches, collaborators, daysInMonth, selectedMonth, selectedYear, swapOverrides, eventsMap, holidaySet, vacations, afastamentos]);
 
+  // DSR perdido calculation: group absences by collaborator + week
+  const WEEKDAY_LABELS: Record<string, string> = {
+    DOMINGO: 'domingo', SEGUNDA: 'segunda', TERCA: 'terça', QUARTA: 'quarta',
+    QUINTA: 'quinta', SEXTA: 'sexta', SABADO: 'sábado',
+  };
+
+  const faltasAgrupadas = useMemo(() => {
+    if (faltasDoMes.length === 0) return [];
+
+    // Group by collaborator
+    const byCollab = new Map<string, { name: string; collabId: string; dates: string[] }>();
+    for (const f of faltasDoMes) {
+      if (!byCollab.has(f.collaboratorId)) {
+        byCollab.set(f.collaboratorId, { name: f.name, collabId: f.collaboratorId, dates: [] });
+      }
+      byCollab.get(f.collaboratorId)!.dates.push(f.date);
+    }
+
+    // For each collaborator, compute DSR perdido
+    const result: { name: string; collabId: string; dates: string[]; dsrDates: { date: string; dayLabel: string }[] }[] = [];
+
+    for (const [collabId, entry] of byCollab) {
+      const collab = collaborators.find(c => c.id === collabId);
+      if (!collab) { result.push({ ...entry, dsrDates: [] }); continue; }
+
+      // Get weeks with absences (Monday-Sunday week)
+      const getWeekMonday = (isoDate: string) => {
+        const d = new Date(isoDate + 'T12:00:00');
+        const day = d.getDay();
+        const diff = day === 0 ? -6 : 1 - day;
+        d.setDate(d.getDate() + diff);
+        return format(d, 'yyyy-MM-dd');
+      };
+
+      const weeksWithFaltas = new Set(entry.dates.map(getWeekMonday));
+
+      // For each week with falta, find the DSR day (day off)
+      const dsrDates: { date: string; dayLabel: string }[] = [];
+
+      for (const weekMonday of weeksWithFaltas) {
+        const monday = new Date(weekMonday + 'T12:00:00');
+
+        // Find the actual day off for this week (considering swaps)
+        let folgaDay: string | null = null;
+        let folgaDate: string | null = null;
+
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(monday);
+          d.setDate(d.getDate() + i);
+          const iso = format(d, 'yyyy-MM-dd');
+          const wd = WEEKDAY_MAP[d.getDay()];
+
+          let isFolga = !!collab.folgas_semanais?.includes(wd);
+          if (!isFolga && collab.sunday_n > 0 && d.getDay() === 0) {
+            // Check nth Sunday
+            const dayOfMonth = d.getDate();
+            const m = d.getMonth();
+            const y = d.getFullYear();
+            let sundayCount = 0;
+            for (let dd = 1; dd <= dayOfMonth; dd++) {
+              if (new Date(y, m, dd).getDay() === 0) sundayCount++;
+            }
+            if (sundayCount === collab.sunday_n) isFolga = true;
+          }
+
+          // Check swap overrides
+          const override = swapOverrides.get(`${weekMonday}|${collab.id}`);
+          if (override) {
+            const wdLower = wd.toLowerCase();
+            if (override.removeDays.some((rd: any) => rd?.toLowerCase() === wdLower)) isFolga = false;
+            if (override.addDays.some((ad: any) => ad?.toLowerCase() === wdLower)) isFolga = true;
+          }
+
+          if (isFolga) {
+            folgaDay = wd;
+            folgaDate = iso;
+            break; // Take first folga day of the week
+          }
+        }
+
+        if (folgaDate && folgaDay) {
+          dsrDates.push({ date: folgaDate, dayLabel: WEEKDAY_LABELS[folgaDay] || folgaDay.toLowerCase() });
+        }
+      }
+
+      dsrDates.sort((a, b) => a.date.localeCompare(b.date));
+      result.push({ ...entry, dsrDates });
+    }
+
+    result.sort((a, b) => a.name.localeCompare(b.name));
+    return result;
+  }, [faltasDoMes, collaborators, swapOverrides]);
+
+  const totalDsrPerdidos = useMemo(() => faltasAgrupadas.reduce((sum, f) => sum + f.dsrDates.length, 0), [faltasAgrupadas]);
+
   const handleCopyFaltas = () => {
-    if (faltasDoMes.length === 0) return;
-    const text = faltasDoMes.map(f => `${format(parseISO(f.date), 'dd/MM/yyyy')} - ${f.name}`).join('\n');
-    navigator.clipboard.writeText(text);
+    if (faltasAgrupadas.length === 0) return;
+    const lines: string[] = [];
+    for (const entry of faltasAgrupadas) {
+      const dsrText = entry.dsrDates.length > 0
+        ? ` — DSR perdido: ${entry.dsrDates.map(d => `${format(parseISO(d.date), 'dd/MM')} (${d.dayLabel})`).join(', ')}`
+        : '';
+      lines.push(`${entry.name} — ${entry.dates.length} falta${entry.dates.length > 1 ? 's' : ''}${dsrText}`);
+      lines.push(`  Faltas: ${entry.dates.map(d => format(parseISO(d), 'dd/MM')).join(', ')}`);
+      lines.push('');
+    }
+    navigator.clipboard.writeText(lines.join('\n').trim());
     toast.success('Lista de faltas copiada!');
   };
 
