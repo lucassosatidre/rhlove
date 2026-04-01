@@ -8,6 +8,9 @@ import type { DayOffOverridesMap } from '@/lib/scheduleEngine';
 import { getScheduledCollaboratorIdsBySectorOnDate } from '@/lib/scheduleEngine';
 import type { AbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 
+/** Set of "collaboratorId|date" keys for punch-confirmed faltas */
+export type PunchFaltaSet = Set<string>;
+
 export interface ProductivityRow {
   date: string;
   sector: string;
