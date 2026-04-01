@@ -35,6 +35,8 @@ const WEEKDAY_MAP: Record<number, DayOfWeek> = {
 const NAME_ALIASES: Record<string, string[]> = {
   'DINHO': ['JOEDILSON'],
   'JOEDILSON': ['DINHO'],
+  'JHONNY': ['JOHNNY'],
+  'JOHNNY': ['JHONNY'],
 };
 
 function calcHours(entrada: string | null, saida: string | null, saidaInt: string | null, retornoInt: string | null): number | null {
@@ -132,36 +134,46 @@ export default function FechamentoFolha() {
   const holidaySet = useMemo(() => new Set(holidays.map(h => h.date)), [holidays]);
   const daysInMonth = getDaysInMonth(new Date(selectedYear, selectedMonth));
 
-  // Match sheet name to collaborator
-  const findCollaborator = useCallback((sheetName: string): Collaborator | null => {
-    const normalized = sheetName.trim().toUpperCase();
-    // Direct match
-    let found = activeCollabs.find(c => c.collaborator_name.toUpperCase() === normalized);
+  // Match sheet name to collaborator — improved with first-name priority and deduplication
+  const findCollaborator = useCallback((sheetName: string, alreadyMatchedIds: Set<string>): Collaborator | null => {
+    const normalized = sheetName.trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const available = activeCollabs.filter(c => !alreadyMatchedIds.has(c.id));
+    const norm = (s: string) => s.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    // 1st: Exact full name match
+    let found = available.find(c => norm(c.collaborator_name) === normalized);
     if (found) return found;
-    // Partial match (sheet name contains collab name or vice versa)
-    found = activeCollabs.find(c => normalized.includes(c.collaborator_name.toUpperCase()));
-    if (found) return found;
-    found = activeCollabs.find(c => c.collaborator_name.toUpperCase().includes(normalized));
-    if (found) return found;
-    // First name match
-    const firstName = normalized.split(' ')[0];
-    found = activeCollabs.find(c => c.collaborator_name.toUpperCase().split(' ')[0] === firstName);
-    if (found) return found;
-    // Alias match
+
+    // 2nd: First name of sheet matches first name of collaborator
+    const sheetFirstName = normalized.split(/\s+/)[0];
+    const firstNameMatches = available.filter(c => norm(c.collaborator_name).split(/\s+/)[0] === sheetFirstName);
+    if (firstNameMatches.length === 1) return firstNameMatches[0];
+
+    // 3rd: Alias match on first name
+    const aliasNames = NAME_ALIASES[sheetFirstName] || [];
+    for (const alias of aliasNames) {
+      const aliasMatch = available.filter(c => norm(c.collaborator_name).split(/\s+/)[0] === alias);
+      if (aliasMatch.length === 1) return aliasMatch[0];
+    }
+
+    // 4th: Collab name contained in sheet name (for short names/nicknames)
+    const containsMatches = available.filter(c => normalized.includes(norm(c.collaborator_name)));
+    if (containsMatches.length === 1) return containsMatches[0];
+
+    // 5th: Sheet name contained in collab name
+    const reverseMatches = available.filter(c => norm(c.collaborator_name).includes(normalized));
+    if (reverseMatches.length === 1) return reverseMatches[0];
+
+    // 6th: Alias match anywhere in name
     for (const [alias, names] of Object.entries(NAME_ALIASES)) {
       if (normalized.includes(alias)) {
         for (const name of names) {
-          found = activeCollabs.find(c => c.collaborator_name.toUpperCase().includes(name));
-          if (found) return found;
-        }
-      }
-      for (const name of names) {
-        if (normalized.includes(name)) {
-          found = activeCollabs.find(c => c.collaborator_name.toUpperCase().includes(alias));
+          found = available.find(c => norm(c.collaborator_name).includes(name));
           if (found) return found;
         }
       }
     }
+
     return null;
   }, [activeCollabs]);
 
@@ -192,10 +204,13 @@ export default function FechamentoFolha() {
           // Skip header-like values in column C
           const colCUpper = colC.toUpperCase().trim();
           if (colCUpper === 'COLABORADORES' || colCUpper === 'NOME DOS' || colCUpper.startsWith('COLABORADORES')) continue;
+          const alreadyMatchedIds = new Set(matched.filter(m => m.collaborator).map(m => m.collaborator!.id));
+          const collab = findCollaborator(colC, alreadyMatchedIds);
+          if (collab) alreadyMatchedIds.add(collab.id);
           matched.push({
             sheetName: colC,
             sheetRow: i,
-            collaborator: findCollaborator(colC),
+            collaborator: collab,
           });
         }
         setMatches(matched);
