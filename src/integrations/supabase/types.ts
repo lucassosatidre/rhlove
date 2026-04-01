@@ -912,6 +912,45 @@ export type Database = {
         }
         Relationships: []
       }
+      payroll_closings: {
+        Row: {
+          created_at: string
+          data_snapshot: Json | null
+          id: string
+          month: number
+          processed_at: string | null
+          processed_by: string | null
+          status: string
+          template_file_name: string | null
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          data_snapshot?: Json | null
+          id?: string
+          month: number
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          template_file_name?: string | null
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          data_snapshot?: Json | null
+          id?: string
+          month?: number
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          template_file_name?: string | null
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       punch_records: {
         Row: {
           adjusted_at: string | null
