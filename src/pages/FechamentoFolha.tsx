@@ -638,15 +638,15 @@ export default function FechamentoFolha() {
             </Card>
             <Card><CardContent className="p-3">
               <p className="text-[10px] text-muted-foreground">Total Bônus 10%</p>
-              <p className="text-lg font-bold tabular-nums">R$ {totals.bonus10.toLocaleString('pt-BR')}</p>
+              <p className="text-lg font-bold tabular-nums">R$ {totals.bonus10.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </CardContent></Card>
             <Card><CardContent className="p-3">
               <p className="text-[10px] text-muted-foreground">Total VT</p>
-              <p className="text-lg font-bold tabular-nums">R$ {totals.vtDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              <p className="text-lg font-bold tabular-nums">R$ {totals.vtDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
             </CardContent></Card>
             <Card><CardContent className="p-3">
               <p className="text-[10px] text-muted-foreground">Total A.Not (dec)</p>
-              <p className="text-lg font-bold tabular-nums">{totals.adNoturno.toFixed(2)}</p>
+              <p className="text-lg font-bold tabular-nums">{totals.adNoturno.toFixed(2).replace('.', ',')}</p>
             </CardContent></Card>
           </div>
 
