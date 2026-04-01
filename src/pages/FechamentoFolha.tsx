@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { DropZone } from '@/components/ui/drop-zone';
 import { Calendar, Upload, Play, Download, RefreshCw, AlertTriangle, CheckCircle, Users, FileText, Copy } from 'lucide-react';
-import { format, getDaysInMonth, getDay } from 'date-fns';
+import { format, getDaysInMonth, getDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
