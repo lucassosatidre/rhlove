@@ -463,7 +463,7 @@ export default function FechamentoFolha() {
         data_snapshot: snapshot,
       } as any, { onConflict: 'month,year' });
 
-      XLSX.writeFile(workbook, `folha-${MONTHS[selectedMonth].label}-${selectedYear}.xls`);
+      XLSX.writeFile(workbook, `folha-${MONTHS[selectedMonth].label}-${selectedYear}.xls`, { cellStyles: true });
       toast.success('Planilha gerada com sucesso!');
       setStep('export');
     } catch (err: any) {
