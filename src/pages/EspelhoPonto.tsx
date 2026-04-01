@@ -250,9 +250,14 @@ export default function EspelhoPonto() {
     collabPunches.forEach(p => punchMap.set(p.date, p));
 
     const result: UnifiedRow[] = [];
+    const avisoDataFim = avisosLookup.get(collab.id);
     for (let d = 1; d <= daysInMonth; d++) {
       const dateObj = new Date(selectedYear, selectedMonth, d);
       const iso = format(dateObj, 'yyyy-MM-dd');
+
+      // Skip days after aviso prévio data_fim
+      if (avisoDataFim && iso > avisoDataFim) continue;
+
       const wd = WEEKDAY_MAP[getDay(dateObj)];
       const weekday = format(dateObj, 'EEE', { locale: ptBR });
 
