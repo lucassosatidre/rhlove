@@ -7,6 +7,7 @@ import { useScheduledVacations } from '@/hooks/useScheduledVacations';
 import { useAfastamentos } from '@/hooks/useAfastamentos';
 import { useScheduleEvents, buildEventsMap, buildSwapOverrides, type ScheduleEvent } from '@/hooks/useScheduleEvents';
 import { useHolidays } from '@/hooks/useHolidayCompensations';
+import { usePunchRecords } from '@/hooks/usePunchRecords';
 import { generateSchedule, getMonthLabel, getFirstMondayOfMonthGrid, getWeekCount, getScheduledCollaboratorIdsBySectorOnDate, type ScheduleWeek } from '@/lib/scheduleEngine';
 import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { DraftModeProvider, useDraftMode, type DraftSalesEntry } from '@/contexts/DraftModeContext';
@@ -56,6 +57,7 @@ function EscalaInner() {
   const { data: scheduledVacations = [] } = useScheduledVacations();
   const { data: afastamentos = [] } = useAfastamentos();
   const { data: holidays = [] } = useHolidays();
+  const { data: punchRecords = [] } = usePunchRecords(month, year);
 
   // Helper: get upcoming holiday warnings for a week start date (within 21 days)
   const getHolidayWarnings = (weekStartDate: Date) => {
@@ -130,6 +132,20 @@ function EscalaInner() {
     }
     return map;
   }, [collaborators]);
+
+  // Punch records: build Set of "collabId|date" with punches and find lastPunchUpdateDate
+  const { punchSet, lastPunchDate } = useMemo(() => {
+    const set = new Set<string>();
+    let maxDate = '';
+    for (const p of punchRecords) {
+      if (p.entrada) {
+        set.add(`${p.collaborator_id}|${p.date}`);
+        if (p.date > maxDate) maxDate = p.date;
+      }
+    }
+    return { punchSet: set, lastPunchDate: maxDate || null };
+  }, [punchRecords]);
+
   const addFreelancerEntry = useAddFreelancerEntry();
   const deleteFreelancerEntry = useDeleteFreelancerEntry();
   const upsertSales = useUpsertDailySales();
@@ -491,14 +507,16 @@ function EscalaInner() {
                         const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
                         const hasCompensacao = collabEvents.some(e => e.event_type === 'COMPENSACAO');
                         const hasTroca = collabEvents.some(e => e.event_type === 'TROCA_FOLGA' || e.event_type === 'MUDANCA_FOLGA' || e.event_type === 'TROCA_DOMINGO');
-                        const hasEvent = hasFalta || hasAtestado || hasCompensacao || hasTroca;
+
+                        // Check confirmed absence from punch records
+                        const isPunchFalta = collab && collab.controla_ponto && lastPunchDate && dateKey <= lastPunchDate && !punchSet.has(`${collab.id}|${dateKey}`) && !hasFalta && !hasAtestado;
 
                         const cellClasses = [
                           'border border-border px-2 text-left',
                           compact ? 'py-0.5' : 'py-1',
                           di === 6 ? 'bg-accent/30' : '',
                           hasAlert ? 'bg-warning/20 font-semibold' : '',
-                          hasFalta ? 'bg-destructive/10' : '',
+                          (hasFalta || isPunchFalta) ? 'bg-destructive/10' : '',
                           hasAtestado ? 'bg-blue-50 dark:bg-blue-950/30' : '',
                           hasCompensacao ? 'bg-green-50 dark:bg-green-950/30' : '',
                           hasTroca ? 'bg-orange-50 dark:bg-orange-950/30' : '',
@@ -513,11 +531,12 @@ function EscalaInner() {
 
                         const nameContent = (
                           <span className="flex items-center gap-1 overflow-hidden max-w-full">
-                            <span className={`truncate min-w-0 ${hasFalta ? 'line-through text-destructive/70' : ''} ${hasAtestado ? 'text-blue-600 dark:text-blue-400' : ''} ${hasAlert ? 'text-amber-700 dark:text-amber-400' : ''}`}>
+                            <span className={`truncate min-w-0 ${(hasFalta || isPunchFalta) ? 'line-through text-destructive/70' : ''} ${hasAtestado ? 'text-blue-600 dark:text-blue-400' : ''} ${hasAlert ? 'text-amber-700 dark:text-amber-400' : ''}`}>
                               {displayName}
                             </span>
                             {alertSuffix && <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 shrink-0 border-amber-500 text-amber-700 dark:text-amber-400 whitespace-nowrap">{alertSuffix}</Badge>}
                             {hasFalta && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4 shrink-0">faltou</Badge>}
+                            {isPunchFalta && <Badge variant="destructive" className="text-[9px] px-1 py-0 h-4 shrink-0">FALTA</Badge>}
                             {hasAtestado && <Badge className="text-[9px] px-1 py-0 h-4 shrink-0 bg-blue-500 text-white">atestado</Badge>}
                             {hasCompensacao && <Badge className="text-[9px] px-1 py-0 h-4 shrink-0 bg-green-600 text-white">compensação</Badge>}
                             {hasTroca && <Badge className="text-[9px] px-1 py-0 h-4 shrink-0 bg-orange-500 text-white">ajuste</Badge>}
