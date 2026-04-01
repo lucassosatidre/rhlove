@@ -132,6 +132,20 @@ function EscalaInner() {
     }
     return map;
   }, [collaborators]);
+
+  // Punch records: build Set of "collabId|date" with punches and find lastPunchUpdateDate
+  const { punchSet, lastPunchDate } = useMemo(() => {
+    const set = new Set<string>();
+    let maxDate = '';
+    for (const p of punchRecords) {
+      if (p.entrada) {
+        set.add(`${p.collaborator_id}|${p.date}`);
+        if (p.date > maxDate) maxDate = p.date;
+      }
+    }
+    return { punchSet: set, lastPunchDate: maxDate || null };
+  }, [punchRecords]);
+
   const addFreelancerEntry = useAddFreelancerEntry();
   const deleteFreelancerEntry = useDeleteFreelancerEntry();
   const upsertSales = useUpsertDailySales();
