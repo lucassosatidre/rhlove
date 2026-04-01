@@ -728,25 +728,40 @@ export default function EspelhoPonto() {
 
           {/* Collaborator header (when selected) */}
           {selected && (
-            <div className="flex items-center justify-between px-3 py-1.5 bg-muted/50 rounded-lg shrink-0">
-              <div className="flex items-center gap-3">
-                <h3 className="text-sm font-semibold">{selected.collaborator_name}</h3>
-                <Badge variant="outline" className="text-[10px]">{selected.sector}</Badge>
-                <span className="text-[10px] text-muted-foreground">
-                  Trab: {totalWorked} · Faltas: {totalFaltas} · Horas: {formatMinutes(totalHoursMin)}
-                </span>
-              </div>
-              <div className="flex items-center gap-3 text-xs">
-                <div className="flex items-center gap-1">
-                  <Banknote className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-muted-foreground">BH Mês:</span>
-                  <span className={`font-semibold tabular-nums ${saldoMes.className}`}>{saldoMes.text || '00:00'}</span>
+            <div className="flex flex-col gap-1 shrink-0">
+              <div className="flex items-center justify-between px-3 py-1.5 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-sm font-semibold">{selected.collaborator_name}</h3>
+                  <Badge variant="outline" className="text-[10px]">{selected.sector}</Badge>
+                  <span className="text-[10px] text-muted-foreground">
+                    Trab: {totalWorked} · Faltas: {totalFaltas} · Horas: {formatMinutes(totalHoursMin)}
+                  </span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-muted-foreground">Acum:</span>
-                  <span className={`font-semibold tabular-nums ${saldoAcum.className}`}>{saldoAcum.text || '00:00'}</span>
+                <div className="flex items-center gap-3 text-xs">
+                  <div className="flex items-center gap-1">
+                    <Banknote className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-muted-foreground">BH Mês:</span>
+                    <span className={`font-semibold tabular-nums ${saldoMes.className}`}>{saldoMes.text || '00:00'}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-muted-foreground">Acum:</span>
+                    <span className={`font-semibold tabular-nums ${saldoAcum.className}`}>{saldoAcum.text || '00:00'}</span>
+                  </div>
                 </div>
               </div>
+              {avisosLookup.has(selected.id) && (() => {
+                const aviso = avisosPrevios.find(a => a.collaborator_id === selected.id);
+                if (!aviso) return null;
+                const fmtDate = (d: string) => { const [y, m, dd] = d.split('-'); return `${dd}/${m}/${y}`; };
+                return (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-200 rounded-lg">
+                    <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-[10px]">⚠️ Aviso Prévio</Badge>
+                    <span className="text-xs text-amber-700">
+                      {fmtDate(aviso.data_inicio)} a {fmtDate(aviso.data_fim)} · {aviso.opcao}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
