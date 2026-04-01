@@ -706,7 +706,6 @@ export default function EspelhoPonto() {
             </CardContent></Card>
           </div>
 
-          {/* Month selector + actions */}
           <div className="flex items-center justify-between shrink-0 print:hidden">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -718,6 +717,11 @@ export default function EspelhoPonto() {
                 <SelectTrigger className="w-20 h-8 text-sm"><SelectValue /></SelectTrigger>
                 <SelectContent>{years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
               </Select>
+              {lastPunchUpdateDate && (
+                <span className="text-[10px] text-muted-foreground bg-muted px-2 py-1 rounded">
+                  📋 Batidas até: {lastPunchUpdateDate.split('-').reverse().join('/')}
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm"
