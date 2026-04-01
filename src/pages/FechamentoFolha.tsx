@@ -419,22 +419,29 @@ export default function FechamentoFolha() {
 
     try {
       const buffer = await uploadedFile.arrayBuffer();
-      const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+      const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array', cellStyles: true, cellNF: true });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-      // Fill data into the sheet
+      // Fill data into the sheet, preserving original cell formatting
+      const NUM_FMT = '#,##0.00';
       for (const m of matches) {
         if (!m.collaborator) continue;
         const pd = processedData.find(p => p.collaboratorId === m.collaborator!.id);
         if (!pd) continue;
 
-        const _row = m.sheetRow + 1; // XLSX is 1-indexed
-        // F = col 5 (E.100), G = col 6 (N.100), H = col 7 (A.Not), K = col 10 (Bonus), O = col 14 (VT)
-        if (pd.extra100 > 0) sheet[XLSX.utils.encode_cell({ r: m.sheetRow, c: 5 })] = { t: 'n', v: pd.extra100 };
-        if (pd.not100 > 0) sheet[XLSX.utils.encode_cell({ r: m.sheetRow, c: 6 })] = { t: 'n', v: pd.not100 };
-        if (pd.adNoturno > 0) sheet[XLSX.utils.encode_cell({ r: m.sheetRow, c: 7 })] = { t: 'n', v: pd.adNoturno };
-        if (pd.bonus10 > 0) sheet[XLSX.utils.encode_cell({ r: m.sheetRow, c: 10 })] = { t: 'n', v: pd.bonus10 };
-        if (pd.vtDesconto > 0) sheet[XLSX.utils.encode_cell({ r: m.sheetRow, c: 14 })] = { t: 'n', v: pd.vtDesconto };
+        const setCell = (col: number, val: number) => {
+          const ref = XLSX.utils.encode_cell({ r: m.sheetRow, c: col });
+          const existing = sheet[ref];
+          const fmt = existing?.z || NUM_FMT;
+          sheet[ref] = { t: 'n', v: val, z: fmt };
+        };
+
+        // F=5 (E.100), G=6 (N.100), H=7 (A.Not), K=10 (Bonus), O=14 (VT)
+        if (pd.extra100 > 0) setCell(5, pd.extra100);
+        if (pd.not100 > 0) setCell(6, pd.not100);
+        if (pd.adNoturno > 0) setCell(7, pd.adNoturno);
+        if (pd.bonus10 > 0) setCell(10, pd.bonus10);
+        if (pd.vtDesconto > 0) setCell(14, pd.vtDesconto);
       }
 
       // Save snapshot
@@ -456,7 +463,7 @@ export default function FechamentoFolha() {
         data_snapshot: snapshot,
       } as any, { onConflict: 'month,year' });
 
-      XLSX.writeFile(workbook, `folha-${MONTHS[selectedMonth].label}-${selectedYear}.xls`);
+      XLSX.writeFile(workbook, `folha-${MONTHS[selectedMonth].label}-${selectedYear}.xls`, { cellStyles: true });
       toast.success('Planilha gerada com sucesso!');
       setStep('export');
     } catch (err: any) {
