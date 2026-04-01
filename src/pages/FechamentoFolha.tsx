@@ -108,6 +108,28 @@ export default function FechamentoFolha() {
   const { data: afastamentos = [] } = useAfastamentos();
   const { data: holidays = [] } = useHolidays();
 
+  // Fetch Folga BH records for this month
+  const { data: folgasBH = [] } = useQuery({
+    queryKey: ['bank_hours_folgas_folha', selectedMonth, selectedYear],
+    queryFn: async () => {
+      const startDate = format(new Date(selectedYear, selectedMonth, 1), 'yyyy-MM-dd');
+      const endDate = format(new Date(selectedYear, selectedMonth, getDaysInMonth(new Date(selectedYear, selectedMonth))), 'yyyy-MM-dd');
+      const { data, error } = await supabase
+        .from('bank_hours_folgas')
+        .select('collaborator_id, folga_date')
+        .gte('folga_date', startDate)
+        .lte('folga_date', endDate);
+      if (error) throw error;
+      return data as { collaborator_id: string; folga_date: string }[];
+    },
+  });
+
+  const folgaBHSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const f of folgasBH) set.add(`${f.collaborator_id}|${f.folga_date}`);
+    return set;
+  }, [folgasBH]);
+
   const { data: existingClosing } = useQuery({
     queryKey: ['payroll_closing', selectedMonth, selectedYear],
     queryFn: async () => {
