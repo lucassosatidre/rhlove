@@ -1016,7 +1016,7 @@ export default function FechamentoFolha() {
       {step === 'review' && (
         <>
           {/* Summary cards */}
-          <div className="grid grid-cols-6 gap-3">
+          <div className="grid grid-cols-7 gap-3">
             <Card><CardContent className="p-3">
               <p className="text-[10px] text-muted-foreground">Colaboradores</p>
               <p className="text-lg font-bold tabular-nums">{processedData.length}</p>
@@ -1043,6 +1043,12 @@ export default function FechamentoFolha() {
               <CardContent className="p-3">
                 <p className="text-[10px] text-muted-foreground">Faltas no mês</p>
                 <p className={`text-lg font-bold tabular-nums ${faltasDoMes.length > 0 ? 'text-red-600' : ''}`}>{faltasDoMes.length}</p>
+              </CardContent>
+            </Card>
+            <Card className={totalDsrPerdidos > 0 ? 'border-orange-300 bg-orange-50/50' : ''}>
+              <CardContent className="p-3">
+                <p className="text-[10px] text-muted-foreground">DSRs perdidos</p>
+                <p className={`text-lg font-bold tabular-nums ${totalDsrPerdidos > 0 ? 'text-orange-600' : ''}`}>{totalDsrPerdidos}</p>
               </CardContent>
             </Card>
           </div>
