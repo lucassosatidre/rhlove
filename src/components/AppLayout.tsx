@@ -1,6 +1,6 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, UserMinus, Fingerprint, Mic, ClipboardList, ClipboardCheck, Bus, Percent, FileSpreadsheet } from 'lucide-react';
+import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, UserMinus, Mic, ClipboardList, ClipboardCheck, Bus, Percent, FileSpreadsheet, ChevronRight, Clock, Wallet, CalendarMinus, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -8,56 +8,180 @@ import { useOpenDemandsCount } from '@/hooks/useDemands';
 import rhLoveIcon from '@/assets/rh-love-icon.png';
 import clienteIcon from '@/assets/cliente-estrela-icon.png';
 
-const NAV_ITEMS = [
+type NavItem = {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  roles: string[];
+  badge?: boolean;
+};
+
+type NavGroup = {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  items: NavItem[];
+};
+
+const FIXED_TOP: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'gestor', 'visualizador'] },
   { to: '/calendario-rh', label: 'Calendário RH', icon: CalendarClock, roles: ['admin', 'gestor'] },
-  { to: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'gestor', 'lider', 'visualizador'] },
-  { to: '/colaboradores', label: 'Colaboradores', icon: Users, roles: ['admin', 'gestor'] },
-  { to: '/produtividade', label: 'Produtividade', icon: BarChart3, roles: ['admin', 'gestor'] },
-  { to: '/bonus-10', label: 'Bônus 10%', icon: Percent, roles: ['admin', 'gestor'] },
-  { to: '/ferias', label: 'Férias', icon: Palmtree, roles: ['admin', 'gestor'] },
-  { to: '/compensacoes', label: 'Compensações', icon: CalendarCheck, roles: ['admin', 'gestor'] },
-  { to: '/vale-transporte', label: 'Vale Transporte', icon: Bus, roles: ['admin', 'gestor'] },
-  { to: '/avisos-previos', label: 'Avisos Prévios', icon: FileWarning, roles: ['admin', 'gestor'] },
-  { to: '/afastamentos', label: 'Afastamentos', icon: UserMinus, roles: ['admin', 'gestor'] },
-  
-  { to: '/espelho-ponto', label: 'Espelho de Ponto', icon: ClipboardList, roles: ['admin', 'gestor'] },
-  { to: '/fechamento-folha', label: 'Fechamento Folha', icon: FileSpreadsheet, roles: ['admin', 'gestor'] },
-  { to: '/checkout', label: 'Checkout', icon: Mic, roles: ['admin', 'gestor', 'lider'] },
+];
+
+const GROUPS: NavGroup[] = [
+  {
+    id: 'equipe',
+    label: 'Equipe',
+    icon: Users,
+    items: [
+      { to: '/colaboradores', label: 'Colaboradores', icon: Users, roles: ['admin', 'gestor'] },
+      { to: '/escala', label: 'Escala', icon: CalendarDays, roles: ['admin', 'gestor', 'lider', 'visualizador'] },
+      { to: '/produtividade', label: 'Produtividade', icon: BarChart3, roles: ['admin', 'gestor'] },
+    ],
+  },
+  {
+    id: 'financeiro',
+    label: 'Financeiro',
+    icon: Wallet,
+    items: [
+      { to: '/bonus-10', label: 'Bônus 10%', icon: Percent, roles: ['admin', 'gestor'] },
+      { to: '/vale-transporte', label: 'Vale Transporte', icon: Bus, roles: ['admin', 'gestor'] },
+      { to: '/fechamento-folha', label: 'Fechamento Folha', icon: FileSpreadsheet, roles: ['admin', 'gestor'] },
+    ],
+  },
+  {
+    id: 'ponto',
+    label: 'Ponto',
+    icon: Clock,
+    items: [
+      { to: '/espelho-ponto', label: 'Espelho de Ponto', icon: ClipboardList, roles: ['admin', 'gestor'] },
+      { to: '/checkout', label: 'Checkout', icon: Mic, roles: ['admin', 'gestor', 'lider'] },
+    ],
+  },
+  {
+    id: 'ausencias',
+    label: 'Ausências',
+    icon: CalendarMinus,
+    items: [
+      { to: '/ferias', label: 'Férias', icon: Palmtree, roles: ['admin', 'gestor'] },
+      { to: '/compensacoes', label: 'Compensações', icon: CalendarCheck, roles: ['admin', 'gestor'] },
+      { to: '/afastamentos', label: 'Afastamentos', icon: UserMinus, roles: ['admin', 'gestor'] },
+      { to: '/avisos-previos', label: 'Avisos Prévios', icon: FileWarning, roles: ['admin', 'gestor'] },
+    ],
+  },
+];
+
+const FIXED_BOTTOM: NavItem[] = [
   { to: '/demandas', label: 'Demandas', icon: ClipboardCheck, roles: ['admin', 'gestor', 'lider', 'visualizador'], badge: true },
   { to: '/usuarios', label: 'Usuários', icon: Shield, roles: ['admin'] },
 ];
+
+const STORAGE_KEY = 'rhlove-sidebar-groups';
+
+function getInitialExpanded(pathname: string): Record<string, boolean> {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch { /* ignore */ }
+  // Default: expand group containing active route
+  const result: Record<string, boolean> = {};
+  for (const g of GROUPS) {
+    result[g.id] = g.items.some(i => i.to === pathname);
+  }
+  return result;
+}
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { usuario, signOut } = useAuth();
   const { data: openTasksCount } = useOpenDemandsCount();
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => getInitialExpanded(location.pathname));
 
-  const visibleItems = NAV_ITEMS.filter(item => 
-    usuario && item.roles.includes(usuario.perfil)
-  );
+  // Auto-expand group containing current route
+  useEffect(() => {
+    setExpanded(prev => {
+      const next = { ...prev };
+      for (const g of GROUPS) {
+        if (g.items.some(i => i.to === location.pathname)) {
+          next[g.id] = true;
+        }
+      }
+      return next;
+    });
+  }, [location.pathname]);
 
-  const renderNavItem = (item: typeof NAV_ITEMS[0], active: boolean, onClick?: () => void) => (
+  // Persist to localStorage
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(expanded)); } catch { /* ignore */ }
+  }, [expanded]);
+
+  const toggleGroup = useCallback((id: string) => {
+    setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+  }, []);
+
+  const isVisible = (item: NavItem) => usuario && item.roles.includes(usuario.perfil);
+
+  const renderNavItem = (item: NavItem, active: boolean, onClick?: () => void, indent = false) => (
     <Link
       key={item.to}
       to={item.to}
       onClick={onClick}
-      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+      className={`flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 ${
+        indent ? 'pl-7 pr-3 py-2' : 'px-3 py-2.5'
+      } ${
         active
           ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-md shadow-sidebar-primary/25'
           : 'text-sidebar-foreground/60 hover:bg-sidebar-accent hover:text-sidebar-foreground'
       }`}
     >
-      <item.icon className="w-[18px] h-[18px]" />
+      <item.icon className="w-[18px] h-[18px] shrink-0" />
       <span className="flex-1">{item.label}</span>
-      {'badge' in item && item.badge && openTasksCount && openTasksCount > 0 ? (
+      {item.badge && openTasksCount && openTasksCount > 0 ? (
         <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
           {openTasksCount > 99 ? '99+' : openTasksCount}
         </span>
       ) : null}
     </Link>
   );
+
+  const renderGroup = (group: NavGroup, onClick?: () => void) => {
+    const visibleItems = group.items.filter(isVisible);
+    if (visibleItems.length === 0) return null;
+    const isOpen = !!expanded[group.id];
+    const hasActive = visibleItems.some(i => i.to === location.pathname);
+
+    return (
+      <div key={group.id}>
+        <button
+          onClick={() => toggleGroup(group.id)}
+          className="flex items-center gap-2 w-full px-3 py-2 text-[11px] uppercase tracking-[0.05em] font-semibold text-sidebar-foreground/40 hover:text-sidebar-foreground/60 transition-colors"
+        >
+          <group.icon className="w-3.5 h-3.5 shrink-0" />
+          <span className="flex-1 text-left">{group.label}</span>
+          <ChevronRight
+            className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
+          />
+        </button>
+        <div
+          className="overflow-hidden transition-all duration-200 ease-in-out"
+          style={{
+            maxHeight: isOpen ? `${visibleItems.length * 44}px` : '0px',
+            opacity: isOpen ? 1 : 0,
+          }}
+        >
+          <div className="space-y-0.5 pb-1">
+            {visibleItems.map(item =>
+              renderNavItem(item, location.pathname === item.to, onClick, true)
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const visibleFixedTop = FIXED_TOP.filter(isVisible);
+  const visibleFixedBottom = FIXED_BOTTOM.filter(isVisible);
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -93,11 +217,34 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </div>
 
         <ScrollArea className="flex-1 min-h-0">
-          <nav className="px-3 space-y-0.5 pb-3">
-            {visibleItems.map(item => {
-              const active = location.pathname === item.to;
-              return renderNavItem(item, active);
-            })}
+          <nav className="px-3 pb-3 space-y-0.5">
+            {/* Fixed top items */}
+            {visibleFixedTop.map(item =>
+              renderNavItem(item, location.pathname === item.to)
+            )}
+
+            {/* Separator */}
+            <div className="!my-2 mx-1 h-px bg-sidebar-foreground/10" />
+
+            {/* Groups */}
+            <div className="space-y-1">
+              {GROUPS.map((group, idx) => (
+                <div key={group.id}>
+                  {renderGroup(group)}
+                  {idx < GROUPS.length - 1 && (
+                    <div className="my-1 mx-1 h-px bg-sidebar-foreground/10" />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Separator */}
+            <div className="!my-2 mx-1 h-px bg-sidebar-foreground/10" />
+
+            {/* Fixed bottom items */}
+            {visibleFixedBottom.map(item =>
+              renderNavItem(item, location.pathname === item.to)
+            )}
           </nav>
         </ScrollArea>
 
@@ -154,12 +301,19 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
         {mobileOpen && (
           <div className="md:hidden absolute inset-0 z-50 bg-background/98 backdrop-blur-sm pt-16">
-            <nav className="px-4 space-y-1">
-              {visibleItems.map(item => {
-                const active = location.pathname === item.to;
-                return renderNavItem(item, active, () => setMobileOpen(false));
-              })}
-            </nav>
+            <ScrollArea className="h-full">
+              <nav className="px-4 pb-4 space-y-0.5">
+                {visibleFixedTop.map(item =>
+                  renderNavItem(item, location.pathname === item.to, () => setMobileOpen(false))
+                )}
+                <div className="!my-2 mx-1 h-px bg-border" />
+                {GROUPS.map(group => renderGroup(group, () => setMobileOpen(false)))}
+                <div className="!my-2 mx-1 h-px bg-border" />
+                {visibleFixedBottom.map(item =>
+                  renderNavItem(item, location.pathname === item.to, () => setMobileOpen(false))
+                )}
+              </nav>
+            </ScrollArea>
           </div>
         )}
 
