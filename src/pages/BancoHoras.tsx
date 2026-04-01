@@ -9,10 +9,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Users, TrendingUp, TrendingDown, AlertTriangle, Plus, ArrowUpDown, Download, Pencil, Gift } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Users, TrendingUp, TrendingDown, AlertTriangle, Plus, ArrowUpDown, Download, Pencil, Gift, RefreshCw, Scale } from 'lucide-react';
 import { useCollaborators } from '@/hooks/useCollaborators';
+import { usePunchRecords } from '@/hooks/usePunchRecords';
+import { useScheduleEvents } from '@/hooks/useScheduleEvents';
+import { useScheduledVacations } from '@/hooks/useScheduledVacations';
+import { useAfastamentos } from '@/hooks/useAfastamentos';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import {
   useBHTransactions,
   useInsertBHTransaction,
@@ -22,7 +29,12 @@ import {
   getSemesterOptions,
   getSemesterMonths,
   getSemesterLabel,
+  type BHTransaction,
 } from '@/hooks/useBancoHoras';
+import { calculateJornada, type DayInfo } from '@/lib/jornadaEngine';
+import { INTEGRATION_START_DATE } from '@/lib/constants';
+import { getDaysInMonth, format } from 'date-fns';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import * as XLSX from 'xlsx';
 
 const TYPE_LABELS: Record<string, { label: string; color: string }> = {
@@ -50,16 +62,18 @@ function parseHHMM(str: string): number | null {
   return neg ? -mins : mins;
 }
 
+const WEEKDAYS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+
 export default function BancoHoras() {
   const now = new Date();
   const [semesterStart, setSemesterStart] = useState(getSemesterStart(now));
   const semesterOptions = useMemo(() => getSemesterOptions(), []);
-  const _semesterMonths = useMemo(() => getSemesterMonths(semesterStart), [semesterStart]);
+  const semesterMonths = useMemo(() => getSemesterMonths(semesterStart), [semesterStart]);
 
   const { data: collaborators = [] } = useCollaborators();
   const { data: allTransactions = [], isLoading } = useBHTransactions(semesterStart);
   const insertTx = useInsertBHTransaction();
-  const _deleteTx = useDeleteBHTransactionsBySemester();
+  const deleteTx = useDeleteBHTransactionsBySemester();
   const insertFolga = useInsertBHFolga();
   const { usuario, session } = useAuth();
   const isAdmin = usuario?.perfil === 'admin';
@@ -67,11 +81,13 @@ export default function BancoHoras() {
   const [sortBy, setSortBy] = useState<'name' | 'saldo'>('name');
   const [sectorFilter, setSectorFilter] = useState('all');
   const [selectedCollabId, setSelectedCollabId] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   // Action modals
   const [folgaOpen, setFolgaOpen] = useState(false);
   const [saldoAnteriorOpen, setSaldoAnteriorOpen] = useState(false);
   const [ajusteOpen, setAjusteOpen] = useState(false);
+  const [acertoOpen, setAcertoOpen] = useState(false);
 
   // Form states
   const [formCollabId, setFormCollabId] = useState('');
@@ -79,6 +95,9 @@ export default function BancoHoras() {
   const [formValue, setFormValue] = useState('');
   const [formReason, setFormReason] = useState('');
   const [formType, setFormType] = useState<'credito' | 'debito'>('credito');
+
+  // Acerto semestre state
+  const [acertoActions, setAcertoActions] = useState<Record<string, 'pagar' | 'descontar' | 'transferir'>>({});
 
   const activeCollabs = useMemo(
     () => collaborators.filter(c => c.status !== 'DESLIGADO'),
@@ -135,6 +154,250 @@ export default function BancoHoras() {
     [allTransactions, selectedCollabId]
   );
 
+  // Chart data for extrato
+  const chartData = useMemo(() => {
+    let running = 0;
+    return selectedTransactions.map(tx => {
+      running += tx.credit_minutes - tx.debit_minutes;
+      return {
+        date: new Date(tx.transaction_date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+        saldo: Math.round(running / 60 * 100) / 100,
+      };
+    });
+  }, [selectedTransactions]);
+
+  // Check if we're in the last month of the semester (May or November)
+  const isLastMonthOfSemester = useMemo(() => {
+    const currentMonth = now.getMonth(); // 0-indexed
+    return currentMonth === 4 || currentMonth === 10; // May (4) or November (10)
+  }, []);
+
+  // Pre-fill CH diária when selecting collaborator in folga modal
+  const handleFolgaCollabChange = useCallback((id: string) => {
+    setFormCollabId(id);
+    const collab = activeCollabs.find(c => c.id === id);
+    if (collab?.carga_horaria_diaria) {
+      setFormValue(collab.carga_horaria_diaria);
+    }
+  }, [activeCollabs]);
+
+  // ── Sincronizar com Espelho ──
+  const handleSyncEspelho = useCallback(async () => {
+    if (!session) return;
+    setSyncing(true);
+    try {
+      let syncedCount = 0;
+      for (const sm of semesterMonths) {
+        const monthIdx = sm.month - 1;
+        const year = sm.year;
+        const daysCount = getDaysInMonth(new Date(year, monthIdx));
+        const startDate = format(new Date(year, monthIdx, 1), 'yyyy-MM-dd');
+        const endDate = format(new Date(year, monthIdx, daysCount), 'yyyy-MM-dd');
+
+        // Fetch punch records for this month
+        const { data: punches } = await supabase
+          .from('punch_records')
+          .select('*')
+          .gte('date', startDate)
+          .lte('date', endDate);
+
+        if (!punches || punches.length === 0) continue;
+
+        // Fetch schedule events for this month
+        const { data: events } = await supabase
+          .from('schedule_events')
+          .select('*')
+          .gte('event_date', startDate)
+          .lte('event_date', endDate)
+          .eq('status', 'ATIVO');
+
+        // Fetch vacations
+        const { data: vacations } = await supabase
+          .from('scheduled_vacations')
+          .select('*')
+          .lte('data_inicio_ferias', endDate)
+          .gte('data_fim_ferias', startDate);
+
+        // Fetch afastamentos
+        const { data: afastamentos } = await supabase
+          .from('afastamentos')
+          .select('*')
+          .lte('data_inicio', endDate)
+          .gte('data_fim', startDate);
+
+        // Fetch holidays
+        const { data: holidays } = await supabase
+          .from('holidays')
+          .select('date')
+          .gte('date', startDate)
+          .lte('date', endDate);
+        const holidaySet = new Set((holidays ?? []).map(h => h.date));
+
+        // Fetch folgas BH
+        const { data: folgasBH } = await supabase
+          .from('bank_hours_folgas')
+          .select('collaborator_id, folga_date')
+          .gte('folga_date', startDate)
+          .lte('folga_date', endDate);
+        const folgaBHSet = new Set((folgasBH ?? []).map(f => `${f.collaborator_id}|${f.folga_date}`));
+
+        // Build swap overrides
+        const swapOverrides: Record<string, Record<string, { removeDays: string[]; addDays: (string | null)[] }>> = {};
+        for (const ev of events ?? []) {
+          if (!['TROCA_FOLGA', 'MUDANCA_FOLGA'].includes(ev.event_type)) continue;
+          const ws = ev.week_start ?? ev.event_date;
+          if (!swapOverrides[ev.collaborator_id]) swapOverrides[ev.collaborator_id] = {};
+          if (!swapOverrides[ev.collaborator_id][ws]) swapOverrides[ev.collaborator_id][ws] = { removeDays: [], addDays: [] };
+          const entry = swapOverrides[ev.collaborator_id][ws];
+          if (ev.original_day) entry.removeDays.push(ev.original_day.toLowerCase());
+          if (ev.swapped_day) entry.addDays.push(ev.swapped_day.toLowerCase());
+        }
+
+        // Determine last punch update date for this month
+        const lastPunchDate = punches.reduce((max, p) => {
+          if (p.entrada && p.date > max) return p.date;
+          return max;
+        }, '');
+
+        // Process each collaborator
+        for (const collab of activeCollabs) {
+          if (!collab.controla_ponto) continue;
+
+          const collabPunches = punches.filter(p => p.collaborator_id === collab.id);
+          if (collabPunches.length === 0) continue;
+
+          const punchMap: Record<string, typeof collabPunches[0]> = {};
+          for (const p of collabPunches) punchMap[p.date] = p;
+
+          const defaultFolgas = (collab.folgas_semanais ?? []).map(f => f.toLowerCase());
+          const chDiariaStr = collab.carga_horaria_diaria;
+          const chOverrideMin = chDiariaStr ? (() => {
+            const parts = chDiariaStr.split(':');
+            return parts.length === 2 ? parseInt(parts[0]) * 60 + parseInt(parts[1]) : null;
+          })() : null;
+
+          const dayInfos: DayInfo[] = [];
+          for (let d = 1; d <= daysCount; d++) {
+            const dt = new Date(year, monthIdx, d);
+            const iso = format(dt, 'yyyy-MM-dd');
+            const wd = WEEKDAYS[dt.getDay()];
+
+            // Skip days before integration start or after last punch
+            if (iso < INTEGRATION_START_DATE || iso > lastPunchDate) continue;
+
+            const punch = punchMap[iso];
+            const isHoliday = holidaySet.has(iso);
+            const isFolgaBH = folgaBHSet.has(`${collab.id}|${iso}`);
+
+            // Determine folga for this day
+            const getWeekMonday = (date: Date): string => {
+              const d2 = new Date(date);
+              const day = d2.getDay();
+              const diff = d2.getDate() - day + (day === 0 ? -6 : 1);
+              d2.setDate(diff);
+              return format(d2, 'yyyy-MM-dd');
+            };
+            const ws = getWeekMonday(dt);
+            const override = swapOverrides[collab.id]?.[ws];
+            let isFolga = defaultFolgas.includes(wd);
+            if (override) {
+              if (override.removeDays.includes(wd)) isFolga = false;
+              if (override.addDays.some(ad => ad?.toLowerCase() === wd)) isFolga = true;
+            }
+
+            // Check vacations
+            const isVacation = (vacations ?? []).some(v =>
+              v.collaborator_id === collab.id && iso >= v.data_inicio_ferias && iso <= v.data_fim_ferias
+            );
+
+            // Check afastamentos
+            const isAfastamento = (afastamentos ?? []).some(a =>
+              a.collaborator_id === collab.id && iso >= a.data_inicio && iso <= a.data_fim
+            );
+
+            if (isFolgaBH || isVacation || isAfastamento) {
+              dayInfos.push({ isFolga: true, isVacation, isAfastamento, isHoliday, hoursWorkedMin: null, punch: {}, chOverride: null });
+              continue;
+            }
+
+            if (isFolga) {
+              dayInfos.push({ isFolga: true, isVacation: false, isAfastamento: false, isHoliday, hoursWorkedMin: null, punch: {}, chOverride: null });
+              continue;
+            }
+
+            // Calculate hours worked
+            let hoursWorkedMin: number | null = null;
+            const p = punch;
+            if (p?.entrada && p?.saida) {
+              const toMin = (t: string) => { const [hh, mm] = t.split(':').map(Number); return hh * 60 + mm; };
+              const entradaMin = toMin(p.entrada);
+              const saidaMin = toMin(p.saida);
+              let worked = saidaMin - entradaMin;
+
+              if (p.saida_intervalo && p.retorno_intervalo) {
+                const intSaida = toMin(p.saida_intervalo);
+                const intRetorno = toMin(p.retorno_intervalo);
+                worked -= (intRetorno - intSaida);
+              } else if (collab.intervalo_automatico && collab.intervalo_duracao) {
+                worked -= collab.intervalo_duracao;
+              }
+
+              hoursWorkedMin = Math.max(0, worked);
+            }
+
+            dayInfos.push({
+              isFolga: false,
+              isVacation: false,
+              isAfastamento: false,
+              isHoliday,
+              hoursWorkedMin,
+              punch: { entrada: p?.entrada ?? undefined },
+              chOverride: chOverrideMin,
+            });
+          }
+
+          if (dayInfos.length === 0) continue;
+
+          const result = calculateJornada(dayInfos, chOverrideMin ?? undefined);
+          const saldoBH = result.totals.saldoBH;
+
+          // Delete existing auto_espelho for this month and insert new
+          await deleteTx.mutateAsync({
+            collaborator_id: collab.id,
+            semester_start: semesterStart,
+            type: 'auto_espelho',
+            reference_month: sm.month,
+            reference_year: sm.year,
+          });
+
+          if (saldoBH !== 0) {
+            const credit = saldoBH > 0 ? saldoBH : 0;
+            const debit = saldoBH < 0 ? Math.abs(saldoBH) : 0;
+            await insertTx.mutateAsync({
+              collaborator_id: collab.id,
+              semester_start: semesterStart,
+              transaction_date: endDate,
+              type: 'auto_espelho',
+              description: `Saldo Espelho ${String(sm.month).padStart(2, '0')}/${sm.year}`,
+              credit_minutes: credit,
+              debit_minutes: debit,
+              balance_after_minutes: 0,
+              reference_month: sm.month,
+              reference_year: sm.year,
+              created_by: session.user.id,
+            });
+            syncedCount++;
+          }
+        }
+      }
+      toast.success(`Sincronização concluída — ${syncedCount} registros atualizados`);
+    } catch (e: any) {
+      toast.error(`Erro na sincronização: ${e.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  }, [session, semesterMonths, semesterStart, activeCollabs, deleteTx, insertTx]);
+
   const handleConcederFolga = useCallback(async () => {
     if (!formCollabId || !formDate || !formValue) return;
     const mins = parseHHMM(formValue);
@@ -148,7 +411,6 @@ export default function BancoHoras() {
         hours_debited: mins,
         reason: formReason,
         created_by: session?.user.id ?? null,
-        
       });
       await insertTx.mutateAsync({
         collaborator_id: formCollabId,
@@ -221,6 +483,76 @@ export default function BancoHoras() {
       resetForm();
     } catch (e: any) { toast.error(e.message); }
   }, [formCollabId, formValue, formReason, formType, semesterStart, session, collabBalances]);
+
+  // Acertar Semestre
+  const collabsWithBalance = useMemo(() => {
+    return activeCollabs
+      .map(c => ({ ...c, balance: collabBalances.get(c.id)?.balance ?? 0 }))
+      .filter(c => c.balance !== 0)
+      .sort((a, b) => a.collaborator_name.localeCompare(b.collaborator_name));
+  }, [activeCollabs, collabBalances]);
+
+  const handleOpenAcerto = useCallback(() => {
+    const actions: Record<string, 'pagar' | 'descontar' | 'transferir'> = {};
+    for (const c of collabsWithBalance) {
+      actions[c.id] = 'transferir';
+    }
+    setAcertoActions(actions);
+    setAcertoOpen(true);
+  }, [collabsWithBalance]);
+
+  const handleConfirmAcerto = useCallback(async () => {
+    if (!session) return;
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      // Calculate next semester start
+      const semDate = new Date(semesterStart + 'T12:00:00');
+      const nextSemStart = semDate.getMonth() === 11
+        ? `${semDate.getFullYear() + 1}-06-01`
+        : `${semDate.getFullYear()}-12-01`;
+
+      for (const c of collabsWithBalance) {
+        const action = acertoActions[c.id] || 'transferir';
+        const bal = c.balance;
+
+        // Insert acerto transaction
+        await insertTx.mutateAsync({
+          collaborator_id: c.id,
+          semester_start: semesterStart,
+          transaction_date: today,
+          type: 'acerto_semestre',
+          description: action === 'pagar' ? 'Acerto semestral — Pago' :
+                       action === 'descontar' ? 'Acerto semestral — Descontado' :
+                       'Acerto semestral — Transferido',
+          credit_minutes: bal < 0 ? Math.abs(bal) : 0,
+          debit_minutes: bal > 0 ? bal : 0,
+          balance_after_minutes: 0,
+          reference_month: null,
+          reference_year: null,
+          created_by: session.user.id,
+        });
+
+        // If transferring, create saldo_anterior in next semester
+        if (action === 'transferir') {
+          await insertTx.mutateAsync({
+            collaborator_id: c.id,
+            semester_start: nextSemStart,
+            transaction_date: nextSemStart,
+            type: 'saldo_anterior',
+            description: `Saldo transferido do semestre anterior (${getSemesterLabel(semesterStart)})`,
+            credit_minutes: bal > 0 ? bal : 0,
+            debit_minutes: bal < 0 ? Math.abs(bal) : 0,
+            balance_after_minutes: bal,
+            reference_month: null,
+            reference_year: null,
+            created_by: session.user.id,
+          });
+        }
+      }
+      toast.success('Acerto semestral concluído');
+      setAcertoOpen(false);
+    } catch (e: any) { toast.error(e.message); }
+  }, [session, collabsWithBalance, acertoActions, semesterStart, insertTx]);
 
   const resetForm = () => { setFormCollabId(''); setFormDate(''); setFormValue(''); setFormReason(''); setFormType('credito'); };
 
@@ -303,6 +635,12 @@ export default function BancoHoras() {
             <Button size="sm" variant="outline" onClick={() => { resetForm(); setAjusteOpen(true); }}>
               <Pencil className="w-4 h-4 mr-1" /> Ajuste Manual
             </Button>
+            <Button size="sm" variant="outline" onClick={handleOpenAcerto} disabled={!isLastMonthOfSemester}>
+              <Scale className="w-4 h-4 mr-1" /> Acertar Semestre
+            </Button>
+            <Button size="sm" variant="outline" onClick={handleSyncEspelho} disabled={syncing}>
+              <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? 'animate-spin' : ''}`} /> {syncing ? 'Sincronizando...' : 'Sincronizar com Espelho'}
+            </Button>
           </>
         )}
         <div className="flex-1" />
@@ -369,6 +707,22 @@ export default function BancoHoras() {
             <DialogDescription>{getSemesterLabel(semesterStart)}</DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-[60vh]">
+            {/* Line chart */}
+            {chartData.length > 1 && (
+              <div className="mb-4 h-[180px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                    <XAxis dataKey="date" tick={{ fontSize: 10 }} className="text-muted-foreground" />
+                    <YAxis tick={{ fontSize: 10 }} className="text-muted-foreground" tickFormatter={(v) => `${v}h`} />
+                    <Tooltip formatter={(v: number) => [`${v}h`, 'Saldo']} />
+                    <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                    <Line type="monotone" dataKey="saldo" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+
             {selectedTransactions.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">Nenhuma movimentação no semestre</p>
             ) : (
@@ -415,7 +769,7 @@ export default function BancoHoras() {
           <div className="space-y-4">
             <div>
               <Label>Colaborador</Label>
-              <Select value={formCollabId} onValueChange={setFormCollabId}>
+              <Select value={formCollabId} onValueChange={handleFolgaCollabChange}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
                   {activeCollabs.sort((a, b) => a.collaborator_name.localeCompare(b.collaborator_name)).map(c => (
@@ -503,6 +857,59 @@ export default function BancoHoras() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAjusteOpen(false)}>Cancelar</Button>
             <Button onClick={handleAjusteManual} disabled={insertTx.isPending || !formReason}>Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Acertar Semestre modal */}
+      <Dialog open={acertoOpen} onOpenChange={setAcertoOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh]">
+          <DialogHeader>
+            <DialogTitle>Acertar Semestre — {getSemesterLabel(semesterStart)}</DialogTitle>
+            <DialogDescription>Defina a ação para cada colaborador com saldo pendente</DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[55vh]">
+            {collabsWithBalance.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">Todos os colaboradores estão com saldo zerado</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Colaborador</TableHead>
+                    <TableHead className="text-right">Saldo</TableHead>
+                    <TableHead>Ação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {collabsWithBalance.map(c => (
+                    <TableRow key={c.id}>
+                      <TableCell className="font-medium">{c.collaborator_name}</TableCell>
+                      <TableCell className={`text-right font-semibold ${c.balance > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {fmtMinToHHMM(c.balance)}
+                      </TableCell>
+                      <TableCell>
+                        <Select value={acertoActions[c.id] || 'transferir'} onValueChange={(v: any) => setAcertoActions(prev => ({ ...prev, [c.id]: v }))}>
+                          <SelectTrigger className="w-[160px] h-8">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {c.balance > 0 && <SelectItem value="pagar">💰 Pagar</SelectItem>}
+                            {c.balance < 0 && <SelectItem value="descontar">📉 Descontar</SelectItem>}
+                            <SelectItem value="transferir">➡️ Transferir</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </ScrollArea>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAcertoOpen(false)}>Cancelar</Button>
+            <Button onClick={handleConfirmAcerto} disabled={insertTx.isPending || collabsWithBalance.length === 0}>
+              Confirmar Acerto
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
