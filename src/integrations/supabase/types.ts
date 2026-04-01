@@ -170,6 +170,36 @@ export type Database = {
           },
         ]
       }
+      bonus_10_config: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          month: number
+          receita_taxa_servico: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          month: number
+          receita_taxa_servico?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          month?: number
+          receita_taxa_servico?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       bonus_10_monthly: {
         Row: {
           carga_horaria: number | null
