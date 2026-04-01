@@ -790,7 +790,7 @@ export default function FechamentoFolha() {
     // Sort by date, then name
     faltas.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name));
     return faltas;
-  }, [processedData, punchRecords, matches, collaborators, daysInMonth, selectedMonth, selectedYear, swapOverrides, eventsMap, holidaySet, vacations, afastamentos]);
+  }, [processedData, punchRecords, matches, collaborators, daysInMonth, selectedMonth, selectedYear, swapOverrides, eventsMap, holidaySet, vacations, afastamentos, folgaBHSet]);
 
   // DSR perdido calculation: group absences by collaborator + week
   const WEEKDAY_LABELS: Record<string, string> = {
