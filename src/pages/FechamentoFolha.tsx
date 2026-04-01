@@ -546,7 +546,7 @@ export default function FechamentoFolha() {
         cell.value = h;
         cell.font = headerFont;
         cell.fill = silverFill;
-        cell.border = thinBorder;
+        cell.border = headerBottomBorder;
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
         if (typeof h === 'number') cell.numFmt = CODE_FMT;
       });
