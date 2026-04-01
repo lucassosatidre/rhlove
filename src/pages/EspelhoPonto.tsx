@@ -29,6 +29,7 @@ import PrintHeader, { PrintFooter } from '@/components/PrintHeader';
 import { UpdatePunchesDialog } from '@/components/ponto/UpdatePunchesDialog';
 import { assignPunchSlots, calculatePattern } from '@/lib/punchInference';
 import type { PunchRecord } from '@/hooks/usePunchRecords';
+import { useAvisosPrevios } from '@/hooks/useAvisosPrevios';
 
 const WEEKDAY_MAP: Record<number, DayOfWeek> = {
   0: 'DOMINGO', 1: 'SEGUNDA', 2: 'TERCA', 3: 'QUARTA', 4: 'QUINTA', 5: 'SEXTA', 6: 'SABADO',
@@ -156,6 +157,19 @@ export default function EspelhoPonto() {
   const { data: vacations = [] } = useScheduledVacations();
   const { data: afastamentos = [] } = useAfastamentos();
   const { data: holidays = [] } = useHolidays();
+  const { data: avisosPrevios = [] } = useAvisosPrevios();
+
+  // Lookup: collaborator_id → data_fim do aviso prévio (use earliest active/concluded)
+  const avisosLookup = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const a of avisosPrevios) {
+      const existing = map.get(a.collaborator_id);
+      if (!existing || a.data_fim < existing) {
+        map.set(a.collaborator_id, a.data_fim);
+      }
+    }
+    return map;
+  }, [avisosPrevios]);
 
   useEffect(() => {
     const channel = supabase
@@ -236,9 +250,14 @@ export default function EspelhoPonto() {
     collabPunches.forEach(p => punchMap.set(p.date, p));
 
     const result: UnifiedRow[] = [];
+    const avisoDataFim = avisosLookup.get(collab.id);
     for (let d = 1; d <= daysInMonth; d++) {
       const dateObj = new Date(selectedYear, selectedMonth, d);
       const iso = format(dateObj, 'yyyy-MM-dd');
+
+      // Skip days after aviso prévio data_fim
+      if (avisoDataFim && iso > avisoDataFim) continue;
+
       const wd = WEEKDAY_MAP[getDay(dateObj)];
       const weekday = format(dateObj, 'EEE', { locale: ptBR });
 
@@ -323,7 +342,7 @@ export default function EspelhoPonto() {
       });
     }
     return result;
-  }, [daysInMonth, selectedMonth, selectedYear, punchRecords, swapOverrides, eventsMap, vacations, afastamentos, holidaySet]);
+  }, [daysInMonth, selectedMonth, selectedYear, punchRecords, swapOverrides, eventsMap, vacations, afastamentos, holidaySet, avisosLookup]);
 
   // ── Single collaborator rows (with jornada) ──
   const singleCollabRows = useMemo(() => {
@@ -709,25 +728,40 @@ export default function EspelhoPonto() {
 
           {/* Collaborator header (when selected) */}
           {selected && (
-            <div className="flex items-center justify-between px-3 py-1.5 bg-muted/50 rounded-lg shrink-0">
-              <div className="flex items-center gap-3">
-                <h3 className="text-sm font-semibold">{selected.collaborator_name}</h3>
-                <Badge variant="outline" className="text-[10px]">{selected.sector}</Badge>
-                <span className="text-[10px] text-muted-foreground">
-                  Trab: {totalWorked} · Faltas: {totalFaltas} · Horas: {formatMinutes(totalHoursMin)}
-                </span>
-              </div>
-              <div className="flex items-center gap-3 text-xs">
-                <div className="flex items-center gap-1">
-                  <Banknote className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-muted-foreground">BH Mês:</span>
-                  <span className={`font-semibold tabular-nums ${saldoMes.className}`}>{saldoMes.text || '00:00'}</span>
+            <div className="flex flex-col gap-1 shrink-0">
+              <div className="flex items-center justify-between px-3 py-1.5 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-sm font-semibold">{selected.collaborator_name}</h3>
+                  <Badge variant="outline" className="text-[10px]">{selected.sector}</Badge>
+                  <span className="text-[10px] text-muted-foreground">
+                    Trab: {totalWorked} · Faltas: {totalFaltas} · Horas: {formatMinutes(totalHoursMin)}
+                  </span>
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-muted-foreground">Acum:</span>
-                  <span className={`font-semibold tabular-nums ${saldoAcum.className}`}>{saldoAcum.text || '00:00'}</span>
+                <div className="flex items-center gap-3 text-xs">
+                  <div className="flex items-center gap-1">
+                    <Banknote className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-muted-foreground">BH Mês:</span>
+                    <span className={`font-semibold tabular-nums ${saldoMes.className}`}>{saldoMes.text || '00:00'}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-muted-foreground">Acum:</span>
+                    <span className={`font-semibold tabular-nums ${saldoAcum.className}`}>{saldoAcum.text || '00:00'}</span>
+                  </div>
                 </div>
               </div>
+              {avisosLookup.has(selected.id) && (() => {
+                const aviso = avisosPrevios.find(a => a.collaborator_id === selected.id);
+                if (!aviso) return null;
+                const fmtDate = (d: string) => { const [y, m, dd] = d.split('-'); return `${dd}/${m}/${y}`; };
+                return (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 border border-amber-200 rounded-lg">
+                    <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-[10px]">⚠️ Aviso Prévio</Badge>
+                    <span className="text-xs text-amber-700">
+                      {fmtDate(aviso.data_inicio)} a {fmtDate(aviso.data_fim)} · {aviso.opcao}
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           )}
 
