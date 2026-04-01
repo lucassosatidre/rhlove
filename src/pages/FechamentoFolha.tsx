@@ -1001,6 +1001,33 @@ export default function FechamentoFolha() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Faltas do Mês */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base">Faltas do Mês</CardTitle>
+                {faltasDoMes.length > 0 && (
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleCopyFaltas}>
+                    <Copy className="w-3 h-3 mr-1" /> Copiar
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {faltasDoMes.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma falta registrada no mês</p>
+              ) : (
+                <div className="max-h-60 overflow-auto space-y-0.5">
+                  {faltasDoMes.map((f, i) => (
+                    <p key={i} className="text-sm font-mono tabular-nums">
+                      {format(parseISO(f.date), 'dd/MM/yyyy')} - {f.name}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </>
       )}
 
