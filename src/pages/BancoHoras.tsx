@@ -23,7 +23,6 @@ import {
   getSemesterOptions,
   getSemesterMonths,
   getSemesterLabel,
-  type BHTransaction,
 } from '@/hooks/useBancoHoras';
 import { calculateJornada, type DayInfo } from '@/lib/jornadaEngine';
 import { INTEGRATION_START_DATE } from '@/lib/constants';
