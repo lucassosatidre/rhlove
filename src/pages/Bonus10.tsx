@@ -79,7 +79,7 @@ export default function Bonus10() {
   const { data: collaborators = [] } = useCollaborators();
   const { data: funcaoPontos = [] } = useBonusFuncaoPontos();
   const { data: monthlyData = [], isLoading } = useBonus10Monthly(selectedMonth, selectedYear);
-  const { data: savedConfig, isLoading: isLoadingConfig } = useBonus10Config(selectedMonth, selectedYear);
+  const { data: savedConfig } = useBonus10Config(selectedMonth, selectedYear);
   const upsertMonthly = useUpsertBonus10Monthly();
   const upsertConfig = useUpsertBonus10Config();
 
