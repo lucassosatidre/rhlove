@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { DropZone } from '@/components/ui/drop-zone';
-import { Calendar, Upload, Play, Download, RefreshCw, AlertTriangle, CheckCircle, Users, FileText } from 'lucide-react';
+import { Calendar, Upload, Play, Download, RefreshCw, AlertTriangle, CheckCircle, Users, FileText, Copy } from 'lucide-react';
 import { format, getDaysInMonth, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
