@@ -10,7 +10,7 @@ import { format, getDaysInMonth, getDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
-import ExcelJS from 'exceljs';
+import type ExcelJS from 'exceljs';
 import { supabase } from '@/integrations/supabase/client';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { usePunchRecords } from '@/hooks/usePunchRecords';
@@ -478,6 +478,7 @@ export default function FechamentoFolha() {
       }
 
       // 2) Create new workbook with ExcelJS
+      const ExcelJS = (await import('exceljs')).default;
       const workbook = new ExcelJS.Workbook();
       const ws = workbook.addWorksheet('Folha');
 
