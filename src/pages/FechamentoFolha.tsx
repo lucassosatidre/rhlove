@@ -204,10 +204,13 @@ export default function FechamentoFolha() {
           // Skip header-like values in column C
           const colCUpper = colC.toUpperCase().trim();
           if (colCUpper === 'COLABORADORES' || colCUpper === 'NOME DOS' || colCUpper.startsWith('COLABORADORES')) continue;
+          const alreadyMatchedIds = new Set(matched.filter(m => m.collaborator).map(m => m.collaborator!.id));
+          const collab = findCollaborator(colC, alreadyMatchedIds);
+          if (collab) alreadyMatchedIds.add(collab.id);
           matched.push({
             sheetName: colC,
             sheetRow: i,
-            collaborator: findCollaborator(colC),
+            collaborator: collab,
           });
         }
         setMatches(matched);
