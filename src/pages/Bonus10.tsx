@@ -361,7 +361,16 @@ export default function Bonus10() {
     }));
 
     try {
-      await upsertMonthly.mutateAsync(allRows);
+      const receitaNum = parseFloat(receita.replace(',', '.')) || 0;
+      await Promise.all([
+        upsertMonthly.mutateAsync(allRows),
+        upsertConfig.mutateAsync({
+          month: selectedMonth,
+          year: selectedYear,
+          receita_taxa_servico: receitaNum,
+          created_by: session?.user?.id || null,
+        }),
+      ]);
       setLocalOverrides({});
       toast({ title: 'Dados salvos com sucesso!' });
     } catch {
