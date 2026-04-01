@@ -413,36 +413,178 @@ export default function FechamentoFolha() {
     }
   }, [matches, selectedMonth, selectedYear, punchRecords, calcJornadaForCollab]);
 
-  // Export filled spreadsheet
+  // Export filled spreadsheet — recreate from scratch with full formatting
   const handleExport = useCallback(async () => {
     if (!uploadedFile || processedData.length === 0) return;
 
     try {
+      // 1) Read the uploaded template to extract fixed data (colA, colB, colC per row)
       const buffer = await uploadedFile.arrayBuffer();
-      const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array', cellStyles: true, cellNF: true });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const origWb = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+      const origSheet = origWb.Sheets[origWb.SheetNames[0]];
+      const origRows = XLSX.utils.sheet_to_json<any>(origSheet, { header: 1 });
 
-      // Fill data into the sheet, preserving original cell formatting
-      const NUM_FMT = '#,##0.00';
-      for (const m of matches) {
-        if (!m.collaborator) continue;
-        const pd = processedData.find(p => p.collaboratorId === m.collaborator!.id);
-        if (!pd) continue;
-
-        const setCell = (col: number, val: number) => {
-          const ref = XLSX.utils.encode_cell({ r: m.sheetRow, c: col });
-          const existing = sheet[ref];
-          const fmt = existing?.z || NUM_FMT;
-          sheet[ref] = { t: 'n', v: val, z: fmt };
-        };
-
-        // F=5 (E.100), G=6 (N.100), H=7 (A.Not), K=10 (Bonus), O=14 (VT)
-        if (pd.extra100 > 0) setCell(5, pd.extra100);
-        if (pd.not100 > 0) setCell(6, pd.not100);
-        if (pd.adNoturno > 0) setCell(7, pd.adNoturno);
-        if (pd.bonus10 > 0) setCell(10, pd.bonus10);
-        if (pd.vtDesconto > 0) setCell(14, pd.vtDesconto);
+      // Extract collaborator rows from template
+      interface TemplateRow { rowIdx: number; colA: string; colB: string; colC: string; }
+      const templateRows: TemplateRow[] = [];
+      for (let i = 9; i < origRows.length; i++) {
+        const row = origRows[i];
+        if (!row) continue;
+        const colA = String(row[0] ?? '').trim();
+        if (colA.toUpperCase() === 'TOTAL') break;
+        if (colA !== '11') continue;
+        const colC = String(row[2] ?? '').trim();
+        if (!colC) continue;
+        const colCUpper = colC.toUpperCase().trim();
+        if (colCUpper === 'COLABORADORES' || colCUpper === 'NOME DOS' || colCUpper.startsWith('COLABORADORES')) continue;
+        templateRows.push({ rowIdx: i, colA, colB: String(row[1] ?? ''), colC });
       }
+
+      // 2) Create new workbook from scratch
+      const wb = XLSX.utils.book_new();
+      const ws: XLSX.WorkSheet = {};
+      const NUM_FMT = '#,##0.00';
+      const CODE_FMT = '0000';
+
+      // Helper to set cell with style info
+      const setC = (r: number, c: number, v: any, opts?: { t?: string; z?: string; s?: any }) => {
+        const ref = XLSX.utils.encode_cell({ r, c });
+        const cell: any = { v };
+        if (opts?.t) cell.t = opts.t;
+        else if (typeof v === 'number') cell.t = 'n';
+        else cell.t = 's';
+        if (opts?.z) cell.z = opts.z;
+        if (opts?.s) cell.s = opts.s;
+        ws[ref] = cell;
+      };
+
+      // Styles
+      const headerFill = { fgColor: { rgb: '4F4F4F' } };
+      const headerFont = { bold: true, color: { rgb: 'FFFFFF' }, sz: 10 };
+      const titleFont = { bold: true, sz: 12 };
+      const labelFont = { bold: true, sz: 10 };
+      const thinBorder = {
+        top: { style: 'thin' }, bottom: { style: 'thin' },
+        left: { style: 'thin' }, right: { style: 'thin' },
+      };
+      const headerStyle = { fill: headerFill, font: headerFont, border: thinBorder, alignment: { horizontal: 'center', vertical: 'center', wrapText: true } };
+      const dataStyle = { border: thinBorder, alignment: { horizontal: 'right' } };
+      const dataStyleLeft = { border: thinBorder, alignment: { horizontal: 'left' } };
+      const dataStyleCenter = { border: thinBorder, alignment: { horizontal: 'center' } };
+
+      // Competência
+      const compDate = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-01`;
+
+      // Row 0: Title (merged A0:O0)
+      setC(0, 0, 'RELAÇÃO DE VALORES PARA FOLHA DE PAGAMENTO', { s: { font: titleFont, alignment: { horizontal: 'center' } } });
+      ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 14 } }];
+
+      // Row 2-5: Company info
+      setC(2, 0, 'Codigo Empresa:', { s: { font: labelFont } });
+      setC(2, 2, '582');
+      setC(3, 0, 'Razão Social:', { s: { font: labelFont } });
+      setC(3, 2, 'PROPOSITO SOLUCOES LTDA');
+      setC(4, 0, 'Inscrição Cnpj:', { s: { font: labelFont } });
+      setC(4, 2, '58.483.608/0001-02');
+      setC(5, 0, 'Competencia:', { s: { font: labelFont } });
+      setC(5, 2, compDate);
+
+      // Row 8: Header group names
+      const headers8 = [
+        'Tipo de', 'Código', 'Nome dos',
+        'Horas extras 75%', 'Horas Extras 75% Notunas',
+        'Horas Extras 100%', 'Horas Extras 100% Noturnas',
+        'Adicional Noturno', 'Prêmio', 'Horas Faltas Parcial',
+        'Gorjetas', 'Bonificação produtividade', 'Desc. Prêmio antecipado',
+        'Assiduidade', 'Vale Transporte',
+      ];
+      headers8.forEach((h, c) => setC(8, c, h, { s: headerStyle }));
+
+      // Row 9: Header codes
+      const headers9: (string | number)[] = [
+        'Calculo', 'Folha', 'Colaboradores',
+        202, 203, 200, 206, 25, 223, 8069, 235, 233, 224, 222, 207,
+      ];
+      headers9.forEach((h, c) => {
+        if (typeof h === 'number') {
+          setC(9, c, h, { t: 'n', z: CODE_FMT, s: headerStyle });
+        } else {
+          setC(9, c, h, { s: headerStyle });
+        }
+      });
+
+      // Data rows (starting at row 10)
+      let dataRow = 10;
+      for (const tr of templateRows) {
+        // Find the matched collaborator and processed data
+        const matchEntry = matches.find(m => m.sheetName === tr.colC);
+        const pd = matchEntry?.collaborator
+          ? processedData.find(p => p.collaboratorId === matchEntry.collaborator!.id)
+          : null;
+
+        // Col A: tipo cálculo
+        setC(dataRow, 0, tr.colA, { s: dataStyleCenter });
+        // Col B: código folha
+        const colBNum = Number(tr.colB);
+        if (!isNaN(colBNum) && tr.colB.trim() !== '') {
+          setC(dataRow, 1, colBNum, { t: 'n', s: dataStyleCenter });
+        } else {
+          setC(dataRow, 1, tr.colB, { s: dataStyleCenter });
+        }
+        // Col C: nome
+        setC(dataRow, 2, tr.colC, { s: dataStyleLeft });
+
+        // Cols D-O: data columns — all with NUM_FMT and borders
+        for (let c = 3; c <= 14; c++) {
+          // Default: empty cell with format and borders
+          const ref = XLSX.utils.encode_cell({ r: dataRow, c });
+          ws[ref] = { t: 'z', z: NUM_FMT, s: dataStyle };
+        }
+
+        // Fill calculated values
+        if (pd) {
+          if (pd.extra100 > 0) setC(dataRow, 5, pd.extra100, { t: 'n', z: NUM_FMT, s: dataStyle });
+          if (pd.not100 > 0) setC(dataRow, 6, pd.not100, { t: 'n', z: NUM_FMT, s: dataStyle });
+          if (pd.adNoturno > 0) setC(dataRow, 7, pd.adNoturno, { t: 'n', z: NUM_FMT, s: dataStyle });
+          if (pd.bonus10 > 0) setC(dataRow, 10, pd.bonus10, { t: 'n', z: NUM_FMT, s: dataStyle });
+          if (pd.vtDesconto > 0) setC(dataRow, 14, pd.vtDesconto, { t: 'n', z: NUM_FMT, s: dataStyle });
+        }
+
+        dataRow++;
+      }
+
+      // Total row
+      setC(dataRow, 0, 'TOTAL', { s: { font: labelFont, border: thinBorder, alignment: { horizontal: 'center' } } });
+      setC(dataRow, 1, templateRows.length, { t: 'n', s: { font: labelFont, border: thinBorder, alignment: { horizontal: 'center' } } });
+      setC(dataRow, 2, 'Colaboradores', { s: { font: labelFont, border: thinBorder } });
+      for (let c = 3; c <= 14; c++) {
+        const ref = XLSX.utils.encode_cell({ r: dataRow, c });
+        ws[ref] = { t: 'z', z: NUM_FMT, s: { border: thinBorder } };
+      }
+
+      // Column widths
+      ws['!cols'] = [
+        { wch: 10 },  // A
+        { wch: 10 },  // B
+        { wch: 40 },  // C
+        { wch: 12 },  // D
+        { wch: 14 },  // E
+        { wch: 15 },  // F
+        { wch: 17 },  // G
+        { wch: 14 },  // H
+        { wch: 12 },  // I
+        { wch: 13 },  // J
+        { wch: 13 },  // K
+        { wch: 13 },  // L
+        { wch: 15 },  // M
+        { wch: 15 },  // N
+        { wch: 13 },  // O
+      ];
+
+      // Set range
+      ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: dataRow, c: 14 } });
+
+      XLSX.utils.book_append_sheet(wb, ws, 'Folha');
 
       // Save snapshot
       const snapshot = {
@@ -463,7 +605,7 @@ export default function FechamentoFolha() {
         data_snapshot: snapshot,
       } as any, { onConflict: 'month,year' });
 
-      XLSX.writeFile(workbook, `folha-${MONTHS[selectedMonth].label}-${selectedYear}.xls`, { cellStyles: true });
+      XLSX.writeFile(wb, `folha-${MONTHS[selectedMonth].label}-${selectedYear}.xls`, { bookType: 'biff8' });
       toast.success('Planilha gerada com sucesso!');
       setStep('export');
     } catch (err: any) {
