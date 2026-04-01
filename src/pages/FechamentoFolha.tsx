@@ -502,20 +502,20 @@ export default function FechamentoFolha() {
       ];
 
       // Styles
-      const silverFill: ExcelJS.FillPattern = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC0C0C0' } };
-      const headerFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: 'FF000000' }, size: 10, name: 'Arial' };
-      const titleFont: Partial<ExcelJS.Font> = { bold: true, size: 14, name: 'Arial' };
-      const labelFont: Partial<ExcelJS.Font> = { bold: true, size: 11, name: 'Arial' };
-      const normalFont: Partial<ExcelJS.Font> = { size: 10, name: 'Arial' };
-      const labelValueFont: Partial<ExcelJS.Font> = { size: 11, name: 'Arial' };
-      const thinBorder: Partial<ExcelJS.Borders> = {
+      const silverFill: any = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC0C0C0' } };
+      const headerFont: any = { bold: true, color: { argb: 'FF000000' }, size: 10, name: 'Arial' };
+      const titleFont: any = { bold: true, size: 14, name: 'Arial' };
+      const labelFont: any = { bold: true, size: 11, name: 'Arial' };
+      const normalFont: any = { size: 10, name: 'Arial' };
+      const labelValueFont: any = { size: 11, name: 'Arial' };
+      const thinBorder: any = {
         top: { style: 'thin' }, bottom: { style: 'thin' },
         left: { style: 'thin' }, right: { style: 'thin' },
       };
-      const headerTopBorder: Partial<ExcelJS.Borders> = {
+      const headerTopBorder: any = {
         top: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' },
       };
-      const headerBottomBorder: Partial<ExcelJS.Borders> = {
+      const headerBottomBorder: any = {
         bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' },
       };
       const NUM_FMT = '#,##0.00';
