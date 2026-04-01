@@ -390,7 +390,7 @@ export default function EspelhoPonto() {
       });
     }
     return result;
-  }, [daysInMonth, selectedMonth, selectedYear, punchRecords, swapOverrides, eventsMap, vacations, afastamentos, holidaySet, avisosLookup, lastPunchUpdateDate]);
+  }, [daysInMonth, selectedMonth, selectedYear, punchRecords, swapOverrides, eventsMap, vacations, afastamentos, holidaySet, avisosLookup, lastPunchUpdateDate, folgaBHSet]);
 
   // ── Single collaborator rows (with jornada) ──
   const singleCollabRows = useMemo(() => {
