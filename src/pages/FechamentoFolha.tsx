@@ -1127,7 +1127,7 @@ export default function FechamentoFolha() {
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
                 <CardTitle className="text-base">Faltas do Mês</CardTitle>
-                {faltasDoMes.length > 0 && (
+                {faltasAgrupadas.length > 0 && (
                   <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleCopyFaltas}>
                     <Copy className="w-3 h-3 mr-1" /> Copiar
                   </Button>
