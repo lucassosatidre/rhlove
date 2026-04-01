@@ -464,11 +464,12 @@ export default function FechamentoFolha() {
       ];
 
       // Styles
-      const headerFill: ExcelJS.FillPattern = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC0C0C0' } };
+      const silverFill: ExcelJS.FillPattern = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC0C0C0' } };
       const headerFont: Partial<ExcelJS.Font> = { bold: true, color: { argb: 'FF000000' }, size: 10, name: 'Arial' };
-      const titleFont: Partial<ExcelJS.Font> = { bold: true, size: 12, name: 'Arial' };
-      const labelFont: Partial<ExcelJS.Font> = { bold: true, size: 10, name: 'Arial' };
+      const titleFont: Partial<ExcelJS.Font> = { bold: true, size: 14, name: 'Arial' };
+      const labelFont: Partial<ExcelJS.Font> = { bold: true, size: 11, name: 'Arial' };
       const normalFont: Partial<ExcelJS.Font> = { size: 10, name: 'Arial' };
+      const labelValueFont: Partial<ExcelJS.Font> = { size: 11, name: 'Arial' };
       const thinBorder: Partial<ExcelJS.Borders> = {
         top: { style: 'thin' }, bottom: { style: 'thin' },
         left: { style: 'thin' }, right: { style: 'thin' },
@@ -476,27 +477,27 @@ export default function FechamentoFolha() {
       const NUM_FMT = '#,##0.00';
       const CODE_FMT = '0000';
 
-      // Row 1: Title
-      ws.mergeCells('A1:O1');
+      // Row 1: Title — NO merge, left aligned, font 14
       const titleCell = ws.getCell('A1');
       titleCell.value = 'RELAÇÃO DE VALORES PARA FOLHA DE PAGAMENTO';
       titleCell.font = titleFont;
-      titleCell.alignment = { horizontal: 'center' };
+      titleCell.alignment = { horizontal: 'left' };
 
-      // Rows 3-6: Company info
-      const silverFill: ExcelJS.FillPattern = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC0C0C0' } };
-      const leftAlign: Partial<ExcelJS.Alignment> = { horizontal: 'left' };
-      ws.getCell('A3').value = 'Codigo Empresa:'; ws.getCell('A3').font = labelFont; ws.getCell('A3').fill = silverFill; ws.getCell('A3').alignment = leftAlign;
-      ws.getCell('C3').value = 582; ws.getCell('C3').numFmt = '0000000'; ws.getCell('C3').font = normalFont; ws.getCell('C3').alignment = leftAlign;
-      ws.getCell('A4').value = 'Razão Social:'; ws.getCell('A4').font = labelFont; ws.getCell('A4').fill = silverFill; ws.getCell('A4').alignment = leftAlign;
-      ws.getCell('C4').value = 'PROPOSITO SOLUCOES LTDA'; ws.getCell('C4').font = normalFont; ws.getCell('C4').alignment = leftAlign;
-      ws.getCell('A5').value = 'Inscrição Cnpj:'; ws.getCell('A5').font = labelFont; ws.getCell('A5').fill = silverFill; ws.getCell('A5').alignment = leftAlign;
-      ws.getCell('C5').value = '58.483.608/0001-02'; ws.getCell('C5').font = normalFont; ws.getCell('C5').alignment = leftAlign;
-      ws.getCell('A6').value = 'Competencia:'; ws.getCell('A6').font = labelFont; ws.getCell('A6').fill = silverFill; ws.getCell('A6').alignment = leftAlign;
-      const compCell = ws.getCell('C6');
-      compCell.value = `${String(selectedMonth + 1).padStart(2, '0')}/${selectedYear}`;
-      compCell.font = normalFont;
-      compCell.alignment = leftAlign;
+      // Rows 3-6: Company info — merge A+B, silver fill on labels, NO fill on values, NO borders
+      ws.mergeCells('A3:B3'); ws.mergeCells('A4:B4'); ws.mergeCells('A5:B5'); ws.mergeCells('A6:B6');
+
+      ws.getCell('A3').value = 'Codigo Empresa:'; ws.getCell('A3').font = labelFont; ws.getCell('A3').fill = silverFill; ws.getCell('A3').alignment = { horizontal: 'left', vertical: 'bottom' };
+      ws.getCell('C3').value = 582; ws.getCell('C3').numFmt = '0000000'; ws.getCell('C3').font = labelValueFont; ws.getCell('C3').alignment = { horizontal: 'left' };
+
+      ws.getCell('A4').value = 'Razão Social:'; ws.getCell('A4').font = labelFont; ws.getCell('A4').fill = silverFill; ws.getCell('A4').alignment = { horizontal: 'left', vertical: 'bottom' };
+      ws.getCell('C4').value = 'PROPOSITO SOLUCOES LTDA'; ws.getCell('C4').font = labelValueFont; ws.getCell('C4').alignment = { horizontal: 'left' };
+
+      ws.getCell('A5').value = 'Inscrição Cnpj:'; ws.getCell('A5').font = labelFont; ws.getCell('A5').fill = silverFill; ws.getCell('A5').alignment = { horizontal: 'left', vertical: 'bottom' };
+      ws.getCell('C5').value = '58.483.608/0001-02'; ws.getCell('C5').font = labelValueFont; ws.getCell('C5').alignment = { horizontal: 'left' };
+
+      ws.getCell('A6').value = 'Competencia:'; ws.getCell('A6').font = labelFont; ws.getCell('A6').fill = silverFill; ws.getCell('A6').alignment = { horizontal: 'left', vertical: 'bottom' };
+      ws.getCell('C6').value = `${String(selectedMonth + 1).padStart(2, '0')}/${selectedYear}`;
+      ws.getCell('C6').font = labelValueFont; ws.getCell('C6').alignment = { horizontal: 'left' };
 
       // Row 9: Header group names
       const headers1 = [
@@ -508,13 +509,17 @@ export default function FechamentoFolha() {
         'Desc. Prêmio antecipado', 'Assiduidade', 'Vale Transporte',
       ];
       const row9 = ws.getRow(9);
+      row9.height = 29;
       headers1.forEach((h, i) => {
         const cell = row9.getCell(i + 1);
         cell.value = h;
         cell.font = headerFont;
-        cell.fill = headerFill;
+        cell.fill = silverFill;
         cell.border = thinBorder;
-        cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+        // Col C and cols 9(Prêmio),11(Gorjetas),14(Assiduidade) use vertical middle; rest use bottom
+        const colNum = i + 1;
+        const useMiddle = colNum === 3 || colNum === 9 || colNum === 11 || colNum === 14;
+        cell.alignment = { horizontal: 'center', vertical: useMiddle ? 'middle' : 'bottom', wrapText: true };
       });
 
       // Row 10: Header codes
@@ -523,11 +528,12 @@ export default function FechamentoFolha() {
         202, 203, 200, 206, 25, 223, 8069, 235, 233, 224, 222, 207,
       ];
       const row10 = ws.getRow(10);
+      row10.height = 16;
       headers2.forEach((h, i) => {
         const cell = row10.getCell(i + 1);
         cell.value = h;
         cell.font = headerFont;
-        cell.fill = headerFill;
+        cell.fill = silverFill;
         cell.border = thinBorder;
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
         if (typeof h === 'number') cell.numFmt = CODE_FMT;
@@ -579,20 +585,20 @@ export default function FechamentoFolha() {
         rowIndex++;
       }
 
-      // Total row with silver fill
+      // Total row
       const totalRow = ws.getRow(rowIndex);
       const totalCellA = totalRow.getCell(1);
-      totalCellA.value = 'TOTAL'; totalCellA.font = labelFont; totalCellA.border = thinBorder; totalCellA.alignment = { horizontal: 'center' }; totalCellA.fill = headerFill;
+      totalCellA.value = 'TOTAL'; totalCellA.font = { ...headerFont, bold: true }; totalCellA.border = thinBorder; totalCellA.alignment = { horizontal: 'center' }; totalCellA.fill = silverFill;
       const totalCellB = totalRow.getCell(2);
-      totalCellB.value = templateRows.length; totalCellB.font = labelFont; totalCellB.border = thinBorder; totalCellB.alignment = { horizontal: 'center' }; totalCellB.fill = headerFill;
+      totalCellB.value = templateRows.length; totalCellB.font = normalFont; totalCellB.border = thinBorder; totalCellB.numFmt = '00000'; totalCellB.alignment = { horizontal: 'right' }; totalCellB.fill = silverFill;
       const totalCellC = totalRow.getCell(3);
-      totalCellC.value = 'Colaboradores'; totalCellC.font = labelFont; totalCellC.border = thinBorder; totalCellC.fill = headerFill;
+      totalCellC.value = 'Colaboradores'; totalCellC.font = normalFont; totalCellC.border = thinBorder; totalCellC.fill = silverFill;
       for (let col = 4; col <= 15; col++) {
         const cell = totalRow.getCell(col);
-        cell.font = labelFont;
+        cell.font = normalFont;
         cell.border = thinBorder;
         cell.numFmt = NUM_FMT;
-        cell.fill = headerFill;
+        cell.fill = silverFill;
         cell.alignment = { horizontal: 'right' };
       }
 
