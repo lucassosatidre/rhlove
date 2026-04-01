@@ -59,7 +59,7 @@ export default function BancoHoras() {
   const { data: collaborators = [] } = useCollaborators();
   const { data: allTransactions = [], isLoading } = useBHTransactions(semesterStart);
   const insertTx = useInsertBHTransaction();
-  const deleteTx = useDeleteBHTransactionsBySemester();
+  const _deleteTx = useDeleteBHTransactionsBySemester();
   const insertFolga = useInsertBHFolga();
   const { usuario, session } = useAuth();
   const isAdmin = usuario?.perfil === 'admin';
