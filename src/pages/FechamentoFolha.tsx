@@ -426,7 +426,7 @@ export default function FechamentoFolha() {
         const pd = processedData.find(p => p.collaboratorId === m.collaborator!.id);
         if (!pd) continue;
 
-        const row = m.sheetRow + 1; // XLSX is 1-indexed
+        const _row = m.sheetRow + 1; // XLSX is 1-indexed
         // F = col 5 (E.100), G = col 6 (N.100), H = col 7 (A.Not), K = col 10 (Bonus), O = col 14 (VT)
         if (pd.extra100 > 0) sheet[XLSX.utils.encode_cell({ r: m.sheetRow, c: 5 })] = { t: 'n', v: pd.extra100 };
         if (pd.not100 > 0) sheet[XLSX.utils.encode_cell({ r: m.sheetRow, c: 6 })] = { t: 'n', v: pd.not100 };
