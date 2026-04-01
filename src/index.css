@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,25 +6,25 @@
 
 @layer base {
   :root {
-    --background: 30 25% 97%;
-    --foreground: 20 20% 10%;
+    --background: 40 20% 97%;
+    --foreground: 0 0% 10%;
 
-    --card: 30 20% 99%;
-    --card-foreground: 20 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
 
-    --popover: 30 20% 99%;
-    --popover-foreground: 20 20% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
 
-    --primary: 24 90% 50%;
+    --primary: 24 94% 53%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 30 15% 92%;
-    --secondary-foreground: 20 20% 10%;
+    --secondary: 40 15% 94%;
+    --secondary-foreground: 0 0% 10%;
 
-    --muted: 30 10% 94%;
-    --muted-foreground: 20 10% 44%;
+    --muted: 40 10% 95%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 24 70% 93%;
+    --accent: 24 70% 95%;
     --accent-foreground: 24 80% 30%;
 
     --destructive: 0 72% 51%;
@@ -36,9 +36,9 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 30 12% 88%;
-    --input: 30 12% 88%;
-    --ring: 24 90% 50%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 24 94% 53%;
 
     --radius: 0.75rem;
 
@@ -56,7 +56,7 @@
     --sector-tele: 152 55% 38%;
     --sector-diurno: 220 65% 50%;
 
-    --font-sans: 'DM Sans', system-ui, sans-serif;
+    --font-sans: 'Inter', system-ui, sans-serif;
   }
 
   .dark {
@@ -144,7 +144,7 @@
   body {
     background: white !important;
     color: #1a1a1a !important;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Inter', sans-serif;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

@@ -83,7 +83,7 @@ type InconsistencyTag = 'batida_pendente' | 'falta' | 'sem_intervalo' | 'incompl
 
 const TAG_CONFIG: Record<InconsistencyTag, { label: string; emoji: string; className: string; isInconsistency: boolean }> = {
   batida_pendente: { label: 'Batida pendente', emoji: '🔴', className: 'bg-red-100 text-red-700 border-red-200', isInconsistency: true },
-  falta: { label: 'Falta', emoji: '❌', className: 'bg-gray-200 text-gray-700 border-gray-300', isInconsistency: false },
+  falta: { label: 'Falta', emoji: '❌', className: 'bg-muted text-muted-foreground border-border', isInconsistency: false },
   jornada_curta: { label: 'Jornada < 2h', emoji: '🟡', className: 'bg-yellow-100 text-yellow-700 border-yellow-200', isInconsistency: true },
   jornada_longa: { label: 'Jornada > 14h', emoji: '🟠', className: 'bg-orange-100 text-orange-700 border-orange-200', isInconsistency: true },
   sem_intervalo: { label: 'Sem intervalo', emoji: '🟡', className: 'bg-yellow-100 text-yellow-700 border-yellow-200', isInconsistency: true },
@@ -626,7 +626,7 @@ export default function EspelhoPonto() {
       );
     }
     if (row.status.includes('Férias')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-emerald-100 text-emerald-700 border border-emerald-200">🌴 Férias</span>;
-    if (row.status.includes('Afastado')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-gray-100 text-gray-600 border border-gray-200">📋 Ajuste</span>;
+    if (row.status.includes('Afastado')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-muted/60 text-muted-foreground border border-border">📋 Ajuste</span>;
     if (row.status.includes('Feriado')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-700 border border-amber-200">🎉 Feriado</span>;
     if (row.status.includes('Compensação')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-700 border border-amber-200">🎉 Compensação</span>;
     if (row.status === '—') return <span className="text-[10px] text-muted-foreground">—</span>;
@@ -797,38 +797,38 @@ export default function EspelhoPonto() {
                 <TableHeader>
                 {showJornada && (
                     <TableRow className="border-b-0">
-                      <TableHead colSpan={1} className="sticky top-0 z-20 bg-gray-700 text-white text-[10px] font-semibold h-6 py-0"></TableHead>
-                      <TableHead colSpan={4} className="sticky top-0 z-20 bg-gray-700 text-white text-center text-[10px] font-semibold border-l-2 border-l-gray-500 h-6 py-0">Batidas</TableHead>
-                      <TableHead colSpan={2} className="sticky top-0 z-20 bg-gray-700 text-white text-center text-[10px] font-semibold border-l-2 border-l-gray-500 h-6 py-0">Resumo</TableHead>
-                      <TableHead colSpan={3} className="sticky top-0 z-20 bg-gray-700 text-white text-center text-[10px] font-semibold border-l-2 border-l-gray-500 h-6 py-0">Jornada</TableHead>
-                      <TableHead colSpan={2} className="sticky top-0 z-20 bg-gray-700 text-white text-center text-[10px] font-semibold border-l-2 border-l-gray-500 h-6 py-0">Desvios</TableHead>
-                      <TableHead colSpan={2} className="sticky top-0 z-20 bg-gray-700 text-white text-center text-[10px] font-semibold border-l-2 border-l-gray-500 h-6 py-0">Extras</TableHead>
-                      <TableHead colSpan={2} className="sticky top-0 z-20 bg-gray-700 text-white text-center text-[10px] font-semibold border-l-2 border-l-gray-500 h-6 py-0">Noturno</TableHead>
-                      <TableHead colSpan={1} className="sticky top-0 z-20 bg-gray-700 text-white text-center text-[10px] font-semibold border-l-2 border-l-gray-500 h-6 py-0">BH</TableHead>
-                      {canEdit && <TableHead className="sticky top-0 z-20 bg-gray-700 h-6 py-0"></TableHead>}
+                      <TableHead colSpan={1} className="sticky top-0 z-20 bg-foreground/80 text-background text-[10px] font-semibold h-6 py-0"></TableHead>
+                      <TableHead colSpan={4} className="sticky top-0 z-20 bg-foreground/80 text-background text-center text-[10px] font-semibold border-l-2 border-l-foreground/40 h-6 py-0">Batidas</TableHead>
+                      <TableHead colSpan={2} className="sticky top-0 z-20 bg-foreground/80 text-background text-center text-[10px] font-semibold border-l-2 border-l-foreground/40 h-6 py-0">Resumo</TableHead>
+                      <TableHead colSpan={3} className="sticky top-0 z-20 bg-foreground/80 text-background text-center text-[10px] font-semibold border-l-2 border-l-foreground/40 h-6 py-0">Jornada</TableHead>
+                      <TableHead colSpan={2} className="sticky top-0 z-20 bg-foreground/80 text-background text-center text-[10px] font-semibold border-l-2 border-l-foreground/40 h-6 py-0">Desvios</TableHead>
+                      <TableHead colSpan={2} className="sticky top-0 z-20 bg-foreground/80 text-background text-center text-[10px] font-semibold border-l-2 border-l-foreground/40 h-6 py-0">Extras</TableHead>
+                      <TableHead colSpan={2} className="sticky top-0 z-20 bg-foreground/80 text-background text-center text-[10px] font-semibold border-l-2 border-l-foreground/40 h-6 py-0">Noturno</TableHead>
+                      <TableHead colSpan={1} className="sticky top-0 z-20 bg-foreground/80 text-background text-center text-[10px] font-semibold border-l-2 border-l-foreground/40 h-6 py-0">BH</TableHead>
+                      {canEdit && <TableHead className="sticky top-0 z-20 bg-foreground/80 h-6 py-0"></TableHead>}
                     </TableRow>
                   )}
                   <TableRow>
-                    {!showJornada && <TableHead className={`sticky top-0 z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold h-8 py-0`}>Colaborador</TableHead>}
-                    <TableHead className={`sticky ${showJornada ? 'top-6 left-0 z-20' : 'top-0 z-10'} bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold w-20 h-8 py-0`}>Data</TableHead>
-                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold border-l-2 border-l-gray-300 h-8 py-0`}>Entrada</TableHead>
-                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold h-8 py-0`}>Saída Int.</TableHead>
-                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold h-8 py-0`}>Ret. Int.</TableHead>
-                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold h-8 py-0`}>Saída</TableHead>
-                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold border-l-2 border-l-gray-300 h-8 py-0`}>Horas</TableHead>
-                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold h-8 py-0`}>Status</TableHead>
+                    {!showJornada && <TableHead className={`sticky top-0 z-10 bg-muted/60 text-foreground text-xs font-bold h-8 py-0`}>Colaborador</TableHead>}
+                    <TableHead className={`sticky ${showJornada ? 'top-6 left-0 z-20' : 'top-0 z-10'} bg-muted/60 text-foreground text-xs font-bold w-20 h-8 py-0`}>Data</TableHead>
+                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} z-10 bg-muted/60 text-foreground text-xs font-bold border-l-2 border-l-border h-8 py-0`}>Entrada</TableHead>
+                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} z-10 bg-muted/60 text-foreground text-xs font-bold h-8 py-0`}>Saída Int.</TableHead>
+                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} z-10 bg-muted/60 text-foreground text-xs font-bold h-8 py-0`}>Ret. Int.</TableHead>
+                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} z-10 bg-muted/60 text-foreground text-xs font-bold h-8 py-0`}>Saída</TableHead>
+                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} z-10 bg-muted/60 text-foreground text-xs font-bold border-l-2 border-l-border h-8 py-0`}>Horas</TableHead>
+                    <TableHead className={`sticky ${showJornada ? 'top-6' : 'top-0'} z-10 bg-muted/60 text-foreground text-xs font-bold h-8 py-0`}>Status</TableHead>
                     {showJornada && (
                       <>
-                        <TableHead className="sticky top-6 z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold text-center border-l-2 border-l-gray-300 h-8 py-0">CH</TableHead>
-                        <TableHead className="sticky top-6 z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold text-center h-8 py-0">Norm.</TableHead>
-                        <TableHead className="sticky top-6 z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold text-center h-8 py-0">Flt.</TableHead>
-                        <TableHead className="sticky top-6 z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold text-center border-l-2 border-l-gray-300 h-8 py-0">Atr.</TableHead>
-                        <TableHead className="sticky top-6 z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold text-center h-8 py-0">Adi.</TableHead>
-                        <TableHead className="sticky top-6 z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold text-center border-l-2 border-l-gray-300 h-8 py-0">E.BH</TableHead>
-                        <TableHead className="sticky top-6 z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold text-center h-8 py-0">E.100</TableHead>
-                        <TableHead className="sticky top-6 z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold text-center border-l-2 border-l-gray-300 h-8 py-0">A.Not</TableHead>
-                        <TableHead className="sticky top-6 z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold text-center h-8 py-0">N.100</TableHead>
-                        <TableHead className="sticky top-6 z-10 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold text-center border-l-2 border-l-gray-300 h-8 py-0">Saldo</TableHead>
+                        <TableHead className="sticky top-6 z-10 bg-muted/60 text-foreground text-xs font-bold text-center border-l-2 border-l-border h-8 py-0">CH</TableHead>
+                        <TableHead className="sticky top-6 z-10 bg-muted/60 text-foreground text-xs font-bold text-center h-8 py-0">Norm.</TableHead>
+                        <TableHead className="sticky top-6 z-10 bg-muted/60 text-foreground text-xs font-bold text-center h-8 py-0">Flt.</TableHead>
+                        <TableHead className="sticky top-6 z-10 bg-muted/60 text-foreground text-xs font-bold text-center border-l-2 border-l-border h-8 py-0">Atr.</TableHead>
+                        <TableHead className="sticky top-6 z-10 bg-muted/60 text-foreground text-xs font-bold text-center h-8 py-0">Adi.</TableHead>
+                        <TableHead className="sticky top-6 z-10 bg-muted/60 text-foreground text-xs font-bold text-center border-l-2 border-l-border h-8 py-0">E.BH</TableHead>
+                        <TableHead className="sticky top-6 z-10 bg-muted/60 text-foreground text-xs font-bold text-center h-8 py-0">E.100</TableHead>
+                        <TableHead className="sticky top-6 z-10 bg-muted/60 text-foreground text-xs font-bold text-center border-l-2 border-l-border h-8 py-0">A.Not</TableHead>
+                        <TableHead className="sticky top-6 z-10 bg-muted/60 text-foreground text-xs font-bold text-center h-8 py-0">N.100</TableHead>
+                        <TableHead className="sticky top-6 z-10 bg-muted/60 text-foreground text-xs font-bold text-center border-l-2 border-l-border h-8 py-0">Saldo</TableHead>
                       </>
                     )}
                     {canEdit && <TableHead className={`w-8 sticky ${showJornada ? 'top-6' : 'top-0'} z-10 bg-gray-100 dark:bg-gray-800 print:hidden h-8 py-0`}></TableHead>}
@@ -849,7 +849,7 @@ export default function EspelhoPonto() {
                     const saldo = j ? fmtSaldo(j.saldoBH) : { text: '', className: '' };
                     return (
                       <TableRow key={`${r.collaboratorId}-${r.date}`}
-                        className={`${isExtra100 ? 'bg-pink-50 dark:bg-pink-950/20' : hasInconsistency ? 'bg-destructive/5' : isFaltaConfirmada ? 'bg-gray-100 dark:bg-gray-800/30' : idx % 2 === 1 ? 'bg-gray-50/60 dark:bg-gray-900/20' : ''}`}>
+                        className={`${isExtra100 ? 'bg-pink-50 dark:bg-pink-950/20' : hasInconsistency ? 'bg-destructive/5' : isFaltaConfirmada ? 'bg-muted/40' : idx % 2 === 1 ? 'bg-muted/20' : ''}`}>
                         {!showJornada && (
                           <TableCell className="text-xs font-medium py-0.5 px-2">
                             <button onClick={() => { setSelectedCollaboratorId(r.collaboratorId); setOnlyInconsistencies(false); }}
@@ -861,7 +861,7 @@ export default function EspelhoPonto() {
                         <TableCell className={`text-[11px] font-medium whitespace-nowrap tabular-nums py-0.5 px-2 ${showJornada ? 'sticky left-0 bg-inherit z-10' : ''}`}>
                           {format(r.dateObj, 'dd/MM')} <span className="text-muted-foreground">{r.weekday}</span>
                         </TableCell>
-                        <TableCell className="text-xs tabular-nums py-0.5 px-1 border-l-2 border-l-gray-300">
+                        <TableCell className="text-xs tabular-nums py-0.5 px-1 border-l-2 border-l-border">
                           <InlineTimeCell value={r.entrada} canEdit={canEdit} onSave={v => handleInlineSave(r, 'entrada', v)} />
                         </TableCell>
                         <TableCell className="text-xs tabular-nums py-0.5 px-1">
@@ -881,7 +881,7 @@ export default function EspelhoPonto() {
                         <TableCell className="text-xs tabular-nums py-0.5 px-1">
                           <InlineTimeCell value={r.saida} canEdit={canEdit} onSave={v => handleInlineSave(r, 'saida', v)} />
                         </TableCell>
-                        <TableCell className="text-[11px] tabular-nums font-medium py-0.5 border-l-2 border-l-gray-300">{r.hoursMin != null ? formatMinutes(r.hoursMin) : '—'}</TableCell>
+                        <TableCell className="text-[11px] tabular-nums font-medium py-0.5 border-l-2 border-l-border">{r.hoursMin != null ? formatMinutes(r.hoursMin) : '—'}</TableCell>
                         <TableCell className="py-0.5">
                           <div className="flex items-center gap-0.5">
                             {renderStatusTag(r)}
@@ -890,16 +890,16 @@ export default function EspelhoPonto() {
                         </TableCell>
                         {showJornada && (
                           <>
-                            <TableCell className="text-[10px] tabular-nums text-center py-0.5 border-l-2 border-l-gray-300">{fmtHHMM(j?.chPrevista ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center py-0.5 border-l-2 border-l-border">{fmtHHMM(j?.chPrevista ?? null)}</TableCell>
                             <TableCell className="text-[10px] tabular-nums text-center py-0.5">{fmtHHMM(j?.normais ?? null)}</TableCell>
                             <TableCell className="text-[10px] tabular-nums text-center text-red-600 py-0.5">{fmtHHMM(j?.faltas ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center text-amber-600 py-0.5 border-l-2 border-l-gray-300">{fmtHHMM(j?.atraso ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center text-amber-600 py-0.5 border-l-2 border-l-border">{fmtHHMM(j?.atraso ?? null)}</TableCell>
                             <TableCell className="text-[10px] tabular-nums text-center text-blue-600 py-0.5">{fmtHHMM(j?.adiantamento ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center text-green-600 py-0.5 border-l-2 border-l-gray-300">{fmtHHMM(j?.extraBH ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center text-green-600 py-0.5 border-l-2 border-l-border">{fmtHHMM(j?.extraBH ?? null)}</TableCell>
                             <TableCell className="text-[10px] tabular-nums text-center text-purple-600 py-0.5">{fmtHHMM(j?.extra100 ?? null)}</TableCell>
-                            <TableCell className="text-[10px] tabular-nums text-center text-indigo-600 py-0.5 border-l-2 border-l-gray-300">{fmtHHMM(j?.adNoturno ?? null)}</TableCell>
+                            <TableCell className="text-[10px] tabular-nums text-center text-indigo-600 py-0.5 border-l-2 border-l-border">{fmtHHMM(j?.adNoturno ?? null)}</TableCell>
                             <TableCell className="text-[10px] tabular-nums text-center text-indigo-600 py-0.5">{fmtHHMM(j?.not100 ?? null)}</TableCell>
-                            <TableCell className={`text-[10px] tabular-nums text-center font-medium py-0.5 border-l-2 border-l-gray-300 ${saldo.className}`}>{saldo.text}</TableCell>
+                            <TableCell className={`text-[10px] tabular-nums text-center font-medium py-0.5 border-l-2 border-l-border ${saldo.className}`}>{saldo.text}</TableCell>
                           </>
                         )}
                         {canEdit && (

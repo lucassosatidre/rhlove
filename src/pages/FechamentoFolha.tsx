@@ -948,20 +948,20 @@ export default function FechamentoFolha() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8">Colaborador</TableHead>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8">Setor</TableHead>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8 text-center">Gên.</TableHead>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8 text-center">E.100</TableHead>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8 text-center">N.100</TableHead>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8 text-center">A.Not</TableHead>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8 text-center">Bônus 10%</TableHead>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8 text-center">VT</TableHead>
-                      <TableHead className="sticky top-0 z-10 bg-gray-100 text-xs font-bold h-8">Avisos</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8">Colaborador</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8">Setor</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8 text-center">Gên.</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8 text-center">E.100</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8 text-center">N.100</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8 text-center">A.Not</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8 text-center">Bônus 10%</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8 text-center">VT</TableHead>
+                      <TableHead className="sticky top-0 z-10 bg-muted/60 text-xs font-semibold h-8">Avisos</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {processedData.map((p, i) => (
-                      <TableRow key={i} className={p.warnings.length > 0 ? 'bg-amber-50/50' : i % 2 === 1 ? 'bg-gray-50/60' : ''}>
+                      <TableRow key={i} className={p.warnings.length > 0 ? 'bg-amber-50/50' : i % 2 === 1 ? 'bg-muted/20' : ''}>
                         <TableCell className="text-xs font-medium">{p.collaboratorName}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{p.sector}</TableCell>
                         <TableCell className="text-xs text-center">{p.genero}</TableCell>
