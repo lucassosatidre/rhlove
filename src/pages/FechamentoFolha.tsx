@@ -706,11 +706,11 @@ export default function FechamentoFolha() {
                   <TableFooter>
                     <TableRow className="font-semibold bg-muted/50">
                       <TableCell colSpan={3} className="text-xs text-right">TOTAIS</TableCell>
-                      <TableCell className="text-xs tabular-nums text-center">{totals.extra100.toFixed(2)}</TableCell>
-                      <TableCell className="text-xs tabular-nums text-center">{totals.not100.toFixed(2)}</TableCell>
-                      <TableCell className="text-xs tabular-nums text-center">{totals.adNoturno.toFixed(2)}</TableCell>
-                      <TableCell className="text-xs tabular-nums text-center font-bold">R$ {totals.bonus10.toLocaleString('pt-BR')}</TableCell>
-                      <TableCell className="text-xs tabular-nums text-center font-bold">R$ {totals.vtDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-xs tabular-nums text-center">{totals.extra100.toFixed(2).replace('.', ',')}</TableCell>
+                      <TableCell className="text-xs tabular-nums text-center">{totals.not100.toFixed(2).replace('.', ',')}</TableCell>
+                      <TableCell className="text-xs tabular-nums text-center">{totals.adNoturno.toFixed(2).replace('.', ',')}</TableCell>
+                      <TableCell className="text-xs tabular-nums text-center font-bold">R$ {totals.bonus10.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                      <TableCell className="text-xs tabular-nums text-center font-bold">R$ {totals.vtDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
                       <TableCell />
                     </TableRow>
                   </TableFooter>
