@@ -79,14 +79,15 @@ function useHolidays() {
 }
 
 // ── Inconsistency types ──
-type InconsistencyTag = 'batida_pendente' | 'sem_intervalo' | 'incompleta' | 'jornada_longa' | 'jornada_curta';
+type InconsistencyTag = 'batida_pendente' | 'falta' | 'sem_intervalo' | 'incompleta' | 'jornada_longa' | 'jornada_curta';
 
-const TAG_CONFIG: Record<InconsistencyTag, { label: string; emoji: string; className: string }> = {
-  batida_pendente: { label: 'Batida pendente', emoji: '🔴', className: 'bg-red-100 text-red-700 border-red-200' },
-  jornada_curta: { label: 'Jornada < 2h', emoji: '🟡', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-  jornada_longa: { label: 'Jornada > 14h', emoji: '🟠', className: 'bg-orange-100 text-orange-700 border-orange-200' },
-  sem_intervalo: { label: 'Sem intervalo', emoji: '🟡', className: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-  incompleta: { label: 'Incompleta', emoji: '🔴', className: 'bg-red-100 text-red-700 border-red-200' },
+const TAG_CONFIG: Record<InconsistencyTag, { label: string; emoji: string; className: string; isInconsistency: boolean }> = {
+  batida_pendente: { label: 'Batida pendente', emoji: '🔴', className: 'bg-red-100 text-red-700 border-red-200', isInconsistency: true },
+  falta: { label: 'Falta', emoji: '❌', className: 'bg-gray-200 text-gray-700 border-gray-300', isInconsistency: false },
+  jornada_curta: { label: 'Jornada < 2h', emoji: '🟡', className: 'bg-yellow-100 text-yellow-700 border-yellow-200', isInconsistency: true },
+  jornada_longa: { label: 'Jornada > 14h', emoji: '🟠', className: 'bg-orange-100 text-orange-700 border-orange-200', isInconsistency: true },
+  sem_intervalo: { label: 'Sem intervalo', emoji: '🟡', className: 'bg-yellow-100 text-yellow-700 border-yellow-200', isInconsistency: true },
+  incompleta: { label: 'Incompleta', emoji: '🔴', className: 'bg-red-100 text-red-700 border-red-200', isInconsistency: true },
 };
 
 function detectTags(entrada: string | null, saida: string | null, saidaInt: string | null, retornoInt: string | null): InconsistencyTag[] {
