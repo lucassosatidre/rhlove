@@ -60,6 +60,27 @@ function EscalaInner() {
   const { data: holidays = [] } = useHolidays();
   const { data: punchRecords = [] } = usePunchRecords(month, year);
 
+  // Fetch Folga BH records for displayed month range
+  const { data: folgasBH = [] } = useQuery({
+    queryKey: ['bank_hours_folgas_escala', month, year],
+    queryFn: async () => {
+      const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+      const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(new Date(year, month + 1, 0).getDate()).padStart(2, '0')}`;
+      const { data, error } = await supabase
+        .from('bank_hours_folgas')
+        .select('collaborator_id, folga_date')
+        .gte('folga_date', startDate)
+        .lte('folga_date', endDate);
+      if (error) throw error;
+      return data as { collaborator_id: string; folga_date: string }[];
+    },
+  });
+
+  const folgaBHSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const f of folgasBH) set.add(`${f.collaborator_id}|${f.folga_date}`);
+    return set;
+  }, [folgasBH]);
   // Helper: get upcoming holiday warnings for a week start date (within 21 days)
   const getHolidayWarnings = (weekStartDate: Date) => {
     const warnings: { name: string; daysUntil: number }[] = [];
