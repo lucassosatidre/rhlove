@@ -485,17 +485,18 @@ export default function FechamentoFolha() {
 
       // Rows 3-6: Company info
       const silverFill: ExcelJS.FillPattern = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFC0C0C0' } };
-      ws.getCell('A3').value = 'Codigo Empresa:'; ws.getCell('A3').font = labelFont; ws.getCell('A3').fill = silverFill;
-      ws.getCell('C3').value = '582'; ws.getCell('C3').font = normalFont;
-      ws.getCell('A4').value = 'Razão Social:'; ws.getCell('A4').font = labelFont; ws.getCell('A4').fill = silverFill;
-      ws.getCell('C4').value = 'PROPOSITO SOLUCOES LTDA'; ws.getCell('C4').font = normalFont;
-      ws.getCell('A5').value = 'Inscrição Cnpj:'; ws.getCell('A5').font = labelFont; ws.getCell('A5').fill = silverFill;
-      ws.getCell('C5').value = '58.483.608/0001-02'; ws.getCell('C5').font = normalFont;
-      ws.getCell('A6').value = 'Competencia:'; ws.getCell('A6').font = labelFont; ws.getCell('A6').fill = silverFill;
+      const leftAlign: Partial<ExcelJS.Alignment> = { horizontal: 'left' };
+      ws.getCell('A3').value = 'Codigo Empresa:'; ws.getCell('A3').font = labelFont; ws.getCell('A3').fill = silverFill; ws.getCell('A3').alignment = leftAlign;
+      ws.getCell('C3').value = 582; ws.getCell('C3').numFmt = '0000000'; ws.getCell('C3').font = normalFont; ws.getCell('C3').alignment = leftAlign;
+      ws.getCell('A4').value = 'Razão Social:'; ws.getCell('A4').font = labelFont; ws.getCell('A4').fill = silverFill; ws.getCell('A4').alignment = leftAlign;
+      ws.getCell('C4').value = 'PROPOSITO SOLUCOES LTDA'; ws.getCell('C4').font = normalFont; ws.getCell('C4').alignment = leftAlign;
+      ws.getCell('A5').value = 'Inscrição Cnpj:'; ws.getCell('A5').font = labelFont; ws.getCell('A5').fill = silverFill; ws.getCell('A5').alignment = leftAlign;
+      ws.getCell('C5').value = '58.483.608/0001-02'; ws.getCell('C5').font = normalFont; ws.getCell('C5').alignment = leftAlign;
+      ws.getCell('A6').value = 'Competencia:'; ws.getCell('A6').font = labelFont; ws.getCell('A6').fill = silverFill; ws.getCell('A6').alignment = leftAlign;
       const compCell = ws.getCell('C6');
-      compCell.value = new Date(selectedYear, selectedMonth, 1);
-      compCell.numFmt = 'MM/YYYY';
+      compCell.value = `${String(selectedMonth + 1).padStart(2, '0')}/${selectedYear}`;
       compCell.font = normalFont;
+      compCell.alignment = leftAlign;
 
       // Row 9: Header group names
       const headers1 = [
