@@ -589,9 +589,11 @@ export default function FechamentoFolha() {
       totalCellC.value = 'Colaboradores'; totalCellC.font = labelFont; totalCellC.border = thinBorder; totalCellC.fill = headerFill;
       for (let col = 4; col <= 15; col++) {
         const cell = totalRow.getCell(col);
+        cell.font = labelFont;
         cell.border = thinBorder;
         cell.numFmt = NUM_FMT;
         cell.fill = headerFill;
+        cell.alignment = { horizontal: 'right' };
       }
 
       // Generate and download
