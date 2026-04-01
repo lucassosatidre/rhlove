@@ -686,11 +686,11 @@ export default function FechamentoFolha() {
                         <TableCell className="text-xs font-medium">{p.collaboratorName}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{p.sector}</TableCell>
                         <TableCell className="text-xs text-center">{p.genero}</TableCell>
-                        <TableCell className="text-xs tabular-nums text-center">{p.extra100 > 0 ? p.extra100.toFixed(2) : '—'}</TableCell>
-                        <TableCell className="text-xs tabular-nums text-center">{p.not100 > 0 ? p.not100.toFixed(2) : '—'}</TableCell>
-                        <TableCell className="text-xs tabular-nums text-center">{p.adNoturno > 0 ? p.adNoturno.toFixed(2) : '—'}</TableCell>
-                        <TableCell className="text-xs tabular-nums text-center font-medium">{p.bonus10 > 0 ? `R$ ${p.bonus10}` : '—'}</TableCell>
-                        <TableCell className="text-xs tabular-nums text-center">{p.vtDesconto > 0 ? `R$ ${p.vtDesconto.toFixed(2)}` : '—'}</TableCell>
+                        <TableCell className="text-xs tabular-nums text-center">{p.extra100 > 0 ? p.extra100.toFixed(2).replace('.', ',') : '—'}</TableCell>
+                        <TableCell className="text-xs tabular-nums text-center">{p.not100 > 0 ? p.not100.toFixed(2).replace('.', ',') : '—'}</TableCell>
+                        <TableCell className="text-xs tabular-nums text-center">{p.adNoturno > 0 ? p.adNoturno.toFixed(2).replace('.', ',') : '—'}</TableCell>
+                        <TableCell className="text-xs tabular-nums text-center font-medium">{p.bonus10 > 0 ? `R$ ${p.bonus10.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}</TableCell>
+                        <TableCell className="text-xs tabular-nums text-center">{p.vtDesconto > 0 ? `R$ ${p.vtDesconto.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {p.warnings.map((w, j) => (
