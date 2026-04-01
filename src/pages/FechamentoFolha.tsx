@@ -5,8 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { DropZone } from '@/components/ui/drop-zone';
-import { Calendar, Upload, Play, Download, RefreshCw, AlertTriangle, CheckCircle, Users, FileText } from 'lucide-react';
-import { format, getDaysInMonth, getDay } from 'date-fns';
+import { Calendar, Upload, Play, Download, RefreshCw, AlertTriangle, CheckCircle, Users, FileText, Copy } from 'lucide-react';
+import { format, getDaysInMonth, getDay, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
@@ -674,6 +674,97 @@ export default function FechamentoFolha() {
 
   const warningCount = processedData.filter(p => p.warnings.length > 0).length;
 
+  // Compute confirmed absences for the month
+  const faltasDoMes = useMemo(() => {
+    if (processedData.length === 0) return [];
+    // Find last punch date with entrada filled
+    const punchesWithEntrada = punchRecords.filter(p => p.entrada);
+    if (punchesWithEntrada.length === 0) return [];
+    const lastPunchDate = punchesWithEntrada.reduce((max, p) => p.date > max ? p.date : max, punchesWithEntrada[0].date);
+
+    // Build punch set for quick lookup
+    const punchSet = new Set(punchesWithEntrada.map(p => `${p.collaborator_id}|${p.date}`));
+
+    // Build name map: collaborator_id -> sheet name (from matches)
+    const sheetNameMap = new Map<string, string>();
+    matches.forEach(m => {
+      if (m.collaborator) sheetNameMap.set(m.collaborator.id, m.sheetName);
+    });
+
+    const faltas: { date: string; name: string }[] = [];
+
+    for (const p of processedData) {
+      if (!p.collaboratorId) continue;
+      const collab = collaborators.find(c => c.id === p.collaboratorId);
+      if (!collab || !collab.controla_ponto) continue;
+
+      // Check aviso prévio end date
+      const avisoFimDate = collab.data_fim_aviso;
+
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateObj = new Date(selectedYear, selectedMonth, d);
+        const iso = format(dateObj, 'yyyy-MM-dd');
+        if (iso > lastPunchDate) continue;
+        if (avisoFimDate && iso > avisoFimDate) continue;
+
+        const wd = WEEKDAY_MAP[getDay(dateObj)];
+        // Check if it's a day off
+        let isFolga = !!collab.folgas_semanais?.includes(wd);
+        if (!isFolga && collab.sunday_n > 0 && getDay(dateObj) === 0) {
+          let sundayCount = 0;
+          for (let day = 1; day <= d; day++) {
+            if (getDay(new Date(selectedYear, selectedMonth, day)) === 0) sundayCount++;
+          }
+          if (sundayCount === collab.sunday_n) isFolga = true;
+        }
+        // Check swap overrides
+        const weekStart = (() => {
+          const dd = new Date(dateObj);
+          const day = dd.getDay();
+          const diff = day === 0 ? -6 : 1 - day;
+          dd.setDate(dd.getDate() + diff);
+          return format(dd, 'yyyy-MM-dd');
+        })();
+        const override = swapOverrides.get(`${weekStart}|${collab.id}`);
+        if (override) {
+          const wdLower = wd.toLowerCase();
+          if (override.removeDays.some((rd: any) => rd?.toLowerCase() === wdLower)) isFolga = false;
+          if (override.addDays.some((ad: any) => ad?.toLowerCase() === wdLower)) isFolga = true;
+        }
+        // Check events
+        const dayEvents = eventsMap[iso]?.[collab.id] ?? [];
+        const isAtestado = dayEvents.some((e: any) => e.event_type === 'ATESTADO' && e.status === 'ATIVO');
+        const isCompensacao = dayEvents.some((e: any) => e.event_type === 'COMPENSACAO' && e.status === 'ATIVO');
+        if (isFolga || isCompensacao || isAtestado) continue;
+
+        // Check holiday
+        if (holidaySet.has(iso)) continue;
+        // Check vacation
+        if (vacations.some(v => v.collaborator_id === collab.id && iso >= v.data_inicio_ferias && iso <= v.data_fim_ferias)) continue;
+        // Check afastamento
+        if (afastamentos.some(a => a.collaborator_id === collab.id && iso >= a.data_inicio && iso <= a.data_fim)) continue;
+
+        // If no punch → falta
+        if (!punchSet.has(`${collab.id}|${iso}`)) {
+          const displayName = sheetNameMap.get(collab.id) || collab.collaborator_name;
+          faltas.push({ date: iso, name: displayName });
+        }
+      }
+    }
+
+    // Sort by date, then name
+    faltas.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name));
+    return faltas;
+  }, [processedData, punchRecords, matches, collaborators, daysInMonth, selectedMonth, selectedYear, swapOverrides, eventsMap, holidaySet, vacations, afastamentos]);
+
+  const handleCopyFaltas = () => {
+    if (faltasDoMes.length === 0) return;
+    const text = faltasDoMes.map(f => `${format(parseISO(f.date), 'dd/MM/yyyy')} - ${f.name}`).join('\n');
+    navigator.clipboard.writeText(text);
+    toast.success('Lista de faltas copiada!');
+  };
+
+
   const statusBadge = existingClosing?.status === 'processado'
     ? <Badge className="bg-green-100 text-green-700 border-green-200">Processado</Badge>
     : existingClosing?.status === 'enviado'
@@ -811,7 +902,7 @@ export default function FechamentoFolha() {
       {step === 'review' && (
         <>
           {/* Summary cards */}
-          <div className="grid grid-cols-5 gap-3">
+          <div className="grid grid-cols-6 gap-3">
             <Card><CardContent className="p-3">
               <p className="text-[10px] text-muted-foreground">Colaboradores</p>
               <p className="text-lg font-bold tabular-nums">{processedData.length}</p>
@@ -834,6 +925,12 @@ export default function FechamentoFolha() {
               <p className="text-[10px] text-muted-foreground">Total A.Not (dec)</p>
               <p className="text-lg font-bold tabular-nums">{totals.adNoturno.toFixed(2).replace('.', ',')}</p>
             </CardContent></Card>
+            <Card className={faltasDoMes.length > 0 ? 'border-red-300 bg-red-50/50' : ''}>
+              <CardContent className="p-3">
+                <p className="text-[10px] text-muted-foreground">Faltas no mês</p>
+                <p className={`text-lg font-bold tabular-nums ${faltasDoMes.length > 0 ? 'text-red-600' : ''}`}>{faltasDoMes.length}</p>
+              </CardContent>
+            </Card>
           </div>
 
           <Card>
@@ -902,6 +999,33 @@ export default function FechamentoFolha() {
                   </TableFooter>
                 </Table>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Faltas do Mês */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-base">Faltas do Mês</CardTitle>
+                {faltasDoMes.length > 0 && (
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleCopyFaltas}>
+                    <Copy className="w-3 h-3 mr-1" /> Copiar
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {faltasDoMes.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma falta registrada no mês</p>
+              ) : (
+                <div className="max-h-60 overflow-auto space-y-0.5">
+                  {faltasDoMes.map((f, i) => (
+                    <p key={i} className="text-sm font-mono tabular-nums">
+                      {format(parseISO(f.date), 'dd/MM/yyyy')} - {f.name}
+                    </p>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </>
