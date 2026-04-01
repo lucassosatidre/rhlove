@@ -70,7 +70,8 @@ export function countPeopleBySectorOnDate(
   scheduledVacations: ScheduledVacation[] = [],
   dayOffOverrides?: DayOffOverridesMap,
   afastamentos: Afastamento[] = [],
-  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
+  punchFaltaSet?: PunchFaltaSet
 ): number {
   const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   const absentCollaboratorIds = absentCollaboratorIdsByDate?.get(dateKey);
@@ -82,7 +83,11 @@ export function countPeopleBySectorOnDate(
     afastamentos
   );
 
-  return (collaboratorsBySector[sector] ?? []).filter(id => !absentCollaboratorIds?.has(id)).length;
+  return (collaboratorsBySector[sector] ?? []).filter(id => {
+    if (absentCollaboratorIds?.has(id)) return false;
+    if (punchFaltaSet?.has(`${id}|${dateKey}`)) return false;
+    return true;
+  }).length;
 }
 
 export function generateProductivityData(
