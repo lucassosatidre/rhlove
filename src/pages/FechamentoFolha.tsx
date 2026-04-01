@@ -925,6 +925,12 @@ export default function FechamentoFolha() {
               <p className="text-[10px] text-muted-foreground">Total A.Not (dec)</p>
               <p className="text-lg font-bold tabular-nums">{totals.adNoturno.toFixed(2).replace('.', ',')}</p>
             </CardContent></Card>
+            <Card className={faltasDoMes.length > 0 ? 'border-red-300 bg-red-50/50' : ''}>
+              <CardContent className="p-3">
+                <p className="text-[10px] text-muted-foreground">Faltas no mês</p>
+                <p className={`text-lg font-bold tabular-nums ${faltasDoMes.length > 0 ? 'text-red-600' : ''}`}>{faltasDoMes.length}</p>
+              </CardContent>
+            </Card>
           </div>
 
           <Card>
