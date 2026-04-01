@@ -1135,14 +1135,23 @@ export default function FechamentoFolha() {
               </div>
             </CardHeader>
             <CardContent>
-              {faltasDoMes.length === 0 ? (
+              {faltasAgrupadas.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nenhuma falta registrada no mês</p>
               ) : (
-                <div className="max-h-60 overflow-auto space-y-0.5">
-                  {faltasDoMes.map((f, i) => (
-                    <p key={i} className="text-sm font-mono tabular-nums">
-                      {format(parseISO(f.date), 'dd/MM/yyyy')} - {f.name}
-                    </p>
+                <div className="max-h-80 overflow-auto space-y-3">
+                  {faltasAgrupadas.map((entry, i) => (
+                    <div key={i} className="space-y-0.5">
+                      <p className="text-sm">
+                        <span className="font-semibold">{entry.name}</span>
+                        <span className="text-muted-foreground"> — {entry.dates.length} falta{entry.dates.length > 1 ? 's' : ''}</span>
+                        {entry.dsrDates.length > 0 && (
+                          <span className="text-orange-600 font-medium"> — DSR perdido: {entry.dsrDates.map(d => `${format(parseISO(d.date), 'dd/MM')} (${d.dayLabel})`).join(', ')}</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-muted-foreground pl-2">
+                        Faltas: {entry.dates.map(d => format(parseISO(d), 'dd/MM')).join(', ')}
+                      </p>
+                    </div>
                   ))}
                 </div>
               )}
