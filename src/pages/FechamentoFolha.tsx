@@ -961,7 +961,7 @@ export default function FechamentoFolha() {
                   </TableHeader>
                   <TableBody>
                     {processedData.map((p, i) => (
-                      <TableRow key={i} className={p.warnings.length > 0 ? 'bg-amber-50/50' : i % 2 === 1 ? 'bg-gray-50/60' : ''}>
+                      <TableRow key={i} className={p.warnings.length > 0 ? 'bg-amber-50/50' : i % 2 === 1 ? 'bg-muted/20' : ''}>
                         <TableCell className="text-xs font-medium">{p.collaboratorName}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{p.sector}</TableCell>
                         <TableCell className="text-xs text-center">{p.genero}</TableCell>
