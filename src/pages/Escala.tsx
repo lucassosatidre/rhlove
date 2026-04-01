@@ -9,6 +9,8 @@ import { useScheduleEvents, buildEventsMap, buildSwapOverrides, type ScheduleEve
 import { useHolidays } from '@/hooks/useHolidayCompensations';
 import { usePunchRecords } from '@/hooks/usePunchRecords';
 import { INTEGRATION_START_DATE } from '@/lib/constants';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { generateSchedule, getMonthLabel, getFirstMondayOfMonthGrid, getWeekCount, getScheduledCollaboratorIdsBySectorOnDate, type ScheduleWeek } from '@/lib/scheduleEngine';
 import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { DraftModeProvider, useDraftMode, type DraftSalesEntry } from '@/contexts/DraftModeContext';
