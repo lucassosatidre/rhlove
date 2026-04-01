@@ -118,6 +118,31 @@ export default function Produtividade() {
   const { data: scheduledVacations = [] } = useScheduledVacations();
   const { data: afastamentos = [] } = useAfastamentos();
 
+  // Previous period for comparison
+  const prevPeriod = useMemo(() => {
+    const s = new Date(startDate + 'T00:00:00');
+    const e = new Date(endDate + 'T00:00:00');
+    const days = Math.round((e.getTime() - s.getTime()) / 86400000) + 1;
+    const prevEnd = new Date(s);
+    prevEnd.setDate(prevEnd.getDate() - 1);
+    const prevStart = new Date(prevEnd);
+    prevStart.setDate(prevStart.getDate() - days + 1);
+    const toStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return { start: toStr(prevStart), end: toStr(prevEnd) };
+  }, [startDate, endDate]);
+
+  const { data: prevSalesData = [] } = useDailySales(prevPeriod.start, prevPeriod.end);
+  const { data: prevFreelancersData = [] } = useFreelancers(prevPeriod.start, prevPeriod.end);
+  const { data: prevFreelancerEntriesData = [] } = useFreelancerEntries(prevPeriod.start, prevPeriod.end);
+
+  const { data: scheduleEvents = [] } = useScheduleEvents(prevPeriod.start, endDate);
+  const swapOverrides = useMemo(() => buildSwapOverrides(scheduleEvents), [scheduleEvents]);
+  const eventsMap = useMemo(() => buildEventsMap(scheduleEvents), [scheduleEvents]);
+  const absentCollaboratorIdsByDate = useMemo(
+    () => buildAbsentCollaboratorIdsByDate(scheduleEvents),
+    [scheduleEvents]
+  );
+
   // Punch records for punch-confirmed falta detection
   const { data: punchRecordsForRange = [] } = useQuery({
     queryKey: ['punch_records_range', prevPeriod.start, endDate],
@@ -134,31 +159,9 @@ export default function Produtividade() {
     enabled: !!prevPeriod.start && !!endDate,
   });
 
-  // Previous period for comparison
-  const prevPeriod = useMemo(() => {
-    const s = new Date(startDate + 'T00:00:00');
-    const e = new Date(endDate + 'T00:00:00');
-    const days = Math.round((e.getTime() - s.getTime()) / 86400000) + 1;
-    const prevEnd = new Date(s);
-    prevEnd.setDate(prevEnd.getDate() - 1);
-    const prevStart = new Date(prevEnd);
-    prevStart.setDate(prevStart.getDate() - days + 1);
-    const toStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    return { start: toStr(prevStart), end: toStr(prevEnd) };
-  }, [startDate, endDate]);
-
-  const { data: scheduleEvents = [] } = useScheduleEvents(prevPeriod.start, endDate);
-  const swapOverrides = useMemo(() => buildSwapOverrides(scheduleEvents), [scheduleEvents]);
-  const eventsMap = useMemo(() => buildEventsMap(scheduleEvents), [scheduleEvents]);
-  const absentCollaboratorIdsByDate = useMemo(
-    () => buildAbsentCollaboratorIdsByDate(scheduleEvents),
-    [scheduleEvents]
-  );
-
   // Build punchFaltaSet: collaborators scheduled to work but with no punch, no justification event
   const punchFaltaSet = useMemo(() => {
     const set = new Set<string>();
-    // Find last punch date
     let maxPunchDate = '';
     const punchSet = new Set<string>();
     for (const p of punchRecordsForRange) {
@@ -169,7 +172,6 @@ export default function Produtividade() {
     }
     if (!maxPunchDate) return set;
 
-    // For each sales date, check scheduled collaborators
     const allDates = new Set<string>();
     for (const s of salesData) allDates.add(s.date);
     for (const s of prevSalesData) allDates.add(s.date);
@@ -188,7 +190,6 @@ export default function Produtividade() {
           if (punchSet.has(`${id}|${dateStr}`)) continue;
           const collab = collaborators.find(c => c.id === id);
           if (!collab || !collab.controla_ponto) continue;
-          // Check for justification events
           const collabEvents = eventsMap[dateStr]?.[id] || [];
           const hasJustification = collabEvents.some(e =>
             e.event_type === 'FALTA' || e.event_type === 'ATESTADO' || e.event_type === 'COMPENSACAO'
@@ -201,10 +202,6 @@ export default function Produtividade() {
     }
     return set;
   }, [punchRecordsForRange, salesData, prevSalesData, collaborators, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, eventsMap]);
-
-  const { data: prevSalesData = [] } = useDailySales(prevPeriod.start, prevPeriod.end);
-  const { data: prevFreelancersData = [] } = useFreelancers(prevPeriod.start, prevPeriod.end);
-  const { data: prevFreelancerEntriesData = [] } = useFreelancerEntries(prevPeriod.start, prevPeriod.end);
 
   const upsertMut = useUpsertDailySales();
   const bulkMut = useBulkInsertDailySales();
