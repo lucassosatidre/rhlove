@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useCollaborators } from '@/hooks/useCollaborators';
-import { useBonusFuncaoPontos, useCreateBonusFuncao, useUpdateBonusFuncao, useDeleteBonusFuncao, useBonus10Monthly, useUpsertBonus10Monthly } from '@/hooks/useBonus10';
+import { useBonusFuncaoPontos, useCreateBonusFuncao, useUpdateBonusFuncao, useDeleteBonusFuncao, useBonus10Monthly, useUpsertBonus10Monthly, useBonus10Config, useUpsertBonus10Config } from '@/hooks/useBonus10';
 import type { BonusFuncaoPontos, Bonus10Monthly } from '@/hooks/useBonus10';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
