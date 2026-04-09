@@ -5,6 +5,8 @@ import { useFreelancers } from '@/hooks/useFreelancers';
 import { useFreelancerEntries } from '@/hooks/useFreelancerEntries';
 import { useScheduledVacations } from '@/hooks/useScheduledVacations';
 import { useScheduleEvents } from '@/hooks/useScheduleEvents';
+import { useAvisosPrevios } from '@/hooks/useAvisosPrevios';
+import { useHolidayCompensations } from '@/hooks/useHolidayCompensations';
 import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { Loader2, CalendarDays, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,6 +14,7 @@ import SaiposSyncButton from '@/components/productivity/SaiposSyncButton';
 import TopKPICards from '@/components/dashboard/TopKPICards';
 import MetricBlock from '@/components/dashboard/MetricBlock';
 import MonthlyComparison from '@/components/dashboard/MonthlyComparison';
+import HRCalendar from '@/components/dashboard/HRCalendar';
 import { computeBlockMetrics, type BlockMetrics } from '@/lib/dashboardEngine';
 
 function fmt(d: Date): string {
@@ -65,8 +68,10 @@ export default function Dashboard() {
   const { data: freelancerEntries = [] } = useFreelancerEntries(broadStart, broadEnd);
   const { data: scheduledVacations = [] } = useScheduledVacations();
   const { data: scheduleEvents = [] } = useScheduleEvents(broadStart, broadEnd);
+  const { data: avisos = [], isLoading: loadingAvisos } = useAvisosPrevios();
+  const { data: compensations = [], isLoading: loadingCompensations } = useHolidayCompensations();
 
-  const loading = loadingSales || loadingCollab;
+  const loading = loadingSales || loadingCollab || loadingAvisos || loadingCompensations;
   const absentCollaboratorIdsByDate = useMemo(
     () => buildAbsentCollaboratorIdsByDate(scheduleEvents),
     [scheduleEvents]
@@ -120,7 +125,7 @@ export default function Dashboard() {
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-foreground md:text-2xl">
-            Dashboard Operacional
+            Dashboard
           </h1>
           <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5">
@@ -137,6 +142,14 @@ export default function Dashboard() {
         </div>
         <SaiposSyncButton />
       </div>
+
+      {/* HR Calendar */}
+      <HRCalendar
+        collaborators={collaborators}
+        vacations={scheduledVacations}
+        avisos={avisos}
+        compensations={compensations}
+      />
 
       {/* Top KPI Cards */}
       <TopKPICards data={yesterdayData} periodLabel="Ontem" comparisonLabel="mesmo dia da semana anterior" />

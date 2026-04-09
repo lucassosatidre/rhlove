@@ -14,7 +14,7 @@ import FeriasProgramadas from "@/pages/FeriasProgramadas";
 import Compensacoes from "@/pages/Compensacoes";
 import AvisosPrevios from "@/pages/AvisosPrevios";
 import Afastamentos from "@/pages/Afastamentos";
-import CalendarioRH from "@/pages/CalendarioRH";
+
 import GerenciarUsuarios from "@/pages/GerenciarUsuarios";
 import RegistroPonto from "@/pages/RegistroPonto";
 import CheckoutPage from "@/pages/Checkout";
@@ -88,7 +88,7 @@ function AppRoutes() {
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="/" element={<ProtectedRoute allowedRoles={['admin', 'gestor', 'visualizador']}><Dashboard /></ProtectedRoute>} />
         <Route path="/escala" element={<ProtectedRoute><Escala /></ProtectedRoute>} />
-        <Route path="/calendario-rh" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><CalendarioRH /></ProtectedRoute>} />
+        <Route path="/calendario-rh" element={<Navigate to="/" replace />} />
         <Route path="/colaboradores" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Colaboradores /></ProtectedRoute>} />
         <Route path="/produtividade" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Produtividade /></ProtectedRoute>} />
         <Route path="/bonus-10" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><Bonus10 /></ProtectedRoute>} />
