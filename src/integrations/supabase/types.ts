@@ -1137,6 +1137,42 @@ export type Database = {
           },
         ]
       }
+      saipos_sync_log: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          faturamento_total: number
+          id: string
+          mode: string
+          pedidos_totais: number
+          status: string
+          sync_date: string
+          total_sales: number
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          faturamento_total?: number
+          id?: string
+          mode?: string
+          pedidos_totais?: number
+          status?: string
+          sync_date: string
+          total_sales?: number
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          faturamento_total?: number
+          id?: string
+          mode?: string
+          pedidos_totais?: number
+          status?: string
+          sync_date?: string
+          total_sales?: number
+        }
+        Relationships: []
+      }
       schedule_events: {
         Row: {
           collaborator_id: string
