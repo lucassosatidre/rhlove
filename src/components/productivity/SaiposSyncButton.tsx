@@ -141,6 +141,8 @@ export default function SaiposSyncButton() {
   const [rangeDialogOpen, setRangeDialogOpen] = useState(false);
   const [rangeStart, setRangeStart] = useState('');
   const [rangeEnd, setRangeEnd] = useState('');
+  const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
+  const [manualToken, setManualToken] = useState('');
 
   if (!usuario || usuario.perfil !== 'admin') return null;
 
@@ -248,13 +250,30 @@ export default function SaiposSyncButton() {
     }
   }
 
-  async function handleSeedToken() {
+  async function handleSaveManualToken() {
+    if (!manualToken.trim()) return;
     try {
-      const { data, error } = await supabase.functions.invoke('sync-saipos-sales', {
-        body: { mode: 'save-token' },
-      });
-      if (error) throw error;
-      toast({ title: 'Token salvo', description: 'Token Saipos copiado para app_settings.' });
+      // Try upsert: check if exists first
+      const { data: existing } = await supabase
+        .from('app_settings' as any)
+        .select('key')
+        .eq('key', 'SAIPOS_API_TOKEN')
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from('app_settings' as any)
+          .update({ value: manualToken.trim(), updated_at: new Date().toISOString() } as any)
+          .eq('key', 'SAIPOS_API_TOKEN');
+      } else {
+        await supabase
+          .from('app_settings' as any)
+          .insert({ key: 'SAIPOS_API_TOKEN', value: manualToken.trim() } as any);
+      }
+
+      setTokenDialogOpen(false);
+      setManualToken('');
+      toast({ title: 'Token salvo', description: 'Token Saipos salvo com sucesso.' });
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' });
     }
@@ -280,8 +299,8 @@ export default function SaiposSyncButton() {
           <DropdownMenuItem onClick={() => syncRange(BACKFILL_START, getYesterdayBRT())}>
             Backfill (23/03 → ontem)
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleSeedToken}>
-            Salvar token na base
+          <DropdownMenuItem onClick={() => setTokenDialogOpen(true)}>
+            Configurar token
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -310,6 +329,29 @@ export default function SaiposSyncButton() {
               }}
             >
               Sincronizar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={tokenDialogOpen} onOpenChange={setTokenDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Configurar token Saipos</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label className="text-xs">Token JWT da API Saipos</Label>
+            <Input
+              type="password"
+              placeholder="Cole o token aqui..."
+              value={manualToken}
+              onChange={e => setManualToken(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">O token já foi importado automaticamente. Use este campo apenas se precisar atualizar.</p>
+          </div>
+          <DialogFooter>
+            <Button disabled={!manualToken.trim()} onClick={handleSaveManualToken}>
+              Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
