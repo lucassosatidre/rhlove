@@ -151,6 +151,28 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const body = await req.json().catch(() => ({}));
+    const mode = body.mode || "yesterday";
+
+    // Mode: save-token — copy SAIPOS_API_TOKEN env var into app_settings table
+    if (mode === "save-token") {
+      const saiposToken = Deno.env.get("SAIPOS_API_TOKEN");
+      if (!saiposToken) throw new Error("SAIPOS_API_TOKEN not configured");
+      const sb = createClient(supabaseUrl, serviceKey);
+      const { error } = await sb.from("app_settings").upsert(
+        { key: "SAIPOS_API_TOKEN", value: saiposToken },
+        { onConflict: "key" }
+      );
+      if (error) throw error;
+      return new Response(
+        JSON.stringify({ success: true, message: "Token saved to app_settings" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const saiposToken = Deno.env.get("SAIPOS_API_TOKEN");
     if (!saiposToken) throw new Error("SAIPOS_API_TOKEN not configured");
 

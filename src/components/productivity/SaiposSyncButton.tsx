@@ -1,0 +1,319 @@
+import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { RefreshCw, ChevronDown } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+
+const SAIPOS_BASE = 'https://data.saipos.io/v1/search_sales';
+const PAGE_LIMIT = 1000;
+const MAX_DAYS_PER_BLOCK = 14;
+const BACKFILL_START = '2026-03-23';
+
+interface SaiposSale {
+  id_sale_type: number;
+  total_amount: number;
+  canceled: string;
+  shift_date: string;
+}
+
+interface DayTotals {
+  faturamento_salao: number;
+  pedidos_salao: number;
+  faturamento_tele: number;
+  pedidos_tele: number;
+  faturamento_total: number;
+  pedidos_totais: number;
+  total_sales: number;
+}
+
+function getYesterdayBRT(): string {
+  const now = new Date();
+  const brt = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  brt.setDate(brt.getDate() - 1);
+  return brt.toISOString().slice(0, 10);
+}
+
+function getTodayBRT(): string {
+  const now = new Date();
+  const brt = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+  return brt.toISOString().slice(0, 10);
+}
+
+function splitIntoBlocks(start: string, end: string) {
+  const blocks: Array<{ start: string; end: string }> = [];
+  let current = new Date(start + 'T00:00:00Z');
+  const endDate = new Date(end + 'T00:00:00Z');
+  while (current <= endDate) {
+    const blockEnd = new Date(current);
+    blockEnd.setDate(blockEnd.getDate() + MAX_DAYS_PER_BLOCK - 1);
+    if (blockEnd > endDate) blockEnd.setTime(endDate.getTime());
+    blocks.push({
+      start: current.toISOString().slice(0, 10),
+      end: blockEnd.toISOString().slice(0, 10),
+    });
+    current = new Date(blockEnd);
+    current.setDate(current.getDate() + 1);
+  }
+  return blocks;
+}
+
+async function fetchSalesPage(token: string, dateStart: string, dateEnd: string, offset: number): Promise<SaiposSale[]> {
+  const params = new URLSearchParams({
+    p_date_column_filter: 'shift_date',
+    p_filter_date_start: `${dateStart}T00:00:00`,
+    p_filter_date_end: `${dateEnd}T23:59:59`,
+    p_limit: String(PAGE_LIMIT),
+    p_offset: String(offset),
+  });
+  const res = await fetch(`${SAIPOS_BASE}?${params}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Saipos API ${res.status}: ${body.slice(0, 200)}`);
+  }
+  return res.json();
+}
+
+async function fetchAllSales(token: string, dateStart: string, dateEnd: string): Promise<SaiposSale[]> {
+  const all: SaiposSale[] = [];
+  let offset = 0;
+  while (true) {
+    const page = await fetchSalesPage(token, dateStart, dateEnd, offset);
+    all.push(...page);
+    if (page.length < PAGE_LIMIT) break;
+    offset += PAGE_LIMIT;
+  }
+  return all;
+}
+
+function aggregateByDay(sales: SaiposSale[]): Map<string, DayTotals> {
+  const map = new Map<string, DayTotals>();
+  for (const sale of sales) {
+    if (sale.canceled !== 'N') continue;
+    const day = sale.shift_date?.slice(0, 10);
+    if (!day) continue;
+    let t = map.get(day);
+    if (!t) {
+      t = { faturamento_salao: 0, pedidos_salao: 0, faturamento_tele: 0, pedidos_tele: 0, faturamento_total: 0, pedidos_totais: 0, total_sales: 0 };
+      map.set(day, t);
+    }
+    t.total_sales++;
+    const amount = Number(sale.total_amount) || 0;
+    if (sale.id_sale_type === 3) {
+      t.faturamento_salao += amount;
+      t.pedidos_salao++;
+    } else if ([1, 2, 4].includes(sale.id_sale_type)) {
+      t.faturamento_tele += amount;
+      t.pedidos_tele++;
+    }
+  }
+  for (const t of map.values()) {
+    t.faturamento_total = t.faturamento_salao + t.faturamento_tele;
+    t.pedidos_totais = t.pedidos_salao + t.pedidos_tele;
+  }
+  return map;
+}
+
+export default function SaiposSyncButton() {
+  const { usuario } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [syncing, setSyncing] = useState(false);
+  const [progress, setProgress] = useState('');
+  const [rangeDialogOpen, setRangeDialogOpen] = useState(false);
+  const [rangeStart, setRangeStart] = useState('');
+  const [rangeEnd, setRangeEnd] = useState('');
+
+  if (!usuario || usuario.perfil !== 'admin') return null;
+
+  async function getToken(): Promise<string> {
+    const { data, error } = await supabase
+      .from('app_settings' as any)
+      .select('value')
+      .eq('key', 'SAIPOS_API_TOKEN')
+      .maybeSingle();
+    if (error || !data) {
+      throw new Error('Token Saipos não encontrado. Execute a seed do token primeiro.');
+    }
+    return (data as any).value;
+  }
+
+  async function syncRange(start: string, end: string) {
+    setSyncing(true);
+    setProgress('Buscando token...');
+    try {
+      const token = await getToken();
+      const blocks = splitIntoBlocks(start, end);
+      let totalDays = 0;
+      let totalSales = 0;
+      let totalFat = 0;
+
+      for (let i = 0; i < blocks.length; i++) {
+        const block = blocks[i];
+        setProgress(`Sincronizando ${block.start} a ${block.end}... (bloco ${i + 1}/${blocks.length})`);
+
+        const sales = await fetchAllSales(token, block.start, block.end);
+        const byDay = aggregateByDay(sales);
+
+        // Process all days in the block range
+        const startD = new Date(block.start + 'T00:00:00Z');
+        const endD = new Date(block.end + 'T00:00:00Z');
+
+        for (let d = new Date(startD); d <= endD; d.setDate(d.getDate() + 1)) {
+          const dayStr = d.toISOString().slice(0, 10);
+          const t = byDay.get(dayStr) || {
+            faturamento_salao: 0, pedidos_salao: 0,
+            faturamento_tele: 0, pedidos_tele: 0,
+            faturamento_total: 0, pedidos_totais: 0, total_sales: 0,
+          };
+
+          // Upsert daily_sales - check if exists first
+          const { data: existing } = await supabase
+            .from('daily_sales')
+            .select('id')
+            .eq('date', dayStr)
+            .maybeSingle();
+
+          if (existing) {
+            await supabase.from('daily_sales').update({
+              faturamento_total: t.faturamento_total,
+              pedidos_totais: t.pedidos_totais,
+              faturamento_salao: t.faturamento_salao,
+              pedidos_salao: t.pedidos_salao,
+              faturamento_tele: t.faturamento_tele,
+              pedidos_tele: t.pedidos_tele,
+            }).eq('id', existing.id);
+          } else {
+            await supabase.from('daily_sales').insert({
+              date: dayStr,
+              faturamento_total: t.faturamento_total,
+              pedidos_totais: t.pedidos_totais,
+              faturamento_salao: t.faturamento_salao,
+              pedidos_salao: t.pedidos_salao,
+              faturamento_tele: t.faturamento_tele,
+              pedidos_tele: t.pedidos_tele,
+            });
+          }
+
+          // Log
+          await supabase.from('saipos_sync_log').insert({
+            sync_date: dayStr,
+            mode: start === end ? 'yesterday' : 'backfill',
+            total_sales: t.total_sales,
+            faturamento_total: t.faturamento_total,
+            pedidos_totais: t.pedidos_totais,
+            status: 'success',
+          } as any);
+
+          totalDays++;
+          totalSales += t.total_sales;
+          totalFat += t.faturamento_total;
+        }
+      }
+
+      setProgress('');
+      queryClient.invalidateQueries({ queryKey: ['daily_sales'] });
+      toast({
+        title: 'Sincronização concluída!',
+        description: `${totalDays} dias | ${totalSales} vendas | R$ ${totalFat.toFixed(2)}`,
+      });
+    } catch (err: any) {
+      console.error('Saipos sync error:', err);
+      setProgress('');
+      toast({
+        title: 'Erro na sincronização',
+        description: err.message?.slice(0, 200),
+        variant: 'destructive',
+      });
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function handleSeedToken() {
+    try {
+      const { data, error } = await supabase.functions.invoke('sync-saipos-sales', {
+        body: { mode: 'save-token' },
+      });
+      if (error) throw error;
+      toast({ title: 'Token salvo', description: 'Token Saipos copiado para app_settings.' });
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    }
+  }
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" disabled={syncing}>
+            <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? progress || 'Sincronizando...' : 'Sync Saipos'}
+            <ChevronDown className="w-3 h-3 ml-1" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => syncRange(getYesterdayBRT(), getYesterdayBRT())}>
+            Sync ontem
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setRangeDialogOpen(true)}>
+            Sync período...
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => syncRange(BACKFILL_START, getYesterdayBRT())}>
+            Backfill (23/03 → ontem)
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleSeedToken}>
+            Salvar token na base
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <Dialog open={rangeDialogOpen} onOpenChange={setRangeDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Sincronizar período</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Data Inicial</Label>
+              <Input type="date" value={rangeStart} onChange={e => setRangeStart(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Data Final</Label>
+              <Input type="date" value={rangeEnd} onChange={e => setRangeEnd(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              disabled={!rangeStart || !rangeEnd}
+              onClick={() => {
+                setRangeDialogOpen(false);
+                syncRange(rangeStart, rangeEnd);
+              }}
+            >
+              Sincronizar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
