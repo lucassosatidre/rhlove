@@ -21,10 +21,10 @@ import {
 import { RefreshCw, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-const SAIPOS_BASE = 'https://data.saipos.io/v1/search_sales';
-const PAGE_LIMIT = 1000;
 const MAX_DAYS_PER_BLOCK = 14;
 const BACKFILL_START = '2026-03-23';
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 3000;
 
 interface SaiposSale {
   id_sale_type: number;
@@ -50,12 +50,6 @@ function getYesterdayBRT(): string {
   return brt.toISOString().slice(0, 10);
 }
 
-function getTodayBRT(): string {
-  const now = new Date();
-  const brt = new Date(now.getTime() - 3 * 60 * 60 * 1000);
-  return brt.toISOString().slice(0, 10);
-}
-
 function splitIntoBlocks(start: string, end: string) {
   const blocks: Array<{ start: string; end: string }> = [];
   let current = new Date(start + 'T00:00:00Z');
@@ -72,36 +66,6 @@ function splitIntoBlocks(start: string, end: string) {
     current.setDate(current.getDate() + 1);
   }
   return blocks;
-}
-
-async function fetchSalesPage(token: string, dateStart: string, dateEnd: string, offset: number): Promise<SaiposSale[]> {
-  const params = new URLSearchParams({
-    p_date_column_filter: 'shift_date',
-    p_filter_date_start: `${dateStart}T00:00:00`,
-    p_filter_date_end: `${dateEnd}T23:59:59`,
-    p_limit: String(PAGE_LIMIT),
-    p_offset: String(offset),
-  });
-  const res = await fetch(`${SAIPOS_BASE}?${params}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Saipos API ${res.status}: ${body.slice(0, 200)}`);
-  }
-  return res.json();
-}
-
-async function fetchAllSales(token: string, dateStart: string, dateEnd: string): Promise<SaiposSale[]> {
-  const all: SaiposSale[] = [];
-  let offset = 0;
-  while (true) {
-    const page = await fetchSalesPage(token, dateStart, dateEnd, offset);
-    all.push(...page);
-    if (page.length < PAGE_LIMIT) break;
-    offset += PAGE_LIMIT;
-  }
-  return all;
 }
 
 function aggregateByDay(sales: SaiposSale[]): Map<string, DayTotals> {
@@ -132,6 +96,36 @@ function aggregateByDay(sales: SaiposSale[]): Map<string, DayTotals> {
   return map;
 }
 
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  setProgress: (msg: string) => void,
+  blockLabel: string,
+): Promise<Response> {
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok) return res;
+      if (attempt < MAX_RETRIES && [403, 500, 502, 503].includes(res.status)) {
+        setProgress(`${blockLabel} — Erro ${res.status}, tentativa ${attempt + 1}/${MAX_RETRIES}...`);
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+        continue;
+      }
+      const body = await res.text();
+      throw new Error(`Proxy ${res.status}: ${body.slice(0, 200)}`);
+    } catch (err: any) {
+      if (err.message?.startsWith('Proxy ')) throw err;
+      if (attempt < MAX_RETRIES) {
+        setProgress(`${blockLabel} — Erro de rede, tentativa ${attempt + 1}/${MAX_RETRIES}...`);
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+        continue;
+      }
+      throw new Error(`Falha após ${MAX_RETRIES} tentativas: ${err.message}`);
+    }
+  }
+  throw new Error('Falha após todas as tentativas');
+}
+
 export default function SaiposSyncButton() {
   const { usuario } = useAuth();
   const { toast } = useToast();
@@ -146,23 +140,26 @@ export default function SaiposSyncButton() {
 
   if (!usuario || usuario.perfil !== 'admin') return null;
 
-  async function getToken(): Promise<string> {
+  async function getProxyConfig(): Promise<{ proxyUrl: string; anonKey: string }> {
     const { data, error } = await supabase
       .from('app_settings' as any)
-      .select('value')
-      .eq('key', 'SAIPOS_API_TOKEN')
-      .maybeSingle();
-    if (error || !data) {
-      throw new Error('Token Saipos não encontrado. Execute a seed do token primeiro.');
+      .select('key, value')
+      .in('key', ['SAIPOS_PROXY_FUNCTION_URL', 'CXLOVE_ANON_KEY']);
+    if (error) throw new Error('Erro ao buscar configuração do proxy: ' + error.message);
+    const settings = (data as any[]) || [];
+    const proxyUrl = settings.find((s: any) => s.key === 'SAIPOS_PROXY_FUNCTION_URL')?.value;
+    const anonKey = settings.find((s: any) => s.key === 'CXLOVE_ANON_KEY')?.value;
+    if (!proxyUrl || !anonKey) {
+      throw new Error('Configuração do proxy não encontrada em app_settings. Configure SAIPOS_PROXY_FUNCTION_URL e CXLOVE_ANON_KEY.');
     }
-    return (data as any).value;
+    return { proxyUrl, anonKey };
   }
 
   async function syncRange(start: string, end: string) {
     setSyncing(true);
-    setProgress('Buscando token...');
+    setProgress('Buscando configuração...');
     try {
-      const token = await getToken();
+      const { proxyUrl, anonKey } = await getProxyConfig();
       const blocks = splitIntoBlocks(start, end);
       let totalDays = 0;
       let totalSales = 0;
@@ -170,12 +167,32 @@ export default function SaiposSyncButton() {
 
       for (let i = 0; i < blocks.length; i++) {
         const block = blocks[i];
-        setProgress(`Sincronizando ${block.start} a ${block.end}... (bloco ${i + 1}/${blocks.length})`);
+        const blockLabel = `${block.start} a ${block.end} (bloco ${i + 1}/${blocks.length})`;
+        setProgress(`Sincronizando ${blockLabel}...`);
 
-        const sales = await fetchAllSales(token, block.start, block.end);
+        const res = await fetchWithRetry(
+          proxyUrl,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${anonKey}`,
+              'apikey': anonKey,
+            },
+            body: JSON.stringify({
+              mode: 'raw',
+              start_date: block.start,
+              end_date: block.end,
+            }),
+          },
+          setProgress,
+          blockLabel,
+        );
+
+        const responseData = await res.json();
+        const sales: SaiposSale[] = responseData.sales || responseData || [];
         const byDay = aggregateByDay(sales);
 
-        // Process all days in the block range
         const startD = new Date(block.start + 'T00:00:00Z');
         const endD = new Date(block.end + 'T00:00:00Z');
 
@@ -187,7 +204,6 @@ export default function SaiposSyncButton() {
             faturamento_total: 0, pedidos_totais: 0, total_sales: 0,
           };
 
-          // Upsert daily_sales - check if exists first
           const { data: existing } = await supabase
             .from('daily_sales')
             .select('id')
@@ -215,7 +231,6 @@ export default function SaiposSyncButton() {
             });
           }
 
-          // Log
           await supabase.from('saipos_sync_log').insert({
             sync_date: dayStr,
             mode: start === end ? 'yesterday' : 'backfill',
@@ -253,7 +268,6 @@ export default function SaiposSyncButton() {
   async function handleSaveManualToken() {
     if (!manualToken.trim()) return;
     try {
-      // Try upsert: check if exists first
       const { data: existing } = await supabase
         .from('app_settings' as any)
         .select('key')
