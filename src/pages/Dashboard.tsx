@@ -8,6 +8,7 @@ import { useScheduleEvents } from '@/hooks/useScheduleEvents';
 import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { Loader2, CalendarDays, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import SaiposSyncButton from '@/components/productivity/SaiposSyncButton';
 import TopKPICards from '@/components/dashboard/TopKPICards';
 import MetricBlock from '@/components/dashboard/MetricBlock';
 import MonthlyComparison from '@/components/dashboard/MonthlyComparison';
