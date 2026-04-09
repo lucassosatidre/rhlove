@@ -69,10 +69,14 @@ async function fetchSalesPage(
     p_offset: String(offset),
   });
 
-  const url = `${SAIPOS_BASE}?${params}`;
+  const directUrl = `${SAIPOS_BASE}?${params}`;
+  const proxyBase = Deno.env.get("SAIPOS_PROXY_URL");
+  const url = proxyBase
+    ? `${proxyBase}${encodeURIComponent(directUrl)}`
+    : directUrl;
   const tokenPrefix = token.substring(0, 20);
   console.log(`[DEBUG] URL: ${url}`);
-  console.log(`[DEBUG] Token prefix: ${tokenPrefix}`);
+  console.log(`[DEBUG] Proxy: ${proxyBase ? 'YES' : 'NO'}`);
 
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
