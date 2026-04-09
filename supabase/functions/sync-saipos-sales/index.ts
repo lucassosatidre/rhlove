@@ -173,33 +173,27 @@ Deno.serve(async (req) => {
       datesToSync = [{ start: yesterday, end: yesterday }];
     }
 
-    const results: Array<{ date: string; total_sales: number; faturamento_total: number; pedidos_totais: number; status: string }> = [];
+    const results: Array<{ date: string; total_sales: number; faturamento_total: number; pedidos_totais: number; status: string; debug?: any }> = [];
 
     for (const block of datesToSync) {
       console.log(`Fetching Saipos: ${block.start} → ${block.end}`);
 
-      let sales: SaiposSale[];
-      try {
-        sales = await fetchAllSales(saiposToken, block.start, block.end);
-      } catch (err) {
-        // Log error for each day in the block
-        const startD = new Date(block.start + "T00:00:00Z");
-        const endD = new Date(block.end + "T00:00:00Z");
-        for (let d = new Date(startD); d <= endD; d.setDate(d.getDate() + 1)) {
-          const dayStr = d.toISOString().slice(0, 10);
-          await supabase.from("saipos_sync_log").insert({
-            sync_date: dayStr,
+      const fetchResult = await fetchAllSales(saiposToken, block.start, block.end);
+      
+      if (fetchResult.debug) {
+        // API error - return debug info immediately
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
             mode,
-            total_sales: 0,
-            faturamento_total: 0,
-            pedidos_totais: 0,
-            status: "error",
-            error_message: String(err),
-          });
-          results.push({ date: dayStr, total_sales: 0, faturamento_total: 0, pedidos_totais: 0, status: "error" });
-        }
-        continue;
+            error: "Saipos API error",
+            debug: fetchResult.debug
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
+
+      const sales = fetchResult.sales;
 
       console.log(`Got ${sales.length} raw sales for block ${block.start}→${block.end}`);
       const byDay = aggregateByDay(sales);
