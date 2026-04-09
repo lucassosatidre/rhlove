@@ -30,6 +30,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import ProductivityTables from '@/components/productivity/ProductivityTables';
 import FreelancerImportReviewDialog, { type FreeReviewEntry, generateEntryId } from '@/components/FreelancerImportReviewDialog';
 import FreelancerHistoryDialog from '@/components/productivity/FreelancerHistoryDialog';
+import SaiposSyncButton from '@/components/productivity/SaiposSyncButton';
 import * as XLSX from 'xlsx';
 
 const SECTOR_COLORS: Record<string, string> = {
@@ -1049,6 +1050,7 @@ export default function Produtividade() {
           <p className="text-sm text-muted-foreground">Análise operacional por setor e time</p>
         </div>
         <div className="flex items-center gap-2">
+          <SaiposSyncButton />
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="w-4 h-4 mr-1" /> Excel
           </Button>
