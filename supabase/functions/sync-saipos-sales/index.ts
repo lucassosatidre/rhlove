@@ -92,18 +92,21 @@ async function fetchAllSales(
   token: string,
   dateStart: string,
   dateEnd: string
-): Promise<SaiposSale[]> {
+): Promise<{ sales: SaiposSale[]; debug?: { status: number; body: string; url: string; tokenPrefix: string } }> {
   const all: SaiposSale[] = [];
   let offset = 0;
 
   while (true) {
-    const page = await fetchSalesPage(token, dateStart, dateEnd, offset);
-    all.push(...page);
-    if (page.length < PAGE_LIMIT) break;
+    const result = await fetchSalesPage(token, dateStart, dateEnd, offset);
+    if (result.debug) {
+      return { sales: all, debug: result.debug };
+    }
+    all.push(...result.sales);
+    if (result.sales.length < PAGE_LIMIT) break;
     offset += PAGE_LIMIT;
   }
 
-  return all;
+  return { sales: all };
 }
 
 function aggregateByDay(sales: SaiposSale[]): Map<string, DayTotals> {
