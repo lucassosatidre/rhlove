@@ -8,6 +8,7 @@ import { useScheduleEvents } from '@/hooks/useScheduleEvents';
 import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { Loader2, CalendarDays, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import SaiposSyncButton from '@/components/productivity/SaiposSyncButton';
 import TopKPICards from '@/components/dashboard/TopKPICards';
 import MetricBlock from '@/components/dashboard/MetricBlock';
 import MonthlyComparison from '@/components/dashboard/MonthlyComparison';
@@ -116,22 +117,25 @@ export default function Dashboard() {
   return (
     <div className="space-y-6 max-w-[1400px] mx-auto">
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold tracking-tight text-foreground md:text-2xl">
-          Dashboard Operacional
-        </h1>
-        <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <CalendarDays className="w-3.5 h-3.5" />
-            {dateStr} · {dayOfWeek}
-          </span>
-          {usuario && (
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-foreground md:text-2xl">
+            Dashboard Operacional
+          </h1>
+          <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5" />
-              {usuario.nome}
+              <CalendarDays className="w-3.5 h-3.5" />
+              {dateStr} · {dayOfWeek}
             </span>
-          )}
+            {usuario && (
+              <span className="flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5" />
+                {usuario.nome}
+              </span>
+            )}
+          </div>
         </div>
+        <SaiposSyncButton />
       </div>
 
       {/* Top KPI Cards */}
