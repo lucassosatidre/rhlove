@@ -60,7 +60,7 @@ async function fetchSalesPage(
   dateStart: string,
   dateEnd: string,
   offset: number
-): Promise<SaiposSale[]> {
+): Promise<{ sales: SaiposSale[]; debug?: { status: number; body: string; url: string; tokenPrefix: string } }> {
   const params = new URLSearchParams({
     p_date_column_filter: "shift_date",
     p_filter_date_start: `${dateStart}T00:00:00`,
@@ -69,34 +69,44 @@ async function fetchSalesPage(
     p_offset: String(offset),
   });
 
-  const res = await fetch(`${SAIPOS_BASE}?${params}`, {
+  const url = `${SAIPOS_BASE}?${params}`;
+  const tokenPrefix = token.substring(0, 20);
+  console.log(`[DEBUG] URL: ${url}`);
+  console.log(`[DEBUG] Token prefix: ${tokenPrefix}`);
+
+  const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Saipos API ${res.status}: ${body}`);
+    console.error(`[DEBUG] Status: ${res.status}, Body: ${body}`);
+    return { sales: [], debug: { status: res.status, body, url, tokenPrefix } };
   }
 
-  return await res.json();
+  const data = await res.json();
+  return { sales: data };
 }
 
 async function fetchAllSales(
   token: string,
   dateStart: string,
   dateEnd: string
-): Promise<SaiposSale[]> {
+): Promise<{ sales: SaiposSale[]; debug?: { status: number; body: string; url: string; tokenPrefix: string } }> {
   const all: SaiposSale[] = [];
   let offset = 0;
 
   while (true) {
-    const page = await fetchSalesPage(token, dateStart, dateEnd, offset);
-    all.push(...page);
-    if (page.length < PAGE_LIMIT) break;
+    const result = await fetchSalesPage(token, dateStart, dateEnd, offset);
+    if (result.debug) {
+      return { sales: all, debug: result.debug };
+    }
+    all.push(...result.sales);
+    if (result.sales.length < PAGE_LIMIT) break;
     offset += PAGE_LIMIT;
   }
 
-  return all;
+  return { sales: all };
 }
 
 function aggregateByDay(sales: SaiposSale[]): Map<string, DayTotals> {
@@ -163,33 +173,27 @@ Deno.serve(async (req) => {
       datesToSync = [{ start: yesterday, end: yesterday }];
     }
 
-    const results: Array<{ date: string; total_sales: number; faturamento_total: number; pedidos_totais: number; status: string }> = [];
+    const results: Array<{ date: string; total_sales: number; faturamento_total: number; pedidos_totais: number; status: string; debug?: any }> = [];
 
     for (const block of datesToSync) {
       console.log(`Fetching Saipos: ${block.start} → ${block.end}`);
 
-      let sales: SaiposSale[];
-      try {
-        sales = await fetchAllSales(saiposToken, block.start, block.end);
-      } catch (err) {
-        // Log error for each day in the block
-        const startD = new Date(block.start + "T00:00:00Z");
-        const endD = new Date(block.end + "T00:00:00Z");
-        for (let d = new Date(startD); d <= endD; d.setDate(d.getDate() + 1)) {
-          const dayStr = d.toISOString().slice(0, 10);
-          await supabase.from("saipos_sync_log").insert({
-            sync_date: dayStr,
+      const fetchResult = await fetchAllSales(saiposToken, block.start, block.end);
+      
+      if (fetchResult.debug) {
+        // API error - return debug info immediately
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
             mode,
-            total_sales: 0,
-            faturamento_total: 0,
-            pedidos_totais: 0,
-            status: "error",
-            error_message: String(err),
-          });
-          results.push({ date: dayStr, total_sales: 0, faturamento_total: 0, pedidos_totais: 0, status: "error" });
-        }
-        continue;
+            error: "Saipos API error",
+            debug: fetchResult.debug
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
+
+      const sales = fetchResult.sales;
 
       console.log(`Got ${sales.length} raw sales for block ${block.start}→${block.end}`);
       const byDay = aggregateByDay(sales);
