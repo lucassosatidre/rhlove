@@ -25,7 +25,6 @@ type NavGroup = {
 
 const FIXED_TOP: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'gestor', 'visualizador'] },
-  { to: '/calendario-rh', label: 'Calendário RH', icon: CalendarClock, roles: ['admin', 'gestor'] },
 ];
 
 const GROUPS: NavGroup[] = [
