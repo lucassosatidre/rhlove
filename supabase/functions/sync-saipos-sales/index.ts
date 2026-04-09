@@ -60,7 +60,7 @@ async function fetchSalesPage(
   dateStart: string,
   dateEnd: string,
   offset: number
-): Promise<SaiposSale[]> {
+): Promise<{ sales: SaiposSale[]; debug?: { status: number; body: string; url: string; tokenPrefix: string } }> {
   const params = new URLSearchParams({
     p_date_column_filter: "shift_date",
     p_filter_date_start: `${dateStart}T00:00:00`,
@@ -69,16 +69,23 @@ async function fetchSalesPage(
     p_offset: String(offset),
   });
 
-  const res = await fetch(`${SAIPOS_BASE}?${params}`, {
+  const url = `${SAIPOS_BASE}?${params}`;
+  const tokenPrefix = token.substring(0, 20);
+  console.log(`[DEBUG] URL: ${url}`);
+  console.log(`[DEBUG] Token prefix: ${tokenPrefix}`);
+
+  const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Saipos API ${res.status}: ${body}`);
+    console.error(`[DEBUG] Status: ${res.status}, Body: ${body}`);
+    return { sales: [], debug: { status: res.status, body, url, tokenPrefix } };
   }
 
-  return await res.json();
+  const data = await res.json();
+  return { sales: data };
 }
 
 async function fetchAllSales(
