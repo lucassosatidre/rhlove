@@ -333,6 +333,29 @@ export default function SaiposSyncButton() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={tokenDialogOpen} onOpenChange={setTokenDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Configurar token Saipos</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label className="text-xs">Token JWT da API Saipos</Label>
+            <Input
+              type="password"
+              placeholder="Cole o token aqui..."
+              value={manualToken}
+              onChange={e => setManualToken(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">O token já foi importado automaticamente. Use este campo apenas se precisar atualizar.</p>
+          </div>
+          <DialogFooter>
+            <Button disabled={!manualToken.trim()} onClick={handleSaveManualToken}>
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
