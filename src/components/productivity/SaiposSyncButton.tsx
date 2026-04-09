@@ -6,19 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { RefreshCw, ChevronDown } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { RefreshCw, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const MAX_DAYS_PER_BLOCK = 14;
@@ -48,6 +47,12 @@ function getYesterdayBRT(): string {
   const brt = new Date(now.getTime() - 3 * 60 * 60 * 1000);
   brt.setDate(brt.getDate() - 1);
   return brt.toISOString().slice(0, 10);
+}
+
+function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 function splitIntoBlocks(start: string, end: string) {
@@ -132,9 +137,6 @@ export default function SaiposSyncButton() {
   const queryClient = useQueryClient();
   const [syncing, setSyncing] = useState(false);
   const [progress, setProgress] = useState('');
-  const [rangeDialogOpen, setRangeDialogOpen] = useState(false);
-  const [rangeStart, setRangeStart] = useState('');
-  const [rangeEnd, setRangeEnd] = useState('');
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
   const [manualToken, setManualToken] = useState('');
 
@@ -150,25 +152,48 @@ export default function SaiposSyncButton() {
     const proxyUrl = settings.find((s: any) => s.key === 'SAIPOS_PROXY_FUNCTION_URL')?.value;
     const anonKey = settings.find((s: any) => s.key === 'CXLOVE_ANON_KEY')?.value;
     if (!proxyUrl || !anonKey) {
-      throw new Error('Configuração do proxy não encontrada em app_settings. Configure SAIPOS_PROXY_FUNCTION_URL e CXLOVE_ANON_KEY.');
+      throw new Error('Configuração do proxy não encontrada em app_settings.');
     }
     return { proxyUrl, anonKey };
   }
 
-  async function syncRange(start: string, end: string) {
+  async function handleSync() {
     setSyncing(true);
-    setProgress('Buscando configuração...');
+    setProgress('Verificando última sincronização...');
     try {
+      // 1. Find last successful sync
+      const { data: lastSync } = await supabase
+        .from('saipos_sync_log')
+        .select('sync_date')
+        .eq('status', 'success')
+        .order('sync_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const yesterday = getYesterdayBRT();
+      const lastSyncDate = lastSync?.sync_date || null;
+
+      // 2. Calculate start date
+      const startDate = lastSyncDate ? addDays(lastSyncDate, 1) : BACKFILL_START;
+
+      // 3. Check if already up to date
+      if (startDate > yesterday) {
+        setProgress('');
+        setSyncing(false);
+        toast({ title: '✅ Já está atualizado até ontem' });
+        return;
+      }
+
+      // 4. Sync the range
       const { proxyUrl, anonKey } = await getProxyConfig();
-      const blocks = splitIntoBlocks(start, end);
+      const blocks = splitIntoBlocks(startDate, yesterday);
       let totalDays = 0;
       let totalSales = 0;
-      let totalFat = 0;
 
       for (let i = 0; i < blocks.length; i++) {
         const block = blocks[i];
-        const blockLabel = `${block.start} a ${block.end} (bloco ${i + 1}/${blocks.length})`;
-        setProgress(`Sincronizando ${blockLabel}...`);
+        const blockLabel = `Sincronizando ${block.start} a ${block.end} (bloco ${i + 1}/${blocks.length})`;
+        setProgress(blockLabel);
 
         const res = await fetchWithRetry(
           proxyUrl,
@@ -179,11 +204,7 @@ export default function SaiposSyncButton() {
               'Authorization': `Bearer ${anonKey}`,
               'apikey': anonKey,
             },
-            body: JSON.stringify({
-              mode: 'raw',
-              start_date: block.start,
-              end_date: block.end,
-            }),
+            body: JSON.stringify({ mode: 'raw', start_date: block.start, end_date: block.end }),
           },
           setProgress,
           blockLabel,
@@ -233,7 +254,7 @@ export default function SaiposSyncButton() {
 
           await supabase.from('saipos_sync_log').insert({
             sync_date: dayStr,
-            mode: start === end ? 'yesterday' : 'backfill',
+            mode: 'auto',
             total_sales: t.total_sales,
             faturamento_total: t.faturamento_total,
             pedidos_totais: t.pedidos_totais,
@@ -242,15 +263,14 @@ export default function SaiposSyncButton() {
 
           totalDays++;
           totalSales += t.total_sales;
-          totalFat += t.faturamento_total;
         }
       }
 
       setProgress('');
       queryClient.invalidateQueries({ queryKey: ['daily_sales'] });
       toast({
-        title: 'Sincronização concluída!',
-        description: `${totalDays} dias | ${totalSales} vendas | R$ ${totalFat.toFixed(2)}`,
+        title: '✅ Sincronizado!',
+        description: `${totalDays} dias atualizados | ${totalSales} vendas`,
       });
     } catch (err: any) {
       console.error('Saipos sync error:', err);
@@ -295,58 +315,29 @@ export default function SaiposSyncButton() {
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" disabled={syncing}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? progress || 'Sincronizando...' : 'Sync Saipos'}
-            <ChevronDown className="w-3 h-3 ml-1" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => syncRange(getYesterdayBRT(), getYesterdayBRT())}>
-            Sync ontem
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setRangeDialogOpen(true)}>
-            Sync período...
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => syncRange(BACKFILL_START, getYesterdayBRT())}>
-            Backfill (23/03 → ontem)
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setTokenDialogOpen(true)}>
-            Configurar token
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      <Dialog open={rangeDialogOpen} onOpenChange={setRangeDialogOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Sincronizar período</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Label className="text-xs">Data Inicial</Label>
-              <Input type="date" value={rangeStart} onChange={e => setRangeStart(e.target.value)} />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Data Final</Label>
-              <Input type="date" value={rangeEnd} onChange={e => setRangeEnd(e.target.value)} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              disabled={!rangeStart || !rangeEnd}
-              onClick={() => {
-                setRangeDialogOpen(false);
-                syncRange(rangeStart, rangeEnd);
-              }}
-            >
-              Sincronizar
+      <div className="flex items-center gap-1">
+        <Button variant="outline" size="sm" disabled={syncing} onClick={handleSync}>
+          <RefreshCw className={`w-4 h-4 mr-1 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? progress || 'Sincronizando...' : 'Sincronizar Saipos'}
+        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8" disabled={syncing}>
+              <Settings className="w-3.5 h-3.5" />
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-48 p-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-xs"
+              onClick={() => setTokenDialogOpen(true)}
+            >
+              Configurar token
+            </Button>
+          </PopoverContent>
+        </Popover>
+      </div>
 
       <Dialog open={tokenDialogOpen} onOpenChange={setTokenDialogOpen}>
         <DialogContent className="max-w-sm">
@@ -361,7 +352,7 @@ export default function SaiposSyncButton() {
               value={manualToken}
               onChange={e => setManualToken(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">O token já foi importado automaticamente. Use este campo apenas se precisar atualizar.</p>
+            <p className="text-xs text-muted-foreground">Use apenas se precisar atualizar o token.</p>
           </div>
           <DialogFooter>
             <Button disabled={!manualToken.trim()} onClick={handleSaveManualToken}>
