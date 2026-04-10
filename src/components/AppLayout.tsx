@@ -321,6 +321,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                 {visibleFixedTop.map(item =>
                   renderNavItem(item, location.pathname === item.to, () => setMobileOpen(false))
                 )}
+                {showPontoOnline && renderNavItem(
+                  { to: '/ponto', label: 'Meu Ponto', icon: Fingerprint, roles: ['admin', 'gestor', 'lider', 'visualizador'] },
+                  location.pathname === '/ponto',
+                  () => setMobileOpen(false)
+                )}
                 <div className="!my-2 mx-1 h-px bg-border" />
                 {GROUPS.map(group => renderGroup(group, () => setMobileOpen(false)))}
                 <div className="!my-2 mx-1 h-px bg-border" />
