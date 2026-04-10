@@ -315,9 +315,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </header>
 
         {mobileOpen && (
-          <div className="md:hidden absolute inset-0 z-50 bg-background/98 backdrop-blur-sm pt-16">
-            <ScrollArea className="h-full">
-              <nav className="px-4 pb-4 space-y-0.5">
+          <>
+            {/* Overlay */}
+            <div className="md:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setMobileOpen(false)} />
+            {/* Sidebar */}
+            <div className="md:hidden fixed inset-0 z-50 bg-sidebar text-sidebar-foreground pt-16">
+              <ScrollArea className="h-full">
+                <nav className="px-4 pb-4 space-y-0.5">
                 {visibleFixedTop.map(item =>
                   renderNavItem(item, location.pathname === item.to, () => setMobileOpen(false))
                 )}
