@@ -16,6 +16,7 @@ import AvisosPrevios from "@/pages/AvisosPrevios";
 import Afastamentos from "@/pages/Afastamentos";
 
 import GerenciarUsuarios from "@/pages/GerenciarUsuarios";
+import PontoOnline from "@/pages/PontoOnline";
 import RegistroPonto from "@/pages/RegistroPonto";
 import CheckoutPage from "@/pages/Checkout";
 import EspelhoPonto from "@/pages/EspelhoPonto";
@@ -104,6 +105,7 @@ function AppRoutes() {
         <Route path="/fechamento-folha" element={<ProtectedRoute allowedRoles={['admin', 'gestor']}><FechamentoFolha /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute allowedRoles={['admin', 'gestor', 'lider']}><CheckoutPage /></ProtectedRoute>} />
         <Route path="/demandas" element={<ProtectedRoute><Demandas /></ProtectedRoute>} />
+        <Route path="/ponto" element={<ProtectedRoute><PontoOnline /></ProtectedRoute>} />
         <Route path="/manutencoes" element={<Navigate to="/demandas" replace />} />
         <Route path="/pendencias" element={<Navigate to="/demandas" replace />} />
         <Route path="*" element={<NotFound />} />
