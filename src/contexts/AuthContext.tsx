@@ -10,6 +10,7 @@ export interface Usuario {
   email: string;
   perfil: Perfil;
   status: string;
+  collaborator_id: string | null;
 }
 
 interface AuthContextType {

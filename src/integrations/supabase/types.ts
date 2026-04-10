@@ -469,6 +469,7 @@ export type Database = {
           intervalo_inicio: string | null
           jornadas_especiais: Json | null
           pis_matricula: string | null
+          ponto_online: boolean
           salario_base: number | null
           sector: string
           status: string
@@ -505,6 +506,7 @@ export type Database = {
           intervalo_inicio?: string | null
           jornadas_especiais?: Json | null
           pis_matricula?: string | null
+          ponto_online?: boolean
           salario_base?: number | null
           sector: string
           status?: string
@@ -541,6 +543,7 @@ export type Database = {
           intervalo_inicio?: string | null
           jornadas_especiais?: Json | null
           pis_matricula?: string | null
+          ponto_online?: boolean
           salario_base?: number | null
           sector?: string
           status?: string
@@ -1059,6 +1062,47 @@ export type Database = {
           usuario_id?: string
         }
         Relationships: []
+      }
+      online_punch_records: {
+        Row: {
+          collaborator_id: string
+          created_at: string
+          created_by: string
+          device_ip: string | null
+          device_user_agent: string | null
+          id: string
+          notes: string | null
+          punch_time: string
+        }
+        Insert: {
+          collaborator_id: string
+          created_at?: string
+          created_by: string
+          device_ip?: string | null
+          device_user_agent?: string | null
+          id?: string
+          notes?: string | null
+          punch_time?: string
+        }
+        Update: {
+          collaborator_id?: string
+          created_at?: string
+          created_by?: string
+          device_ip?: string | null
+          device_user_agent?: string | null
+          id?: string
+          notes?: string | null
+          punch_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "online_punch_records_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payroll_closings: {
         Row: {

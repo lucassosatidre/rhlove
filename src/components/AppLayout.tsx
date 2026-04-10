@@ -1,10 +1,11 @@
-import { ReactNode, useState, useEffect, useCallback } from 'react';
+import { ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, UserMinus, Mic, ClipboardList, ClipboardCheck, Bus, Percent, FileSpreadsheet, ChevronRight, Clock, Wallet, CalendarMinus, Landmark, type LucideIcon } from 'lucide-react';
+import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, UserMinus, Mic, ClipboardList, ClipboardCheck, Bus, Percent, FileSpreadsheet, ChevronRight, Clock, Wallet, CalendarMinus, Landmark, Fingerprint, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useOpenDemandsCount } from '@/hooks/useDemands';
+import { useCollaborators } from '@/hooks/useCollaborators';
 import rhLoveIcon from '@/assets/rh-love-icon.png';
 import clienteIcon from '@/assets/cliente-estrela-icon.png';
 
@@ -96,7 +97,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { usuario, signOut } = useAuth();
   const { data: openTasksCount } = useOpenDemandsCount();
+  const { data: collaborators = [] } = useCollaborators();
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => getInitialExpanded(location.pathname));
+
+  // Check if current user has ponto_online enabled
+  const showPontoOnline = useMemo(() => {
+    if (!usuario?.collaborator_id) return false;
+    const collab = collaborators.find(c => c.id === usuario.collaborator_id);
+    return collab?.ponto_online === true;
+  }, [usuario, collaborators]);
 
   // Auto-expand group containing current route
   useEffect(() => {
@@ -223,6 +232,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               renderNavItem(item, location.pathname === item.to)
             )}
 
+            {/* Ponto Online — only if user has it enabled */}
+            {showPontoOnline && renderNavItem(
+              { to: '/ponto', label: 'Meu Ponto', icon: Fingerprint, roles: ['admin', 'gestor', 'lider', 'visualizador'] },
+              location.pathname === '/ponto'
+            )}
+
             {/* Separator */}
             <div className="!my-2 mx-1 h-px bg-sidebar-foreground/10" />
 
@@ -305,6 +320,11 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               <nav className="px-4 pb-4 space-y-0.5">
                 {visibleFixedTop.map(item =>
                   renderNavItem(item, location.pathname === item.to, () => setMobileOpen(false))
+                )}
+                {showPontoOnline && renderNavItem(
+                  { to: '/ponto', label: 'Meu Ponto', icon: Fingerprint, roles: ['admin', 'gestor', 'lider', 'visualizador'] },
+                  location.pathname === '/ponto',
+                  () => setMobileOpen(false)
                 )}
                 <div className="!my-2 mx-1 h-px bg-border" />
                 {GROUPS.map(group => renderGroup(group, () => setMobileOpen(false)))}

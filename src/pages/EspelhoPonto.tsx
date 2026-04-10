@@ -31,6 +31,7 @@ import { UpdatePunchesDialog } from '@/components/ponto/UpdatePunchesDialog';
 import { assignPunchSlots, calculatePattern } from '@/lib/punchInference';
 import type { PunchRecord } from '@/hooks/usePunchRecords';
 import { useAvisosPrevios } from '@/hooks/useAvisosPrevios';
+import { useAllOnlinePunchRecordsByRange } from '@/hooks/useOnlinePunchRecords';
 
 const WEEKDAY_MAP: Record<number, DayOfWeek> = {
   0: 'DOMINGO', 1: 'SEGUNDA', 2: 'TERCA', 3: 'QUARTA', 4: 'QUINTA', 5: 'SEXTA', 6: 'SABADO',
@@ -111,6 +112,8 @@ function detectTags(entrada: string | null, saida: string | null, saidaInt: stri
 }
 
 // ── Unified row type for the single table ──
+type PunchOrigin = 'REP' | 'ONL' | 'MIX';
+
 interface UnifiedRow {
   collaboratorId: string;
   collaboratorName: string;
@@ -126,6 +129,7 @@ interface UnifiedRow {
   tags: InconsistencyTag[];
   isAdjusted: boolean;
   isAutoInterval: boolean;
+  punchOrigin?: PunchOrigin;
   // Jornada cols (only when a single collaborator is selected)
   jornada?: JornadaRow;
 }
@@ -161,6 +165,29 @@ export default function EspelhoPonto() {
   const { data: afastamentos = [] } = useAfastamentos();
   const { data: holidays = [] } = useHolidays();
   const { data: avisosPrevios = [] } = useAvisosPrevios();
+
+  // Online punch records for the month
+  const onlineMonthStart = format(new Date(selectedYear, selectedMonth, 1), 'yyyy-MM-dd');
+  const onlineMonthEnd = format(new Date(selectedYear, selectedMonth, getDaysInMonth(new Date(selectedYear, selectedMonth))), 'yyyy-MM-dd');
+  const { data: onlinePunches = [] } = useAllOnlinePunchRecordsByRange(onlineMonthStart, onlineMonthEnd);
+
+  // Build a map: collaborator_id|date → sorted HH:MM times from online punches
+  const onlinePunchMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const p of onlinePunches) {
+      const dt = new Date(p.punch_time);
+      const utc = dt.getTime() + dt.getTimezoneOffset() * 60000;
+      const brt = new Date(utc - 3 * 3600000);
+      const dateStr = `${brt.getFullYear()}-${String(brt.getMonth() + 1).padStart(2, '0')}-${String(brt.getDate()).padStart(2, '0')}`;
+      const timeStr = `${String(brt.getHours()).padStart(2, '0')}:${String(brt.getMinutes()).padStart(2, '0')}`;
+      const key = `${p.collaborator_id}|${dateStr}`;
+      const arr = map.get(key) ?? [];
+      arr.push(timeStr);
+      map.set(key, arr);
+    }
+    for (const [, arr] of map) arr.sort();
+    return map;
+  }, [onlinePunches]);
 
   // Lookup: collaborator_id → data_fim do aviso prévio (use earliest active/concluded)
   const avisosLookup = useMemo(() => {
@@ -298,10 +325,46 @@ export default function EspelhoPonto() {
       const weekday = format(dateObj, 'EEE', { locale: ptBR });
 
       const punch = punchMap.get(iso);
-      let entrada = punch?.entrada ?? null;
-      let saida = punch?.saida ?? null;
-      let saidaInt = punch?.saida_intervalo ?? null;
-      let retornoInt = punch?.retorno_intervalo ?? null;
+      const onlineTimes = onlinePunchMap.get(`${collab.id}|${iso}`) ?? [];
+      const hasREP = !!(punch?.entrada || punch?.saida || punch?.saida_intervalo || punch?.retorno_intervalo);
+      const hasONL = onlineTimes.length > 0;
+
+      let entrada: string | null;
+      let saida: string | null;
+      let saidaInt: string | null;
+      let retornoInt: string | null;
+      let punchOrigin: PunchOrigin = 'REP';
+
+      if (hasREP) {
+        // Use REP data
+        entrada = punch?.entrada ?? null;
+        saida = punch?.saida ?? null;
+        saidaInt = punch?.saida_intervalo ?? null;
+        retornoInt = punch?.retorno_intervalo ?? null;
+        punchOrigin = hasONL ? 'MIX' : 'REP';
+      } else if (hasONL) {
+        // Map online times to slots (up to 4: entrada, saidaInt, retornoInt, saida)
+        entrada = onlineTimes[0] ?? null;
+        saidaInt = onlineTimes[1] ?? null;
+        retornoInt = onlineTimes[2] ?? null;
+        saida = onlineTimes[3] ?? null;
+        // If only 2 punches: entrada + saida (no interval)
+        if (onlineTimes.length === 2) {
+          saida = onlineTimes[1];
+          saidaInt = null;
+          retornoInt = null;
+        } else if (onlineTimes.length === 1) {
+          saida = null;
+          saidaInt = null;
+          retornoInt = null;
+        }
+        punchOrigin = 'ONL';
+      } else {
+        entrada = null;
+        saida = null;
+        saidaInt = null;
+        retornoInt = null;
+      }
 
       let isAutoInterval = false;
       if (collab.intervalo_automatico && collab.intervalo_inicio && collab.intervalo_duracao) {
@@ -386,11 +449,11 @@ export default function EspelhoPonto() {
       result.push({
         collaboratorId: collab.id, collaboratorName: collab.collaborator_name,
         date: iso, dateObj, weekday, entrada, saidaInt, retornoInt, saida,
-        hoursMin, status, tags, isAdjusted, isAutoInterval,
+        hoursMin, status, tags, isAdjusted, isAutoInterval, punchOrigin,
       });
     }
     return result;
-  }, [daysInMonth, selectedMonth, selectedYear, punchRecords, swapOverrides, eventsMap, vacations, afastamentos, holidaySet, avisosLookup, lastPunchUpdateDate, folgaBHSet]);
+  }, [daysInMonth, selectedMonth, selectedYear, punchRecords, swapOverrides, eventsMap, vacations, afastamentos, holidaySet, avisosLookup, lastPunchUpdateDate, folgaBHSet, onlinePunchMap]);
 
   // ── Single collaborator rows (with jornada) ──
   const singleCollabRows = useMemo(() => {
@@ -658,8 +721,24 @@ export default function EspelhoPonto() {
     if (row.status.includes('Feriado')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-700 border border-amber-200">🎉 Feriado</span>;
     if (row.status.includes('Compensação')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-700 border border-amber-200">🎉 Compensação</span>;
     if (row.status === '—') return <span className="text-[10px] text-muted-foreground">—</span>;
-    if (row.status.includes('Normal')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-green-100 text-green-700 border border-green-200">✅ Normal</span>;
+    if (row.status.includes('Normal')) {
+      return (
+        <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-green-100 text-green-700 border border-green-200">✅ Normal</span>
+          {row.punchOrigin === 'ONL' && <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold bg-blue-100 text-blue-700 border border-blue-200">ONL</span>}
+          {row.punchOrigin === 'MIX' && <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold bg-purple-100 text-purple-700 border border-purple-200">MIX</span>}
+        </span>
+      );
+    }
     if (row.status.includes('Falta')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-red-100 text-red-700 border border-red-200">❌ Falta</span>;
+    if (row.punchOrigin === 'ONL' && row.entrada) {
+      return (
+        <span className="inline-flex items-center gap-1">
+          <span className="text-[10px]">{row.status}</span>
+          <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold bg-blue-100 text-blue-700 border border-blue-200">ONL</span>
+        </span>
+      );
+    }
     return <span className="text-[10px]">{row.status}</span>;
   };
 

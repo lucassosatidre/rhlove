@@ -67,6 +67,7 @@ export interface Collaborator {
   vt_dias_mes: number | null;
   funcao: string | null;
   carga_horaria_mensal: number | null;
+  ponto_online: boolean;
 }
 
 export interface JornadaEspecial {

@@ -30,6 +30,7 @@ export interface CollaboratorInput {
   vt_dias_mes?: number | null;
   funcao?: string | null;
   carga_horaria_mensal?: number | null;
+  ponto_online?: boolean;
   // legacy
   data_retorno?: string | null;
   data_fim_experiencia?: string | null;
@@ -66,6 +67,7 @@ function toDbRow(c: CollaboratorInput) {
     vt_dias_mes: c.vt_dias_mes ?? null,
     funcao: c.funcao || null,
     carga_horaria_mensal: c.carga_horaria_mensal ?? null,
+    ponto_online: c.ponto_online ?? false,
     data_retorno: c.data_retorno || c.fim_periodo || null,
     data_fim_experiencia: c.data_fim_experiencia || (c.status === 'EXPERIENCIA' ? c.fim_periodo : null) || null,
     data_fim_aviso: c.data_fim_aviso || (c.status === 'AVISO_PREVIO' ? c.fim_periodo : null) || null,
@@ -95,6 +97,7 @@ function fromDbRow(row: any): Collaborator {
     controla_ponto: row.controla_ponto ?? true,
     funcao: row.funcao ?? null,
     carga_horaria_mensal: row.carga_horaria_mensal ?? null,
+    ponto_online: row.ponto_online ?? false,
   } as Collaborator;
 }
 
