@@ -1,10 +1,11 @@
-import { ReactNode, useState, useEffect, useCallback } from 'react';
+import { ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, UserMinus, Mic, ClipboardList, ClipboardCheck, Bus, Percent, FileSpreadsheet, ChevronRight, Clock, Wallet, CalendarMinus, Landmark, type LucideIcon } from 'lucide-react';
+import { Users, CalendarDays, Menu, X, BarChart3, Palmtree, CalendarCheck, LogOut, Shield, LayoutDashboard, FileWarning, CalendarClock, UserMinus, Mic, ClipboardList, ClipboardCheck, Bus, Percent, FileSpreadsheet, ChevronRight, Clock, Wallet, CalendarMinus, Landmark, Fingerprint, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useOpenDemandsCount } from '@/hooks/useDemands';
+import { useCollaborators } from '@/hooks/useCollaborators';
 import rhLoveIcon from '@/assets/rh-love-icon.png';
 import clienteIcon from '@/assets/cliente-estrela-icon.png';
 
