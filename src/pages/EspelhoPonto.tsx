@@ -31,6 +31,7 @@ import { UpdatePunchesDialog } from '@/components/ponto/UpdatePunchesDialog';
 import { assignPunchSlots, calculatePattern } from '@/lib/punchInference';
 import type { PunchRecord } from '@/hooks/usePunchRecords';
 import { useAvisosPrevios } from '@/hooks/useAvisosPrevios';
+import { useAllOnlinePunchRecordsByRange, type OnlinePunchRecord } from '@/hooks/useOnlinePunchRecords';
 
 const WEEKDAY_MAP: Record<number, DayOfWeek> = {
   0: 'DOMINGO', 1: 'SEGUNDA', 2: 'TERCA', 3: 'QUARTA', 4: 'QUINTA', 5: 'SEXTA', 6: 'SABADO',
