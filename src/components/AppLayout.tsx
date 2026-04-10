@@ -315,9 +315,13 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         </header>
 
         {mobileOpen && (
-          <div className="md:hidden absolute inset-0 z-50 bg-background/98 backdrop-blur-sm pt-16">
-            <ScrollArea className="h-full">
-              <nav className="px-4 pb-4 space-y-0.5">
+          <>
+            {/* Overlay */}
+            <div className="md:hidden fixed inset-0 z-40 bg-black/50" onClick={() => setMobileOpen(false)} />
+            {/* Sidebar */}
+            <div className="md:hidden fixed inset-0 z-50 bg-sidebar text-sidebar-foreground pt-16">
+              <ScrollArea className="h-full">
+                <nav className="px-4 pb-4 space-y-0.5">
                 {visibleFixedTop.map(item =>
                   renderNavItem(item, location.pathname === item.to, () => setMobileOpen(false))
                 )}
@@ -326,15 +330,16 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   location.pathname === '/ponto',
                   () => setMobileOpen(false)
                 )}
-                <div className="!my-2 mx-1 h-px bg-border" />
+                <div className="!my-2 mx-1 h-px bg-sidebar-foreground/10" />
                 {GROUPS.map(group => renderGroup(group, () => setMobileOpen(false)))}
-                <div className="!my-2 mx-1 h-px bg-border" />
+                <div className="!my-2 mx-1 h-px bg-sidebar-foreground/10" />
                 {visibleFixedBottom.map(item =>
                   renderNavItem(item, location.pathname === item.to, () => setMobileOpen(false))
                 )}
               </nav>
             </ScrollArea>
           </div>
+          </>
         )}
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
