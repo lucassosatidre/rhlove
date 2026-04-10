@@ -325,10 +325,46 @@ export default function EspelhoPonto() {
       const weekday = format(dateObj, 'EEE', { locale: ptBR });
 
       const punch = punchMap.get(iso);
-      let entrada = punch?.entrada ?? null;
-      let saida = punch?.saida ?? null;
-      let saidaInt = punch?.saida_intervalo ?? null;
-      let retornoInt = punch?.retorno_intervalo ?? null;
+      const onlineTimes = onlinePunchMap.get(`${collab.id}|${iso}`) ?? [];
+      const hasREP = !!(punch?.entrada || punch?.saida || punch?.saida_intervalo || punch?.retorno_intervalo);
+      const hasONL = onlineTimes.length > 0;
+
+      let entrada: string | null;
+      let saida: string | null;
+      let saidaInt: string | null;
+      let retornoInt: string | null;
+      let punchOrigin: PunchOrigin = 'REP';
+
+      if (hasREP) {
+        // Use REP data
+        entrada = punch?.entrada ?? null;
+        saida = punch?.saida ?? null;
+        saidaInt = punch?.saida_intervalo ?? null;
+        retornoInt = punch?.retorno_intervalo ?? null;
+        punchOrigin = hasONL ? 'MIX' : 'REP';
+      } else if (hasONL) {
+        // Map online times to slots (up to 4: entrada, saidaInt, retornoInt, saida)
+        entrada = onlineTimes[0] ?? null;
+        saidaInt = onlineTimes[1] ?? null;
+        retornoInt = onlineTimes[2] ?? null;
+        saida = onlineTimes[3] ?? null;
+        // If only 2 punches: entrada + saida (no interval)
+        if (onlineTimes.length === 2) {
+          saida = onlineTimes[1];
+          saidaInt = null;
+          retornoInt = null;
+        } else if (onlineTimes.length === 1) {
+          saida = null;
+          saidaInt = null;
+          retornoInt = null;
+        }
+        punchOrigin = 'ONL';
+      } else {
+        entrada = null;
+        saida = null;
+        saidaInt = null;
+        retornoInt = null;
+      }
 
       let isAutoInterval = false;
       if (collab.intervalo_automatico && collab.intervalo_inicio && collab.intervalo_duracao) {
