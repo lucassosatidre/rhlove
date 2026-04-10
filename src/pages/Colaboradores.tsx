@@ -47,6 +47,7 @@ interface FormData {
   vt_dias_mes: string;
   funcao: string;
   carga_horaria_mensal: string;
+  ponto_online: boolean;
 }
 
 const emptyForm: FormData = {
@@ -77,6 +78,7 @@ const emptyForm: FormData = {
   vt_dias_mes: '',
   funcao: '',
   carga_horaria_mensal: '',
+  ponto_online: false,
 };
 
 export default function Colaboradores() {
@@ -129,6 +131,7 @@ export default function Colaboradores() {
       vt_dias_mes: c.vt_dias_mes != null ? String(c.vt_dias_mes) : '',
       funcao: c.funcao ?? '',
       carga_horaria_mensal: c.carga_horaria_mensal != null ? String(c.carga_horaria_mensal) : '',
+      ponto_online: c.ponto_online ?? false,
     });
     setDialogOpen(true);
   };
@@ -161,6 +164,7 @@ export default function Colaboradores() {
     vt_dias_mes: f.vt_dias_mes ? parseInt(f.vt_dias_mes) : null,
     funcao: f.funcao || null,
     carga_horaria_mensal: f.carga_horaria_mensal ? parseInt(f.carga_horaria_mensal) : null,
+    ponto_online: f.ponto_online,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
