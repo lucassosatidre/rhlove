@@ -449,7 +449,7 @@ export default function EspelhoPonto() {
       result.push({
         collaboratorId: collab.id, collaboratorName: collab.collaborator_name,
         date: iso, dateObj, weekday, entrada, saidaInt, retornoInt, saida,
-        hoursMin, status, tags, isAdjusted, isAutoInterval,
+        hoursMin, status, tags, isAdjusted, isAutoInterval, punchOrigin,
       });
     }
     return result;
