@@ -111,6 +111,8 @@ function detectTags(entrada: string | null, saida: string | null, saidaInt: stri
 }
 
 // ── Unified row type for the single table ──
+type PunchOrigin = 'REP' | 'ONL' | 'MIX';
+
 interface UnifiedRow {
   collaboratorId: string;
   collaboratorName: string;
@@ -126,6 +128,7 @@ interface UnifiedRow {
   tags: InconsistencyTag[];
   isAdjusted: boolean;
   isAutoInterval: boolean;
+  punchOrigin?: PunchOrigin;
   // Jornada cols (only when a single collaborator is selected)
   jornada?: JornadaRow;
 }
