@@ -166,6 +166,29 @@ export default function EspelhoPonto() {
   const { data: holidays = [] } = useHolidays();
   const { data: avisosPrevios = [] } = useAvisosPrevios();
 
+  // Online punch records for the month
+  const onlineMonthStart = format(new Date(selectedYear, selectedMonth, 1), 'yyyy-MM-dd');
+  const onlineMonthEnd = format(new Date(selectedYear, selectedMonth, getDaysInMonth(new Date(selectedYear, selectedMonth))), 'yyyy-MM-dd');
+  const { data: onlinePunches = [] } = useAllOnlinePunchRecordsByRange(onlineMonthStart, onlineMonthEnd);
+
+  // Build a map: collaborator_id|date → sorted HH:MM times from online punches
+  const onlinePunchMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const p of onlinePunches) {
+      const dt = new Date(p.punch_time);
+      const utc = dt.getTime() + dt.getTimezoneOffset() * 60000;
+      const brt = new Date(utc - 3 * 3600000);
+      const dateStr = `${brt.getFullYear()}-${String(brt.getMonth() + 1).padStart(2, '0')}-${String(brt.getDate()).padStart(2, '0')}`;
+      const timeStr = `${String(brt.getHours()).padStart(2, '0')}:${String(brt.getMinutes()).padStart(2, '0')}`;
+      const key = `${p.collaborator_id}|${dateStr}`;
+      const arr = map.get(key) ?? [];
+      arr.push(timeStr);
+      map.set(key, arr);
+    }
+    for (const [, arr] of map) arr.sort();
+    return map;
+  }, [onlinePunches]);
+
   // Lookup: collaborator_id → data_fim do aviso prévio (use earliest active/concluded)
   const avisosLookup = useMemo(() => {
     const map = new Map<string, string>();
