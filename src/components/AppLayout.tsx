@@ -232,6 +232,12 @@ export default function AppLayout({ children }: { children: ReactNode }) {
               renderNavItem(item, location.pathname === item.to)
             )}
 
+            {/* Ponto Online — only if user has it enabled */}
+            {showPontoOnline && renderNavItem(
+              { to: '/ponto', label: 'Meu Ponto', icon: Fingerprint, roles: ['admin', 'gestor', 'lider', 'visualizador'] },
+              location.pathname === '/ponto'
+            )}
+
             {/* Separator */}
             <div className="!my-2 mx-1 h-px bg-sidebar-foreground/10" />
 
