@@ -721,8 +721,24 @@ export default function EspelhoPonto() {
     if (row.status.includes('Feriado')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-700 border border-amber-200">🎉 Feriado</span>;
     if (row.status.includes('Compensação')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-700 border border-amber-200">🎉 Compensação</span>;
     if (row.status === '—') return <span className="text-[10px] text-muted-foreground">—</span>;
-    if (row.status.includes('Normal')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-green-100 text-green-700 border border-green-200">✅ Normal</span>;
+    if (row.status.includes('Normal')) {
+      return (
+        <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-green-100 text-green-700 border border-green-200">✅ Normal</span>
+          {row.punchOrigin === 'ONL' && <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold bg-blue-100 text-blue-700 border border-blue-200">ONL</span>}
+          {row.punchOrigin === 'MIX' && <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold bg-purple-100 text-purple-700 border border-purple-200">MIX</span>}
+        </span>
+      );
+    }
     if (row.status.includes('Falta')) return <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-red-100 text-red-700 border border-red-200">❌ Falta</span>;
+    if (row.punchOrigin === 'ONL' && row.entrada) {
+      return (
+        <span className="inline-flex items-center gap-1">
+          <span className="text-[10px]">{row.status}</span>
+          <span className="inline-flex items-center px-1 py-0.5 rounded text-[8px] font-bold bg-blue-100 text-blue-700 border border-blue-200">ONL</span>
+        </span>
+      );
+    }
     return <span className="text-[10px]">{row.status}</span>;
   };
 
