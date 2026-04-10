@@ -678,6 +678,18 @@ export default function Colaboradores() {
               />
             </div>
 
+            {/* Ponto Online */}
+            <div className="flex items-center justify-between border rounded-lg p-3 bg-muted/30">
+              <div>
+                <p className="text-sm font-medium">Ponto Online</p>
+                <p className="text-[11px] text-muted-foreground">Permite que o colaborador registre batidas pelo sistema</p>
+              </div>
+              <Switch
+                checked={form.ponto_online}
+                onCheckedChange={v => setForm(f => ({ ...f, ponto_online: v }))}
+              />
+            </div>
+
             {/* Financeiro / Benefícios */}
             <div className="space-y-3 border rounded-lg p-3 bg-muted/30">
               <p className="text-sm font-medium">Financeiro / Benefícios</p>
