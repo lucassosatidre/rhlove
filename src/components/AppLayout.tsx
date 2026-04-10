@@ -330,9 +330,9 @@ export default function AppLayout({ children }: { children: ReactNode }) {
                   location.pathname === '/ponto',
                   () => setMobileOpen(false)
                 )}
-                <div className="!my-2 mx-1 h-px bg-border" />
+                <div className="!my-2 mx-1 h-px bg-sidebar-foreground/10" />
                 {GROUPS.map(group => renderGroup(group, () => setMobileOpen(false)))}
-                <div className="!my-2 mx-1 h-px bg-border" />
+                <div className="!my-2 mx-1 h-px bg-sidebar-foreground/10" />
                 {visibleFixedBottom.map(item =>
                   renderNavItem(item, location.pathname === item.to, () => setMobileOpen(false))
                 )}
