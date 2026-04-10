@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
-import rhLoveIcon from '@/assets/rh-love-icon.png';
+import { Loader2, User, Lock } from 'lucide-react';
+import rhLoveLogo from '@/assets/rh-love-logo.png';
 
 export default function Login() {
   const { signIn } = useAuth();
@@ -24,51 +20,81 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
-      <Card className="w-full max-w-sm shadow-lg">
-        <CardHeader className="text-center space-y-3 pb-2">
-          <div className="mx-auto w-16 h-16 rounded-2xl overflow-hidden shadow-md ring-2 ring-border">
-            <img src={rhLoveIcon} alt="RH Love" className="w-full h-full object-cover" />
+    <div className="min-h-screen flex items-center justify-center px-6" style={{ backgroundColor: '#0A0A0A' }}>
+      <div className="w-full max-w-md flex flex-col items-center">
+        {/* Logo */}
+        <img
+          src={rhLoveLogo}
+          alt="RH Love"
+          className="w-[300px] md:w-[420px] mb-8"
+          style={{ mixBlendMode: 'lighten' }}
+        />
+
+        {/* Heading */}
+        <h1 className="text-2xl font-bold text-white mb-1">Bem-vindo</h1>
+        <p className="text-sm mb-8" style={{ color: '#999' }}>Entre com suas credenciais</p>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="w-full space-y-5">
+          <div className="space-y-1.5">
+            <label className="flex items-center gap-2 text-sm font-medium text-white">
+              <User className="w-4 h-4" />
+              Usuário
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              className="w-full h-12 rounded-xl px-4 text-white text-sm outline-none transition-colors"
+              style={{ backgroundColor: '#2D2D2D', border: '1px solid #444' }}
+              onFocus={e => (e.target.style.borderColor = '#F97316')}
+              onBlur={e => (e.target.style.borderColor = '#444')}
+            />
           </div>
-          <CardTitle className="text-xl font-bold tracking-tight text-foreground">RH Love</CardTitle>
-          <div className="space-y-0.5">
-            <p className="text-xs text-muted-foreground">Plataforma de gestão de pessoas</p>
-            <p className="text-[10px] text-muted-foreground/60">Propósito Soluções</p>
+
+          <div className="space-y-1.5">
+            <label className="flex items-center gap-2 text-sm font-medium text-white">
+              <Lock className="w-4 h-4" />
+              Senha
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              className="w-full h-12 rounded-xl px-4 text-white text-sm outline-none transition-colors"
+              style={{ backgroundColor: '#2D2D2D', border: '1px solid #444' }}
+              onFocus={e => (e.target.style.borderColor = '#F97316')}
+              onBlur={e => (e.target.style.borderColor = '#444')}
+            />
           </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            {error && (
-              <p className="text-sm text-destructive font-medium text-center">{error}</p>
-            )}
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Entrar'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+
+          {/* Remember + Forgot */}
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 text-xs text-white/70 cursor-pointer">
+              <input type="checkbox" className="rounded accent-orange-500" />
+              Lembrar minha senha
+            </label>
+            <button type="button" className="text-xs font-medium hover:underline" style={{ color: '#F97316' }}>
+              Esqueceu a senha?
+            </button>
+          </div>
+
+          {error && (
+            <p className="text-sm text-red-400 font-medium text-center">{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full h-12 rounded-xl text-white font-bold text-base transition-opacity disabled:opacity-50"
+            style={{ backgroundColor: '#F97316' }}
+          >
+            {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Entrar'}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
