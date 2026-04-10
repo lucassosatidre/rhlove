@@ -97,7 +97,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { usuario, signOut } = useAuth();
   const { data: openTasksCount } = useOpenDemandsCount();
+  const { data: collaborators = [] } = useCollaborators();
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => getInitialExpanded(location.pathname));
+
+  // Check if current user has ponto_online enabled
+  const showPontoOnline = useMemo(() => {
+    if (!usuario?.collaborator_id) return false;
+    const collab = collaborators.find(c => c.id === usuario.collaborator_id);
+    return collab?.ponto_online === true;
+  }, [usuario, collaborators]);
 
   // Auto-expand group containing current route
   useEffect(() => {
