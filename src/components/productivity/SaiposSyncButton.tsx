@@ -158,6 +158,104 @@ export default function SaiposSyncButton() {
     return { proxyUrl, anonKey };
   }
 
+  function getTodayBRT(): string {
+    const now = new Date();
+    const brt = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    return brt.toISOString().slice(0, 10);
+  }
+
+  async function syncDayRange(
+    proxyUrl: string,
+    anonKey: string,
+    startDate: string,
+    endDate: string,
+    blockOffset: number,
+    totalBlocks: number,
+  ): Promise<{ days: number; sales: number }> {
+    const blocks = splitIntoBlocks(startDate, endDate);
+    let totalDays = 0;
+    let totalSales = 0;
+
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i];
+      const globalIdx = blockOffset + i + 1;
+      const blockLabel = `Sincronizando ${block.start} a ${block.end} (bloco ${globalIdx}/${totalBlocks})`;
+      setProgress(blockLabel);
+
+      const res = await fetchWithRetry(
+        proxyUrl,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${anonKey}`,
+            'apikey': anonKey,
+          },
+          body: JSON.stringify({ mode: 'raw', start_date: block.start, end_date: block.end }),
+        },
+        setProgress,
+        blockLabel,
+      );
+
+      const responseData = await res.json();
+      const sales: SaiposSale[] = responseData.sales || responseData || [];
+      const byDay = aggregateByDay(sales);
+
+      const startD = new Date(block.start + 'T00:00:00Z');
+      const endD = new Date(block.end + 'T00:00:00Z');
+
+      for (let d = new Date(startD); d <= endD; d.setDate(d.getDate() + 1)) {
+        const dayStr = d.toISOString().slice(0, 10);
+        const t = byDay.get(dayStr) || {
+          faturamento_salao: 0, pedidos_salao: 0,
+          faturamento_tele: 0, pedidos_tele: 0,
+          faturamento_total: 0, pedidos_totais: 0, total_sales: 0,
+        };
+
+        const { data: existing } = await supabase
+          .from('daily_sales')
+          .select('id')
+          .eq('date', dayStr)
+          .maybeSingle();
+
+        if (existing) {
+          await supabase.from('daily_sales').update({
+            faturamento_total: t.faturamento_total,
+            pedidos_totais: t.pedidos_totais,
+            faturamento_salao: t.faturamento_salao,
+            pedidos_salao: t.pedidos_salao,
+            faturamento_tele: t.faturamento_tele,
+            pedidos_tele: t.pedidos_tele,
+          }).eq('id', existing.id);
+        } else {
+          await supabase.from('daily_sales').insert({
+            date: dayStr,
+            faturamento_total: t.faturamento_total,
+            pedidos_totais: t.pedidos_totais,
+            faturamento_salao: t.faturamento_salao,
+            pedidos_salao: t.pedidos_salao,
+            faturamento_tele: t.faturamento_tele,
+            pedidos_tele: t.pedidos_tele,
+          });
+        }
+
+        await supabase.from('saipos_sync_log').insert({
+          sync_date: dayStr,
+          mode: 'auto',
+          total_sales: t.total_sales,
+          faturamento_total: t.faturamento_total,
+          pedidos_totais: t.pedidos_totais,
+          status: 'success',
+        } as any);
+
+        totalDays++;
+        totalSales += t.total_sales;
+      }
+    }
+
+    return { days: totalDays, sales: totalSales };
+  }
+
   async function handleSync() {
     setSyncing(true);
     setProgress('Verificando última sincronização...');
@@ -171,100 +269,39 @@ export default function SaiposSyncButton() {
         .limit(1)
         .maybeSingle();
 
-      const yesterday = getYesterdayBRT();
+      const todayBRT = getTodayBRT();
+      const yesterday = addDays(todayBRT, -1); // D-1
+      const dayBeforeYesterday = addDays(todayBRT, -2); // D-2
       const lastSyncDate = lastSync?.sync_date || null;
 
-      // 2. Calculate start date
-      const startDate = lastSyncDate ? addDays(lastSyncDate, 1) : BACKFILL_START;
-
-      // 3. Check if already up to date
-      if (startDate > yesterday) {
-        setProgress('');
-        setSyncing(false);
-        toast({ title: '✅ Já está atualizado até ontem' });
-        return;
-      }
-
-      // 4. Sync the range
+      // 2. Calculate backfill range: day after last sync → D-2
+      const backfillStart = lastSyncDate ? addDays(lastSyncDate, 1) : BACKFILL_START;
       const { proxyUrl, anonKey } = await getProxyConfig();
-      const blocks = splitIntoBlocks(startDate, yesterday);
+
       let totalDays = 0;
       let totalSales = 0;
 
-      for (let i = 0; i < blocks.length; i++) {
-        const block = blocks[i];
-        const blockLabel = `Sincronizando ${block.start} a ${block.end} (bloco ${i + 1}/${blocks.length})`;
-        setProgress(blockLabel);
+      // 3. Sync backfill range (only missing days: backfillStart → D-2)
+      if (backfillStart <= dayBeforeYesterday) {
+        const backfillBlocks = splitIntoBlocks(backfillStart, dayBeforeYesterday);
+        const yesterdayBlocks = splitIntoBlocks(yesterday, yesterday);
+        const allBlockCount = backfillBlocks.length + yesterdayBlocks.length;
 
-        const res = await fetchWithRetry(
-          proxyUrl,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${anonKey}`,
-              'apikey': anonKey,
-            },
-            body: JSON.stringify({ mode: 'raw', start_date: block.start, end_date: block.end }),
-          },
-          setProgress,
-          blockLabel,
-        );
+        const result = await syncDayRange(proxyUrl, anonKey, backfillStart, dayBeforeYesterday, 0, allBlockCount);
+        totalDays += result.days;
+        totalSales += result.sales;
 
-        const responseData = await res.json();
-        const sales: SaiposSale[] = responseData.sales || responseData || [];
-        const byDay = aggregateByDay(sales);
-
-        const startD = new Date(block.start + 'T00:00:00Z');
-        const endD = new Date(block.end + 'T00:00:00Z');
-
-        for (let d = new Date(startD); d <= endD; d.setDate(d.getDate() + 1)) {
-          const dayStr = d.toISOString().slice(0, 10);
-          const t = byDay.get(dayStr) || {
-            faturamento_salao: 0, pedidos_salao: 0,
-            faturamento_tele: 0, pedidos_tele: 0,
-            faturamento_total: 0, pedidos_totais: 0, total_sales: 0,
-          };
-
-          const { data: existing } = await supabase
-            .from('daily_sales')
-            .select('id')
-            .eq('date', dayStr)
-            .maybeSingle();
-
-          if (existing) {
-            await supabase.from('daily_sales').update({
-              faturamento_total: t.faturamento_total,
-              pedidos_totais: t.pedidos_totais,
-              faturamento_salao: t.faturamento_salao,
-              pedidos_salao: t.pedidos_salao,
-              faturamento_tele: t.faturamento_tele,
-              pedidos_tele: t.pedidos_tele,
-            }).eq('id', existing.id);
-          } else {
-            await supabase.from('daily_sales').insert({
-              date: dayStr,
-              faturamento_total: t.faturamento_total,
-              pedidos_totais: t.pedidos_totais,
-              faturamento_salao: t.faturamento_salao,
-              pedidos_salao: t.pedidos_salao,
-              faturamento_tele: t.faturamento_tele,
-              pedidos_tele: t.pedidos_tele,
-            });
-          }
-
-          await supabase.from('saipos_sync_log').insert({
-            sync_date: dayStr,
-            mode: 'auto',
-            total_sales: t.total_sales,
-            faturamento_total: t.faturamento_total,
-            pedidos_totais: t.pedidos_totais,
-            status: 'success',
-          } as any);
-
-          totalDays++;
-          totalSales += t.total_sales;
-        }
+        // 4. Always re-sync D-1 (yesterday)
+        setProgress(`Re-sincronizando D-1 (${yesterday})...`);
+        const d1Result = await syncDayRange(proxyUrl, anonKey, yesterday, yesterday, backfillBlocks.length, allBlockCount);
+        totalDays += d1Result.days;
+        totalSales += d1Result.sales;
+      } else {
+        // No backfill needed, just re-sync D-1
+        setProgress(`Re-sincronizando D-1 (${yesterday})...`);
+        const d1Result = await syncDayRange(proxyUrl, anonKey, yesterday, yesterday, 0, 1);
+        totalDays += d1Result.days;
+        totalSales += d1Result.sales;
       }
 
       setProgress('');
