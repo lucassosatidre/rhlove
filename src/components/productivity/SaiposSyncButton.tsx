@@ -30,6 +30,7 @@ interface SaiposSale {
   total_amount: number;
   canceled: string;
   shift_date: string;
+  table_order?: { total_service_charge_amount?: number };
 }
 
 interface DayTotals {
@@ -85,7 +86,11 @@ function aggregateByDay(sales: SaiposSale[]): Map<string, DayTotals> {
       map.set(day, t);
     }
     t.total_sales++;
-    const amount = Number(sale.total_amount) || 0;
+    const baseAmount = Number(sale.total_amount) || 0;
+    const serviceCharge = sale.id_sale_type === 3
+      ? Number(sale.table_order?.total_service_charge_amount || 0)
+      : 0;
+    const amount = baseAmount + serviceCharge;
     if (sale.id_sale_type === 3) {
       t.faturamento_salao += amount;
       t.pedidos_salao++;
@@ -313,6 +318,49 @@ export default function SaiposSyncButton() {
     }
   }
 
+  async function handleSample() {
+    setSyncing(true);
+    setProgress('Buscando amostra de vendas...');
+    try {
+      const { proxyUrl, anonKey } = await getProxyConfig();
+      const yesterday = getYesterdayBRT();
+      const res = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${anonKey}`,
+          'apikey': anonKey,
+        },
+        body: JSON.stringify({ mode: 'raw', start_date: yesterday, end_date: yesterday }),
+      });
+      if (!res.ok) throw new Error(`Proxy error ${res.status}`);
+      const allSales = await res.json();
+      const sales = (allSales.sales || allSales) as any[];
+      const type3 = sales.filter((s: any) => s.id_sale_type === 3 && s.canceled === 'N').slice(0, 3);
+      console.log('=== SAIPOS SAMPLE - Vendas tipo 3 (Salão) ===');
+      console.log('Total vendas retornadas:', sales.length);
+      console.log('Vendas tipo 3 (não canceladas):', sales.filter((s: any) => s.id_sale_type === 3 && s.canceled === 'N').length);
+      type3.forEach((sale: any, i: number) => {
+        console.log(`--- Venda ${i + 1} ---`);
+        console.log('total_amount:', sale.total_amount);
+        console.log('table_order:', JSON.stringify(sale.table_order, null, 2));
+        console.log('total_service_charge_amount (table_order):', sale.table_order?.total_service_charge_amount);
+        console.log('Campos disponíveis:', Object.keys(sale).join(', '));
+        console.log('JSON completo:', JSON.stringify(sale, null, 2));
+      });
+      setProgress('');
+      toast({
+        title: 'Sample concluído',
+        description: `${type3.length} vendas tipo 3 logadas no console (F12). Total: ${sales.length} vendas.`,
+      });
+    } catch (err: any) {
+      setProgress('');
+      toast({ title: 'Erro no sample', description: err.message, variant: 'destructive' });
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   return (
     <>
       <div className="flex items-center gap-1">
@@ -334,6 +382,15 @@ export default function SaiposSyncButton() {
               onClick={() => setTokenDialogOpen(true)}
             >
               Configurar token
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-xs"
+              disabled={syncing}
+              onClick={handleSample}
+            >
+              Inspecionar vendas (sample)
             </Button>
           </PopoverContent>
         </Popover>
