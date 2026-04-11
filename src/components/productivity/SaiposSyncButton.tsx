@@ -327,27 +327,65 @@ export default function SaiposSyncButton() {
           'Authorization': `Bearer ${anonKey}`,
           'apikey': anonKey,
         },
-        body: JSON.stringify({ mode: 'raw', start_date: yesterday, end_date: yesterday }),
+        body: JSON.stringify({ mode: 'raw', start_date: yesterday, end_date: yesterday, p_limit: 1000 }),
       });
       if (!res.ok) throw new Error(`Proxy error ${res.status}`);
       const allSales = await res.json();
       const sales = (allSales.sales || allSales) as any[];
-      const type3 = sales.filter((s: any) => s.id_sale_type === 3 && s.canceled === 'N').slice(0, 3);
-      console.log('=== SAIPOS SAMPLE - Vendas tipo 3 (Salão) ===');
+
+      console.log('=== SAIPOS SAMPLE COMPLETO ===');
+      console.log('Data:', yesterday);
       console.log('Total vendas retornadas:', sales.length);
-      console.log('Vendas tipo 3 (não canceladas):', sales.filter((s: any) => s.id_sale_type === 3 && s.canceled === 'N').length);
-      type3.forEach((sale: any, i: number) => {
-        console.log(`--- Venda ${i + 1} ---`);
-        console.log('total_amount:', sale.total_amount);
-        console.log('table_order:', JSON.stringify(sale.table_order, null, 2));
-        console.log('total_service_charge_amount (table_order):', sale.table_order?.total_service_charge_amount);
-        console.log('Campos disponíveis:', Object.keys(sale).join(', '));
-        console.log('JSON completo:', JSON.stringify(sale, null, 2));
+
+      // 1. Vendas canceladas (canceled != "N")
+      const canceled = sales.filter((s: any) => s.canceled !== 'N');
+      const canceledValues: Record<string, number> = {};
+      canceled.forEach((s: any) => {
+        const v = String(s.canceled ?? 'null');
+        canceledValues[v] = (canceledValues[v] || 0) + 1;
       });
+      console.log(`\n1. Vendas canceladas (canceled != "N"): ${canceled.length}`);
+      console.log('   Valores de canceled encontrados:', canceledValues);
+
+      // 2. Vendas com id_sale_type fora de 1,2,3,4
+      const knownTypes = [1, 2, 3, 4];
+      const unknownType = sales.filter((s: any) => s.id_sale_type != null && !knownTypes.includes(s.id_sale_type));
+      const unknownTypeValues: Record<string, number> = {};
+      unknownType.forEach((s: any) => {
+        const v = String(s.id_sale_type);
+        unknownTypeValues[v] = (unknownTypeValues[v] || 0) + 1;
+      });
+      console.log(`\n2. Vendas com id_sale_type fora de [1,2,3,4]: ${unknownType.length}`);
+      console.log('   Tipos encontrados:', unknownTypeValues);
+
+      // 3. Vendas com id_sale_type null
+      const nullType = sales.filter((s: any) => s.id_sale_type == null);
+      console.log(`\n3. Vendas com id_sale_type null: ${nullType.length}`);
+
+      // 4. Soma total_amount: canceled="N" AND id_sale_type IN (1,2,3,4)
+      const validSales = sales.filter((s: any) => s.canceled === 'N' && knownTypes.includes(s.id_sale_type));
+      const totalAmount = validSales.reduce((sum: number, s: any) => sum + (Number(s.total_amount) || 0), 0);
+      console.log(`\n4. Vendas válidas (canceled="N", tipo 1-4): ${validSales.length}`);
+      console.log(`   Soma total_amount: R$ ${totalAmount.toFixed(2)}`);
+
+      // Breakdown por tipo
+      for (const t of knownTypes) {
+        const ofType = validSales.filter((s: any) => s.id_sale_type === t);
+        const typeSum = ofType.reduce((sum: number, s: any) => sum + (Number(s.total_amount) || 0), 0);
+        console.log(`   Tipo ${t}: ${ofType.length} vendas, R$ ${typeSum.toFixed(2)}`);
+      }
+
+      // 3 exemplos tipo 3
+      const type3 = validSales.filter((s: any) => s.id_sale_type === 3).slice(0, 3);
+      console.log('\n--- Exemplos vendas tipo 3 (Salão) ---');
+      type3.forEach((sale: any, i: number) => {
+        console.log(`Venda ${i + 1}: total_amount=${sale.total_amount}, service_charge=${sale.table_order?.total_service_charge_amount}`);
+      });
+
       setProgress('');
       toast({
         title: 'Sample concluído',
-        description: `${type3.length} vendas tipo 3 logadas no console (F12). Total: ${sales.length} vendas.`,
+        description: `${sales.length} vendas analisadas — veja console (F12).`,
       });
     } catch (err: any) {
       setProgress('');
