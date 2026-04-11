@@ -316,6 +316,8 @@ export default function SaiposSyncButton() {
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' });
     }
+  }
+
   async function handleSample() {
     setSyncing(true);
     setProgress('Buscando amostra de vendas...');
