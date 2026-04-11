@@ -1,76 +1,36 @@
 
 
-# Integração Automática Saipos → daily_sales
+# Plano: Verificar e corrigir taxa de serviço no sync Saipos
 
-## Resumo
-Criar uma Edge Function que busca dados de vendas da API do Saipos e alimenta automaticamente a tabela `daily_sales`. Configurar execução diária via cron e rodar backfill inicial de 23/03 a 09/04/2026.
+## Problema atual
+1. A Edge Function `sync-saipos-sales` está **quebrada** — variáveis `supabaseUrl`, `serviceKey`, `body` e `mode` são declaradas duas vezes (linhas 158-162 e 183-188), causando `BOOT_ERROR`
+2. Não sabemos se `total_amount` inclui a taxa de serviço para vendas tipo 3
 
 ## Etapas
 
-### 1. Criar tabela `saipos_sync_log` (migração)
-Nova tabela para registrar cada sincronização:
-- `id` uuid PK
-- `sync_date` date — dia sincronizado
-- `mode` text — "yesterday" ou "backfill"
-- `total_sales` integer
-- `faturamento_total` numeric
-- `pedidos_totais` integer
-- `status` text — "success" / "error"
-- `error_message` text nullable
-- `created_at` timestamptz default now()
+### 1. Corrigir a Edge Function (bug de variáveis duplicadas)
+Remover as declarações duplicadas nas linhas 183-188. Mover a lógica do `save-token` para depois da criação do client, ou reorganizar o fluxo para evitar duplicação.
 
-RLS: admin pode inserir/atualizar/deletar, authenticated pode visualizar.
+### 2. Adicionar modo "sample" à Edge Function
+Novo modo que busca 5 vendas tipo 3 (Salão) da API e retorna o JSON **completo** (sem filtrar campos), para inspecionar todos os campos disponíveis — incluindo `total_service_charge_amount`, `table_order`, etc.
 
-Adicionar constraint UNIQUE na coluna `date` da tabela `daily_sales` (necessário para upsert confiável via SQL).
+### 3. Deploy + chamar modo "sample"
+Fazer deploy da function corrigida e chamar com `{"mode": "sample"}` para obter um exemplo real de venda tipo 3.
 
-### 2. Criar Edge Function `sync-saipos-sales`
-Arquivo: `supabase/functions/sync-saipos-sales/index.ts`
+### 4. Ajustar cálculo se necessário
+Se confirmarmos que `total_amount` não inclui a taxa de serviço:
+- Na Edge Function: somar `total_service_charge_amount` (ou campo equivalente) ao `total_amount` para vendas tipo 3
+- No `SaiposSyncButton.tsx` (frontend): aplicar a mesma lógica na função `aggregateByDay`
+- Re-sincronizar os dados existentes com backfill
 
-Lógica principal:
-- Recebe body JSON com `mode` ("yesterday" ou "backfill") e opcionais `start_date`/`end_date`
-- **yesterday**: calcula data de ontem (BRT = UTC-3)
-- **backfill**: divide range em blocos de 14 dias
-- Para cada bloco, chama `GET https://data.saipos.io/v1/search_sales` com os query params especificados, usando `SAIPOS_API_TOKEN` como Bearer token
-- Pagina com `p_offset` se retornar exatamente 1000 registros
-- Filtra `canceled = "N"`, agrupa por `shift_date`:
-  - `id_sale_type = 3` → salão
-  - `id_sale_type IN (1, 2, 4)` → tele
-  - Usa `total_amount` como valor
-- Faz upsert na `daily_sales` via supabaseAdmin (service_role)
-- Insere log por dia na `saipos_sync_log`
-- Retorna resumo JSON com dias processados
+## Arquivos modificados
+- `supabase/functions/sync-saipos-sales/index.ts` — corrigir duplicatas + modo sample + lógica taxa de serviço
+- `src/components/productivity/SaiposSyncButton.tsx` — mesma correção na aggregação do frontend
 
-### 3. Configurar pg_cron
-Habilitar extensões `pg_cron` e `pg_net` (migração).
-
-Agendar job diário às 08:00 UTC (05:00 BRT) que chama a Edge Function com `{"mode": "yesterday"}` usando `net.http_post`.
-
-### 4. Executar backfill inicial
-Após deploy, chamar a function com:
-```json
-{"mode": "backfill", "start_date": "2026-03-23", "end_date": "2026-04-09"}
-```
-
-## Detalhes Técnicos
-
-**Edge Function — fluxo de dados:**
+## Detalhe técnico
 ```text
-Saipos API → fetch com paginação → agrupa por shift_date
-  → para cada dia:
-      filtra canceled="N"
-      soma por id_sale_type (3=salão, 1/2/4=tele)
-      → upsert daily_sales
-      → insert saipos_sync_log
+Antes:  amount = sale.total_amount
+Depois: amount = sale.total_amount + (sale.id_sale_type === 3 ? (sale.table_order?.total_service_charge_amount || 0) : 0)
 ```
-
-**Autenticação da API Saipos:** Header `Authorization: Bearer ${SAIPOS_API_TOKEN}` (secret já configurado).
-
-**Supabase Admin Client:** Criado com `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` para operações de banco sem RLS.
-
-**CORS:** Headers padrão incluídos para permitir chamadas do frontend (botão manual de sync futuro).
-
-**Arquivos modificados/criados:**
-- `supabase/functions/sync-saipos-sales/index.ts` (novo)
-- 1 migração: tabela `saipos_sync_log` + unique constraint em `daily_sales.date` + pg_cron/pg_net
-- 1 insert SQL: job do cron
+O campo exato será confirmado após inspecionar a resposta da API no passo 3.
 
