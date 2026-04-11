@@ -340,6 +340,17 @@ export default function SaiposSyncButton() {
             >
               Configurar token
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-xs"
+              disabled={syncing}
+              onClick={handleSample}
+            >
+              Inspecionar vendas (sample)
+            </Button>
+              Configurar token
+            </Button>
           </PopoverContent>
         </Popover>
       </div>
