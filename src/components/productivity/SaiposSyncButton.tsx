@@ -349,8 +349,6 @@ export default function SaiposSyncButton() {
             >
               Inspecionar vendas (sample)
             </Button>
-              Configurar token
-            </Button>
           </PopoverContent>
         </Popover>
       </div>
