@@ -130,11 +130,7 @@ function aggregateByDay(sales: SaiposSale[]): Map<string, DayTotals> {
     }
 
     t.total_sales++;
-    const baseAmount = Number(sale.total_amount) || 0;
-    const serviceCharge = sale.id_sale_type === 3
-      ? Number(sale.table_order?.total_service_charge_amount || 0)
-      : 0;
-    const amount = baseAmount + serviceCharge;
+    const amount = Number(sale.total_amount) || 0;
 
     if (sale.id_sale_type === 3) {
       t.faturamento_salao += amount;
