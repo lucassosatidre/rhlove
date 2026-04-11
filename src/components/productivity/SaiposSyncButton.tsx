@@ -30,6 +30,7 @@ interface SaiposSale {
   total_amount: number;
   canceled: string;
   shift_date: string;
+  table_order?: { total_service_charge_amount?: number };
 }
 
 interface DayTotals {
@@ -85,7 +86,11 @@ function aggregateByDay(sales: SaiposSale[]): Map<string, DayTotals> {
       map.set(day, t);
     }
     t.total_sales++;
-    const amount = Number(sale.total_amount) || 0;
+    const baseAmount = Number(sale.total_amount) || 0;
+    const serviceCharge = sale.id_sale_type === 3
+      ? Number(sale.table_order?.total_service_charge_amount || 0)
+      : 0;
+    const amount = baseAmount + serviceCharge;
     if (sale.id_sale_type === 3) {
       t.faturamento_salao += amount;
       t.pedidos_salao++;
