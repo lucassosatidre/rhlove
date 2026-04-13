@@ -25,19 +25,21 @@ export interface PunchRecordUpsert {
   retorno_intervalo?: string | null;
 }
 
-export function usePunchRecords(month?: number, year?: number) {
+export function usePunchRecords(month?: number, year?: number, startDate?: string, endDate?: string) {
   return useQuery({
-    queryKey: ['punch_records', month, year],
+    queryKey: ['punch_records', month, year, startDate, endDate],
     queryFn: async () => {
       let query = supabase
         .from('punch_records')
         .select('*')
         .order('date', { ascending: false });
 
-      if (month !== undefined && year !== undefined) {
+      if (startDate && endDate) {
+        query = query.gte('date', startDate).lte('date', endDate);
+      } else if (month !== undefined && year !== undefined) {
         const start = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-        const endDate = new Date(year, month + 1, 0);
-        const end = `${year}-${String(month + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+        const endD = new Date(year, month + 1, 0);
+        const end = `${year}-${String(month + 1).padStart(2, '0')}-${String(endD.getDate()).padStart(2, '0')}`;
         query = query.gte('date', start).lte('date', end);
       } else {
         query = query.limit(5000);

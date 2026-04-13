@@ -60,19 +60,17 @@ function EscalaInner() {
   const { data: scheduledVacations = [] } = useScheduledVacations();
   const { data: afastamentos = [] } = useAfastamentos();
   const { data: holidays = [] } = useHolidays();
-  const { data: punchRecords = [] } = usePunchRecords(month, year);
+  const { data: punchRecords = [] } = usePunchRecords(undefined, undefined, dateRange.start, dateRange.end);
 
-  // Fetch Folga BH records for displayed month range
+  // Fetch Folga BH records for displayed grid range (includes overflow days)
   const { data: folgasBH = [] } = useQuery({
-    queryKey: ['bank_hours_folgas_escala', month, year],
+    queryKey: ['bank_hours_folgas_escala', dateRange.start, dateRange.end],
     queryFn: async () => {
-      const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
-      const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(new Date(year, month + 1, 0).getDate()).padStart(2, '0')}`;
       const { data, error } = await supabase
         .from('bank_hours_folgas')
         .select('collaborator_id, folga_date')
-        .gte('folga_date', startDate)
-        .lte('folga_date', endDate);
+        .gte('folga_date', dateRange.start)
+        .lte('folga_date', dateRange.end);
       if (error) throw error;
       return data as { collaborator_id: string; folga_date: string }[];
     },
