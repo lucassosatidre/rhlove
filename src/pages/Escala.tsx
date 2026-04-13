@@ -56,6 +56,16 @@ function EscalaInner() {
   const { toast } = useToast();
   const { isDraft, setIsDraft, draftEvents, draftFreelancerEntries, addDraftFreelancer, removeDraftFreelancer, draftSales, upsertDraftSales, clearDraft } = useDraftMode();
 
+  // Compute dateRange from year/month (independent of weeks) — must be before hooks that use it
+  const dateRange = useMemo(() => {
+    const firstMonday = getFirstMondayOfMonthGrid(year, month);
+    const totalWeeks = getWeekCount(year, month);
+    const last = new Date(firstMonday);
+    last.setDate(firstMonday.getDate() + totalWeeks * 7 - 1);
+    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return { start: fmt(firstMonday), end: fmt(last) };
+  }, [year, month]);
+
   const { data: collaborators = [] } = useCollaborators();
   const { data: scheduledVacations = [] } = useScheduledVacations();
   const { data: afastamentos = [] } = useAfastamentos();
@@ -94,16 +104,6 @@ function EscalaInner() {
     }
     return warnings.sort((a, b) => a.daysUntil - b.daysUntil);
   };
-
-  // Compute dateRange from year/month (independent of weeks)
-  const dateRange = useMemo(() => {
-    const firstMonday = getFirstMondayOfMonthGrid(year, month);
-    const totalWeeks = getWeekCount(year, month);
-    const last = new Date(firstMonday);
-    last.setDate(firstMonday.getDate() + totalWeeks * 7 - 1);
-    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    return { start: fmt(firstMonday), end: fmt(last) };
-  }, [year, month]);
 
   // Fetch data using dateRange
   const { data: freelancers = [] } = useFreelancers(dateRange.start, dateRange.end);
