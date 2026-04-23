@@ -455,6 +455,7 @@ export type Database = {
           data_fim_aviso: string | null
           data_fim_experiencia: string | null
           data_retorno: string | null
+          display_name: string | null
           fim_periodo: string | null
           folgas_semanais: string[]
           funcao: string | null
@@ -492,6 +493,7 @@ export type Database = {
           data_fim_aviso?: string | null
           data_fim_experiencia?: string | null
           data_retorno?: string | null
+          display_name?: string | null
           fim_periodo?: string | null
           folgas_semanais?: string[]
           funcao?: string | null
@@ -529,6 +531,7 @@ export type Database = {
           data_fim_aviso?: string | null
           data_fim_experiencia?: string | null
           data_retorno?: string | null
+          display_name?: string | null
           fim_periodo?: string | null
           folgas_semanais?: string[]
           funcao?: string | null

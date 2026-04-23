@@ -21,6 +21,7 @@ import PisImportDialog from '@/components/collaborator/PisImportDialog';
 
 interface FormData {
   collaborator_name: string;
+  display_name: string;
   sector: string;
   tipo_escala: TipoEscala;
   folgas_semanais: DayOfWeek[];
@@ -50,8 +51,11 @@ interface FormData {
   ponto_online: boolean;
 }
 
+const firstToken = (s: string) => (s || '').trim().split(/\s+/)[0] || '';
+
 const emptyForm: FormData = {
   collaborator_name: '',
+  display_name: '',
   sector: SECTORS[0],
   tipo_escala: '6x1',
   folgas_semanais: ['SEGUNDA'],
@@ -92,19 +96,23 @@ export default function Colaboradores() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
+  const [displayNameTouched, setDisplayNameTouched] = useState(false);
   const [profileCollaborator, setProfileCollaborator] = useState<Collaborator | null>(null);
   const [pisImportOpen, setPisImportOpen] = useState(false);
 
   const openNew = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setDisplayNameTouched(false);
     setDialogOpen(true);
   };
 
   const openEdit = (c: Collaborator) => {
     setEditingId(c.id);
+    const currentDisplay = (c.display_name && c.display_name.trim()) || firstToken(c.collaborator_name);
     setForm({
       collaborator_name: c.collaborator_name,
+      display_name: currentDisplay,
       sector: c.sector,
       tipo_escala: c.tipo_escala,
       folgas_semanais: c.folgas_semanais,
@@ -133,11 +141,27 @@ export default function Colaboradores() {
       carga_horaria_mensal: c.carga_horaria_mensal != null ? String(c.carga_horaria_mensal) : '',
       ponto_online: c.ponto_online ?? false,
     });
+    // Editing: only auto-sync if the current display matches the first-token (i.e. wasn't customized)
+    setDisplayNameTouched(currentDisplay !== firstToken(c.collaborator_name));
     setDialogOpen(true);
+  };
+
+  const handleFullNameChange = (newFullName: string) => {
+    setForm(f => ({
+      ...f,
+      collaborator_name: newFullName,
+      display_name: displayNameTouched ? f.display_name : firstToken(newFullName),
+    }));
+  };
+
+  const handleDisplayNameChange = (newShort: string) => {
+    setDisplayNameTouched(true);
+    setForm(f => ({ ...f, display_name: newShort }));
   };
 
   const toInput = (f: FormData): CollaboratorInput => ({
     collaborator_name: f.collaborator_name,
+    display_name: (f.display_name || '').trim() || firstToken(f.collaborator_name) || null,
     sector: f.sector,
     tipo_escala: f.tipo_escala,
     folgas_semanais: f.folgas_semanais,
@@ -391,6 +415,11 @@ export default function Colaboradores() {
                           {c.collaborator_name}
                           {c.controla_ponto !== false && <span className="ml-1 text-muted-foreground" title="Controle de ponto ativo">🕐</span>}
                         </button>
+                        {c.display_name && c.display_name !== firstToken(c.collaborator_name) && (
+                          <span className="block text-[11px] text-muted-foreground mt-0.5">
+                            Escala: {c.display_name}
+                          </span>
+                        )}
                         <span className="sm:hidden block text-xs text-muted-foreground">
                           {c.tipo_escala} · {c.folgas_semanais.map(d => DAY_LABELS[d]?.slice(0, 3)).join(', ')}{c.sunday_n > 0 ? ` · Dom ${c.sunday_n}º` : ''}
                         </span>
@@ -439,12 +468,24 @@ export default function Colaboradores() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Nome</Label>
+              <Label>Nome Completo</Label>
               <Input
                 value={form.collaborator_name}
-                onChange={e => setForm(f => ({ ...f, collaborator_name: e.target.value }))}
-                placeholder="Nome completo"
+                onChange={e => handleFullNameChange(e.target.value)}
+                placeholder="ex: ALINE DE SA ANTUNES"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Nome na Escala</Label>
+              <Input
+                value={form.display_name}
+                onChange={e => handleDisplayNameChange(e.target.value)}
+                placeholder="ex: ALINE"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Aparece na grade da escala. Auto-preenche com o primeiro nome até você editar manualmente.
+              </p>
             </div>
 
             <div className="grid grid-cols-3 gap-3">

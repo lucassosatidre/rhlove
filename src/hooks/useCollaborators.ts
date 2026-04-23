@@ -4,6 +4,7 @@ import type { Collaborator, DayOfWeek, TipoEscala, CollaboratorStatus, JornadaEs
 
 export interface CollaboratorInput {
   collaborator_name: string;
+  display_name?: string | null;
   sector: string;
   tipo_escala: TipoEscala;
   folgas_semanais: DayOfWeek[];
@@ -38,8 +39,11 @@ export interface CollaboratorInput {
 }
 
 function toDbRow(c: CollaboratorInput) {
+  const fallbackShort = (c.collaborator_name || '').trim().split(/\s+/)[0] || '';
+  const display = (c.display_name ?? '').trim() || fallbackShort;
   return {
     collaborator_name: c.collaborator_name,
+    display_name: display || null,
     sector: c.sector,
     tipo_escala: c.tipo_escala,
     folgas_semanais: c.folgas_semanais,
@@ -75,8 +79,10 @@ function toDbRow(c: CollaboratorInput) {
 }
 
 function fromDbRow(row: any): Collaborator {
+  const fallbackShort = ((row.collaborator_name as string) || '').trim().split(/\s+/)[0] || '';
   return {
     ...row,
+    display_name: (row.display_name && String(row.display_name).trim()) || fallbackShort || null,
     folgas_semanais: row.folgas_semanais ?? [row.weekly_day_off?.toUpperCase() ?? 'SEGUNDA'],
     tipo_escala: row.tipo_escala ?? '6x1',
     status: row.status ?? 'ATIVO',

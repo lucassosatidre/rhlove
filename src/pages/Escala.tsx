@@ -154,11 +154,14 @@ function EscalaInner() {
     [allScheduleEvents]
   );
 
-  // Lookup: collaborator name → collaborator object
+  // Lookup: short display name (used in the grid) → collaborator object
   const collabByName = useMemo(() => {
     const map: Record<string, typeof collaborators[0]> = {};
     for (const c of collaborators) {
-      map[c.collaborator_name] = c;
+      const short = (c.display_name && c.display_name.trim())
+        || (c.collaborator_name || '').trim().split(/\s+/)[0]
+        || c.collaborator_name;
+      map[short] = c;
     }
     return map;
   }, [collaborators]);

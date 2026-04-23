@@ -34,6 +34,7 @@ export const STATUS_LABELS: Record<CollaboratorStatus, string> = {
 export interface Collaborator {
   id: string;
   collaborator_name: string;
+  display_name: string | null;
   sector: string;
   tipo_escala: TipoEscala;
   folgas_semanais: DayOfWeek[];
