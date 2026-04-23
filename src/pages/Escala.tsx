@@ -91,6 +91,14 @@ function EscalaInner() {
     for (const f of folgasBH) set.add(`${f.collaborator_id}|${f.folga_date}`);
     return set;
   }, [folgasBH]);
+
+  // Holiday dates set (yyyy-mm-dd) for column highlighting
+  const holidaySet = useMemo(() => {
+    const set = new Set<string>();
+    for (const h of holidays) set.add(h.date);
+    return set;
+  }, [holidays]);
+
   // Helper: get upcoming holiday warnings for a week start date (within 21 days)
   const getHolidayWarnings = (weekStartDate: Date) => {
     const warnings: { name: string; daysUntil: number }[] = [];
