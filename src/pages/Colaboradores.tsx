@@ -100,7 +100,7 @@ export default function Colaboradores() {
   const [displayNameTouched, setDisplayNameTouched] = useState(false);
   const [profileCollaborator, setProfileCollaborator] = useState<Collaborator | null>(null);
   const [pisImportOpen, setPisImportOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'ATIVOS' | 'TODOS' | 'DESLIGADOS'>('ATIVOS');
+  const [statusFilter, setStatusFilter] = useState<'ATIVOS' | 'DESLIGADOS'>('ATIVOS');
 
   const openNew = () => {
     setEditingId(null);
