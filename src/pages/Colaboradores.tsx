@@ -103,13 +103,16 @@ export default function Colaboradores() {
   const openNew = () => {
     setEditingId(null);
     setForm(emptyForm);
+    setDisplayNameTouched(false);
     setDialogOpen(true);
   };
 
   const openEdit = (c: Collaborator) => {
     setEditingId(c.id);
+    const currentDisplay = (c.display_name && c.display_name.trim()) || firstToken(c.collaborator_name);
     setForm({
       collaborator_name: c.collaborator_name,
+      display_name: currentDisplay,
       sector: c.sector,
       tipo_escala: c.tipo_escala,
       folgas_semanais: c.folgas_semanais,
@@ -138,11 +141,27 @@ export default function Colaboradores() {
       carga_horaria_mensal: c.carga_horaria_mensal != null ? String(c.carga_horaria_mensal) : '',
       ponto_online: c.ponto_online ?? false,
     });
+    // Editing: only auto-sync if the current display matches the first-token (i.e. wasn't customized)
+    setDisplayNameTouched(currentDisplay !== firstToken(c.collaborator_name));
     setDialogOpen(true);
+  };
+
+  const handleFullNameChange = (newFullName: string) => {
+    setForm(f => ({
+      ...f,
+      collaborator_name: newFullName,
+      display_name: displayNameTouched ? f.display_name : firstToken(newFullName),
+    }));
+  };
+
+  const handleDisplayNameChange = (newShort: string) => {
+    setDisplayNameTouched(true);
+    setForm(f => ({ ...f, display_name: newShort }));
   };
 
   const toInput = (f: FormData): CollaboratorInput => ({
     collaborator_name: f.collaborator_name,
+    display_name: (f.display_name || '').trim() || firstToken(f.collaborator_name) || null,
     sector: f.sector,
     tipo_escala: f.tipo_escala,
     folgas_semanais: f.folgas_semanais,
