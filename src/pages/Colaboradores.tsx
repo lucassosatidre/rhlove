@@ -301,6 +301,13 @@ export default function Colaboradores() {
     return acc;
   }, {});
 
+  // Sort each sector alphabetically (pt-BR, ignore accents/case)
+  for (const sector of Object.keys(grouped)) {
+    grouped[sector].sort((a, b) =>
+      a.collaborator_name.localeCompare(b.collaborator_name, 'pt-BR', { sensitivity: 'base' })
+    );
+  }
+
   const statusColor = (s: CollaboratorStatus) => {
     switch (s) {
       case 'ATIVO': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
