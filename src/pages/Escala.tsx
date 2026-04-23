@@ -725,7 +725,7 @@ function EscalaInner() {
                           const dateKey = formatDateKey(d.date);
                           const frees = getTotalFrees(dateKey, sector);
                           return (
-                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
+                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''} ${holidayDayIndices.has(di) ? holidayBg : ''}`}>
                               Frees: {frees}
                             </td>
                           );
@@ -739,7 +739,7 @@ function EscalaInner() {
                           const faltas = getPunchFaltaCount(d.date, sector);
                           const total = scheduled + frees - faltas;
                           return (
-                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
+                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''} ${holidayDayIndices.has(di) ? holidayBg : ''}`}>
                               Total: {total}{faltas > 0 && <span className="text-destructive ml-1">({faltas} falta{faltas > 1 ? 's' : ''})</span>}
                             </td>
                           );
@@ -750,7 +750,7 @@ function EscalaInner() {
                           const dateKey = formatDateKey(d.date);
                           const sale = salesMap[dateKey];
                           if (!sale) {
-                            return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>Ticket/colab.: -</td>;
+                            return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''} ${holidayDayIndices.has(di) ? holidayBg : ''}`}>Ticket/colab.: -</td>;
                           }
                           const scheduled = getPresentScheduledCount(d.date, sector);
                           const frees = getTotalFrees(dateKey, sector);
@@ -759,7 +759,7 @@ function EscalaInner() {
                           const { vendas } = getSectorSales(sale, sector);
                           const tmp = total > 0 ? vendas / total : 0;
                           return (
-                             <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
+                             <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''} ${holidayDayIndices.has(di) ? holidayBg : ''}`}>
                                Ticket/colab.: {tmp > 0 ? formatNum(tmp) : '-'}
                             </td>
                           );
@@ -770,7 +770,7 @@ function EscalaInner() {
                           const dateKey = formatDateKey(d.date);
                           const sale = salesMap[dateKey];
                           if (!sale) {
-                            return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>Pedidos/colab.: -</td>;
+                            return <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''} ${holidayDayIndices.has(di) ? holidayBg : ''}`}>Pedidos/colab.: -</td>;
                           }
                           const scheduled = getPresentScheduledCount(d.date, sector);
                           const frees = getTotalFrees(dateKey, sector);
@@ -779,7 +779,7 @@ function EscalaInner() {
                           const { pedidos } = getSectorSales(sale, sector);
                           const ppp = total > 0 ? pedidos / total : 0;
                           return (
-                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
+                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''} ${holidayDayIndices.has(di) ? holidayBg : ''}`}>
                               Pedidos/colab.: {ppp > 0 ? formatNum(ppp) : '-'}
                             </td>
                           );
@@ -792,7 +792,7 @@ function EscalaInner() {
                           const sale = salesMap[dateKey];
                           const { vendas } = getSectorSales(sale, sector);
                           return (
-                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
+                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''} ${holidayDayIndices.has(di) ? holidayBg : ''}`}>
                               <EditableSalesCell
                                 label="Total de vendas:"
                                 value={sale ? vendas : null}
@@ -810,7 +810,7 @@ function EscalaInner() {
                           const sale = salesMap[dateKey];
                           const { pedidos } = getSectorSales(sale, sector);
                           return (
-                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''}`}>
+                            <td key={di} className={`border border-border px-2 py-0.5 text-left text-[10px] text-muted-foreground ${di === 6 ? 'bg-accent/30' : ''} ${holidayDayIndices.has(di) ? holidayBg : ''}`}>
                               <EditableSalesCell
                                 label="Total de pedidos:"
                                 value={sale ? pedidos : null}
