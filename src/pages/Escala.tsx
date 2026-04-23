@@ -705,7 +705,7 @@ function EscalaInner() {
                           key={di}
                           className={`border border-border px-2 ${compact ? 'py-0' : 'py-0.5'} ${
                             di === 6 ? 'bg-accent/30' : ''
-                          }`}
+                          } ${holidayDayIndices.has(di) ? holidayBg : ''}`}
                         >
                           <InlineFreelancerInput
                             onAdd={(name) => handleAddFreelancer(dateKey, sector, name)}
