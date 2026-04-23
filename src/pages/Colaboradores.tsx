@@ -415,6 +415,11 @@ export default function Colaboradores() {
                           {c.collaborator_name}
                           {c.controla_ponto !== false && <span className="ml-1 text-muted-foreground" title="Controle de ponto ativo">🕐</span>}
                         </button>
+                        {c.display_name && c.display_name !== firstToken(c.collaborator_name) && (
+                          <span className="block text-[11px] text-muted-foreground mt-0.5">
+                            Escala: {c.display_name}
+                          </span>
+                        )}
                         <span className="sm:hidden block text-xs text-muted-foreground">
                           {c.tipo_escala} · {c.folgas_semanais.map(d => DAY_LABELS[d]?.slice(0, 3)).join(', ')}{c.sunday_n > 0 ? ` · Dom ${c.sunday_n}º` : ''}
                         </span>
@@ -463,12 +468,24 @@ export default function Colaboradores() {
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label>Nome</Label>
+              <Label>Nome Completo</Label>
               <Input
                 value={form.collaborator_name}
-                onChange={e => setForm(f => ({ ...f, collaborator_name: e.target.value }))}
-                placeholder="Nome completo"
+                onChange={e => handleFullNameChange(e.target.value)}
+                placeholder="ex: ALINE DE SA ANTUNES"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Nome na Escala</Label>
+              <Input
+                value={form.display_name}
+                onChange={e => handleDisplayNameChange(e.target.value)}
+                placeholder="ex: ALINE"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Aparece na grade da escala. Auto-preenche com o primeiro nome até você editar manualmente.
+              </p>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
