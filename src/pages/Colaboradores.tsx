@@ -378,7 +378,7 @@ export default function Colaboradores() {
               </Button>
             </label>
           </DropZone>
-          <Button variant="outline" size="sm" onClick={() => setPisImportOpen(true)}>
+          <Button variant="outline" size="sm" onClick={() => setPisImportOpen(true)} className="hidden">
             <CreditCard className="w-4 h-4 mr-1" /> Importar PIS
           </Button>
           <Button size="sm" onClick={openNew}>
