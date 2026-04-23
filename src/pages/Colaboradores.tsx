@@ -322,7 +322,13 @@ export default function Colaboradores() {
     XLSX.writeFile(wb, `colaboradores_estrela_rh_${today}.xlsx`);
   };
 
-  const grouped = collaborators.reduce<Record<string, Collaborator[]>>((acc, c) => {
+  const filteredCollaborators = collaborators.filter(c => {
+    if (statusFilter === 'ATIVOS') return c.status === 'ATIVO';
+    if (statusFilter === 'DESLIGADOS') return c.status === 'DESLIGADO';
+    return true;
+  });
+
+  const grouped = filteredCollaborators.reduce<Record<string, Collaborator[]>>((acc, c) => {
     (acc[c.sector] ??= []).push(c);
     return acc;
   }, {});
