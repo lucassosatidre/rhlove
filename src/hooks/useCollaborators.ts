@@ -16,6 +16,8 @@ export interface CollaboratorInput {
   inicio_periodo?: string | null;
   fim_periodo?: string | null;
   pis_matricula?: string | null;
+  cpf?: string | null;
+  matricula?: string | null;
   intervalo_automatico?: boolean;
   intervalo_inicio?: string | null;
   carga_horaria_diaria?: string | null;
@@ -55,7 +57,10 @@ function toDbRow(c: CollaboratorInput) {
     data_desligamento: c.data_desligamento || null,
     inicio_periodo: c.inicio_periodo || null,
     fim_periodo: c.fim_periodo || null,
-    pis_matricula: c.pis_matricula || null,
+    cpf: c.cpf || null,
+    matricula: c.matricula || null,
+    // Espelha CPF em pis_matricula para compat temporária com fluxos legados (AFD/Excel/Espelho de Ponto)
+    pis_matricula: (c.cpf ?? c.pis_matricula) || null,
     intervalo_automatico: c.intervalo_automatico ?? false,
     intervalo_inicio: c.intervalo_inicio || null,
     intervalo_duracao: c.intervalo_duracao ?? null,
@@ -91,6 +96,8 @@ function fromDbRow(row: any): Collaborator {
     inicio_periodo: row.inicio_periodo ?? null,
     fim_periodo: row.fim_periodo ?? null,
     pis_matricula: row.pis_matricula ?? null,
+    cpf: row.cpf ?? row.pis_matricula ?? null,
+    matricula: row.matricula ?? null,
     genero: row.genero ?? 'M',
     intervalo_automatico: row.intervalo_automatico ?? false,
     intervalo_inicio: row.intervalo_inicio ?? null,
