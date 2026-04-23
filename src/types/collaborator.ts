@@ -45,6 +45,8 @@ export interface Collaborator {
   inicio_periodo: string | null;
   fim_periodo: string | null;
   pis_matricula: string | null;
+  cpf: string | null;
+  matricula: string | null;
   genero: string;
   // legacy fields kept for DB compat
   data_retorno: string | null;

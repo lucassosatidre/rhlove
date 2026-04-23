@@ -450,6 +450,7 @@ export type Database = {
           carga_horaria_mensal: number | null
           collaborator_name: string
           controla_ponto: boolean
+          cpf: string | null
           created_at: string
           data_desligamento: string | null
           data_fim_aviso: string | null
@@ -469,6 +470,7 @@ export type Database = {
           intervalo_duracao: number | null
           intervalo_inicio: string | null
           jornadas_especiais: Json | null
+          matricula: string | null
           pis_matricula: string | null
           ponto_online: boolean
           salario_base: number | null
@@ -488,6 +490,7 @@ export type Database = {
           carga_horaria_mensal?: number | null
           collaborator_name: string
           controla_ponto?: boolean
+          cpf?: string | null
           created_at?: string
           data_desligamento?: string | null
           data_fim_aviso?: string | null
@@ -507,6 +510,7 @@ export type Database = {
           intervalo_duracao?: number | null
           intervalo_inicio?: string | null
           jornadas_especiais?: Json | null
+          matricula?: string | null
           pis_matricula?: string | null
           ponto_online?: boolean
           salario_base?: number | null
@@ -526,6 +530,7 @@ export type Database = {
           carga_horaria_mensal?: number | null
           collaborator_name?: string
           controla_ponto?: boolean
+          cpf?: string | null
           created_at?: string
           data_desligamento?: string | null
           data_fim_aviso?: string | null
@@ -545,6 +550,7 @@ export type Database = {
           intervalo_duracao?: number | null
           intervalo_inicio?: string | null
           jornadas_especiais?: Json | null
+          matricula?: string | null
           pis_matricula?: string | null
           ponto_online?: boolean
           salario_base?: number | null

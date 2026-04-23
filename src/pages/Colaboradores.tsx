@@ -34,6 +34,8 @@ interface FormData {
   inicio_periodo: string;
   fim_periodo: string;
   pis_matricula: string;
+  cpf: string;
+  matricula: string;
   intervalo_automatico: boolean;
   intervalo_inicio: string;
   intervalo_duracao: number | null;
@@ -68,6 +70,8 @@ const emptyForm: FormData = {
   inicio_periodo: '',
   fim_periodo: '',
   pis_matricula: '',
+  cpf: '',
+  matricula: '',
   intervalo_automatico: false,
   intervalo_inicio: '',
   intervalo_duracao: null,
@@ -126,6 +130,8 @@ export default function Colaboradores() {
       inicio_periodo: c.inicio_periodo ?? '',
       fim_periodo: c.fim_periodo ?? '',
       pis_matricula: c.pis_matricula ?? '',
+      cpf: c.cpf ?? c.pis_matricula ?? '',
+      matricula: c.matricula ?? '',
       intervalo_automatico: c.intervalo_automatico ?? false,
       intervalo_inicio: c.intervalo_inicio ?? '',
       intervalo_duracao: c.intervalo_duracao ?? null,
@@ -175,6 +181,8 @@ export default function Colaboradores() {
     inicio_periodo: f.inicio_periodo || null,
     fim_periodo: f.fim_periodo || null,
     pis_matricula: f.pis_matricula || null,
+    cpf: f.cpf || null,
+    matricula: f.matricula || null,
     intervalo_automatico: f.intervalo_automatico,
     intervalo_inicio: f.intervalo_inicio || null,
     intervalo_duracao: f.intervalo_duracao,
@@ -576,11 +584,20 @@ export default function Colaboradores() {
             </div>
 
             <div className="space-y-2">
-              <Label>PIS / Matrícula do ponto</Label>
+              <Label>Matrícula</Label>
               <Input
-                value={form.pis_matricula}
-                onChange={e => setForm(f => ({ ...f, pis_matricula: e.target.value }))}
-                placeholder="Número do PIS ou matrícula (opcional)"
+                value={form.matricula}
+                onChange={e => setForm(f => ({ ...f, matricula: e.target.value }))}
+                placeholder="ex: 123"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>CPF</Label>
+              <Input
+                value={form.cpf}
+                onChange={e => setForm(f => ({ ...f, cpf: e.target.value }))}
+                placeholder="000.000.000-00"
               />
             </div>
 
