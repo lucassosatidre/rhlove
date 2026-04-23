@@ -100,7 +100,7 @@ export default function Colaboradores() {
   const [displayNameTouched, setDisplayNameTouched] = useState(false);
   const [profileCollaborator, setProfileCollaborator] = useState<Collaborator | null>(null);
   const [pisImportOpen, setPisImportOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'ATIVOS' | 'TODOS' | 'DESLIGADOS'>('ATIVOS');
+  const [statusFilter, setStatusFilter] = useState<'ATIVOS' | 'DESLIGADOS'>('ATIVOS');
 
   const openNew = () => {
     setEditingId(null);
@@ -322,11 +322,9 @@ export default function Colaboradores() {
     XLSX.writeFile(wb, `colaboradores_estrela_rh_${today}.xlsx`);
   };
 
-  const filteredCollaborators = collaborators.filter(c => {
-    if (statusFilter === 'ATIVOS') return c.status !== 'DESLIGADO';
-    if (statusFilter === 'DESLIGADOS') return c.status === 'DESLIGADO';
-    return true;
-  });
+  const filteredCollaborators = collaborators.filter(c =>
+    statusFilter === 'DESLIGADOS' ? c.status === 'DESLIGADO' : c.status !== 'DESLIGADO'
+  );
 
   const grouped = filteredCollaborators.reduce<Record<string, Collaborator[]>>((acc, c) => {
     (acc[c.sector] ??= []).push(c);
@@ -392,7 +390,6 @@ export default function Colaboradores() {
       <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
         <TabsList>
           <TabsTrigger value="ATIVOS">Ativos</TabsTrigger>
-          <TabsTrigger value="TODOS">Todos</TabsTrigger>
           <TabsTrigger value="DESLIGADOS">Desligados</TabsTrigger>
         </TabsList>
       </Tabs>
