@@ -389,6 +389,14 @@ export default function Colaboradores() {
         </div>
       </div>
 
+      <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+        <TabsList>
+          <TabsTrigger value="ATIVOS">Ativos</TabsTrigger>
+          <TabsTrigger value="TODOS">Todos</TabsTrigger>
+          <TabsTrigger value="DESLIGADOS">Desligados</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {isLoading ? (
         <p className="text-muted-foreground">Carregando...</p>
       ) : Object.keys(grouped).length === 0 ? (
