@@ -21,6 +21,7 @@ import PisImportDialog from '@/components/collaborator/PisImportDialog';
 
 interface FormData {
   collaborator_name: string;
+  display_name: string;
   sector: string;
   tipo_escala: TipoEscala;
   folgas_semanais: DayOfWeek[];
@@ -50,8 +51,11 @@ interface FormData {
   ponto_online: boolean;
 }
 
+const firstToken = (s: string) => (s || '').trim().split(/\s+/)[0] || '';
+
 const emptyForm: FormData = {
   collaborator_name: '',
+  display_name: '',
   sector: SECTORS[0],
   tipo_escala: '6x1',
   folgas_semanais: ['SEGUNDA'],
@@ -92,6 +96,7 @@ export default function Colaboradores() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
+  const [displayNameTouched, setDisplayNameTouched] = useState(false);
   const [profileCollaborator, setProfileCollaborator] = useState<Collaborator | null>(null);
   const [pisImportOpen, setPisImportOpen] = useState(false);
 
