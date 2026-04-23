@@ -524,6 +524,25 @@ function EscalaInner() {
             0
           );
 
+          // Per-day numbering that skips collaborators with FALTA on that day.
+          // dayNumbers[dayIndex][rowIdx] = displayed sequence number, or null when absent (faltou).
+          const dayNumbers: (number | null)[][] = week.days.map((d) => {
+            const names = d.collaboratorsBySector[sector] || [];
+            const dateKey = formatDateKey(d.date);
+            let counter = 0;
+            return Array.from({ length: maxNames }, (_, idx) => {
+              const rawName = names[idx] || '';
+              if (!rawName) return null;
+              const cleanName = rawName.replace(/ \(EXPERIÊNCIA VENCENDO\)/, '').replace(/ \(AVISO TERMINANDO\)/, '');
+              const collab = collabByName[cleanName];
+              const collabEvents = collab ? (eventsMap[dateKey]?.[collab.id] || []) : [];
+              const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
+              if (hasFalta) return null;
+              counter += 1;
+              return counter;
+            });
+          });
+
           return (
             <div key={sector} className="overflow-x-auto">
               <table className={`w-full border-collapse table-fixed ${textSize}`}>
@@ -542,7 +561,7 @@ function EscalaInner() {
                         key={i}
                         className={`border border-border px-2 ${compact ? 'py-1' : 'py-2'} text-center font-semibold bg-muted ${
                           i === 6 ? 'bg-accent text-accent-foreground' : ''
-                        }`}
+                        } ${holidayDayIndices.has(i) ? holidayBg : ''}`}
                         style={{ width: `${100 / 7}%` }}
                       >
                         {DAY_NAMES[i]} {formatDateBR(d.date)}
@@ -578,6 +597,7 @@ function EscalaInner() {
                           'border border-border px-2 text-left',
                           compact ? 'py-0.5' : 'py-1',
                           di === 6 ? 'bg-accent/30' : '',
+                          holidayDayIndices.has(di) ? holidayBg : '',
                           hasAlert ? 'bg-warning/20 font-semibold' : '',
                           (hasFalta || isPunchFalta) ? 'bg-destructive/10' : '',
                           hasAtestado ? 'bg-blue-50 dark:bg-blue-950/30' : '',
@@ -591,7 +611,8 @@ function EscalaInner() {
                         }
 
                         const alertSuffix = rawName.includes('(EXPERIÊNCIA VENCENDO)') ? 'EXP. VENC.' : rawName.includes('(AVISO TERMINANDO)') ? 'AV. TERM.' : '';
-                        const displayName = cleanName ? `${idx + 1} – ${cleanName}` : '';
+                        const seqNum = dayNumbers[di]?.[idx] ?? null;
+                        const displayName = cleanName ? (seqNum !== null ? `${seqNum} – ${cleanName}` : cleanName) : '';
 
                         const nameContent = (
                           <span className="flex items-center gap-1 overflow-hidden max-w-full">
