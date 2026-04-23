@@ -676,7 +676,7 @@ function EscalaInner() {
                             key={di}
                             className={`border border-border px-2 ${compact ? 'py-0.5' : 'py-1'} text-left ${
                               di === 6 ? 'bg-accent/30' : ''
-                            }`}
+                            } ${holidayDayIndices.has(di) ? holidayBg : ''}`}
                           >
                             {entry ? (
                               <span className="text-primary/80 flex items-center gap-1 group">
