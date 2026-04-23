@@ -524,8 +524,9 @@ function EscalaInner() {
             0
           );
 
-          // Per-day numbering that skips collaborators with FALTA on that day.
-          // dayNumbers[dayIndex][rowIdx] = displayed sequence number, or null when absent (faltou).
+          // Per-day numbering that skips collaborators considered absent on that day.
+          // Skips when: hasFalta || isPunchFalta || hasAtestado || hasCompensacao.
+          // dayNumbers[dayIndex][rowIdx] = displayed sequence number, or null when absent.
           const dayNumbers: (number | null)[][] = week.days.map((d) => {
             const names = d.collaboratorsBySector[sector] || [];
             const dateKey = formatDateKey(d.date);
@@ -537,7 +538,16 @@ function EscalaInner() {
               const collab = collabByName[cleanName];
               const collabEvents = collab ? (eventsMap[dateKey]?.[collab.id] || []) : [];
               const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
-              if (hasFalta) return null;
+              const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
+              const hasCompensacao = collabEvents.some(e => e.event_type === 'COMPENSACAO');
+              const isFolgaBH = !!(collab && folgaBHSet.has(`${collab.id}|${dateKey}`));
+              const isPunchFalta = !!(
+                collab && collab.controla_ponto && lastPunchDate &&
+                dateKey >= INTEGRATION_START_DATE && dateKey <= lastPunchDate &&
+                !punchSet.has(`${collab.id}|${dateKey}`) &&
+                !hasFalta && !hasAtestado && !hasCompensacao && !isFolgaBH
+              );
+              if (hasFalta || isPunchFalta || hasAtestado || hasCompensacao) return null;
               counter += 1;
               return counter;
             });
