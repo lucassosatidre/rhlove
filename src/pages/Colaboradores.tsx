@@ -323,7 +323,7 @@ export default function Colaboradores() {
   };
 
   const filteredCollaborators = collaborators.filter(c => {
-    if (statusFilter === 'ATIVOS') return c.status === 'ATIVO';
+    if (statusFilter === 'ATIVOS') return c.status !== 'DESLIGADO';
     if (statusFilter === 'DESLIGADOS') return c.status === 'DESLIGADO';
     return true;
   });
