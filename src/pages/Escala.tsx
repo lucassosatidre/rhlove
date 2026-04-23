@@ -495,6 +495,13 @@ function EscalaInner() {
     const firstDate = week.days[0]?.date;
     const lastDate = week.days[week.days.length - 1]?.date;
 
+    // Day indices (0-6) that are holidays — used to highlight the entire column
+    const holidayDayIndices = new Set<number>();
+    week.days.forEach((d, i) => {
+      if (holidaySet.has(formatDateKey(d.date))) holidayDayIndices.add(i);
+    });
+    const holidayBg = 'bg-green-50 dark:bg-green-900/20';
+
     return (
       <div className="space-y-4">
         {visibleSectors.map(sector => {
