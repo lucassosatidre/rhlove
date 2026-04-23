@@ -1655,6 +1655,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_finalize_vacation_status: { Args: never; Returns: undefined }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
