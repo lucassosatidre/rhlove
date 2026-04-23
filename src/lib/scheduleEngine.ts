@@ -147,7 +147,11 @@ function getDisplayName(
   }
 
   // STEP 5 — ALERTAS
-  let name = collab.collaborator_name;
+  // Grid uses short display name (with fallback to first token of full name)
+  const shortName = (collab.display_name && collab.display_name.trim())
+    || (collab.collaborator_name || '').trim().split(/\s+/)[0]
+    || collab.collaborator_name;
+  let name = shortName;
 
   if (collab.status === 'EXPERIENCIA') {
     const fim = parseDate(collab.fim_periodo) || parseDate(collab.data_fim_experiencia);
