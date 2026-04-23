@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
@@ -99,6 +100,7 @@ export default function Colaboradores() {
   const [displayNameTouched, setDisplayNameTouched] = useState(false);
   const [profileCollaborator, setProfileCollaborator] = useState<Collaborator | null>(null);
   const [pisImportOpen, setPisImportOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'ATIVOS' | 'TODOS' | 'DESLIGADOS'>('ATIVOS');
 
   const openNew = () => {
     setEditingId(null);
@@ -320,7 +322,13 @@ export default function Colaboradores() {
     XLSX.writeFile(wb, `colaboradores_estrela_rh_${today}.xlsx`);
   };
 
-  const grouped = collaborators.reduce<Record<string, Collaborator[]>>((acc, c) => {
+  const filteredCollaborators = collaborators.filter(c => {
+    if (statusFilter === 'ATIVOS') return c.status === 'ATIVO';
+    if (statusFilter === 'DESLIGADOS') return c.status === 'DESLIGADO';
+    return true;
+  });
+
+  const grouped = filteredCollaborators.reduce<Record<string, Collaborator[]>>((acc, c) => {
     (acc[c.sector] ??= []).push(c);
     return acc;
   }, {});
@@ -380,6 +388,14 @@ export default function Colaboradores() {
           </Button>
         </div>
       </div>
+
+      <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
+        <TabsList>
+          <TabsTrigger value="ATIVOS">Ativos</TabsTrigger>
+          <TabsTrigger value="TODOS">Todos</TabsTrigger>
+          <TabsTrigger value="DESLIGADOS">Desligados</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {isLoading ? (
         <p className="text-muted-foreground">Carregando...</p>
