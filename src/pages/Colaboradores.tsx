@@ -390,7 +390,6 @@ export default function Colaboradores() {
       <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as typeof statusFilter)}>
         <TabsList>
           <TabsTrigger value="ATIVOS">Ativos</TabsTrigger>
-          <TabsTrigger value="TODOS">Todos</TabsTrigger>
           <TabsTrigger value="DESLIGADOS">Desligados</TabsTrigger>
         </TabsList>
       </Tabs>
