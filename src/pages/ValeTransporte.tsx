@@ -313,6 +313,14 @@ export default function ValeTransporte() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2"><Bus className="w-6 h-6" /> Vale Transporte</h1>
           <p className="text-sm text-muted-foreground">Gestão mensal de vale transporte</p>
+          {(() => {
+            const pendentes = rows.filter(r => r.saldoCartao == null).length;
+            return pendentes > 0 ? (
+              <Badge variant="outline" className="mt-2 border-amber-400 text-amber-700 bg-amber-50">
+                <AlertCircle className="w-3 h-3 mr-1" /> {pendentes} pendente(s) de saldo
+              </Badge>
+            ) : null;
+          })()}
         </div>
         <div className="flex flex-wrap gap-2">
           <Select value={String(selectedMonth)} onValueChange={v => setSelectedMonth(Number(v))}>
@@ -418,7 +426,12 @@ export default function ValeTransporte() {
               <TableBody>
                 {rows.map((r, idx) => (
                   <TableRow key={r.id} className={idx % 2 === 1 ? 'bg-muted/20' : ''}>
-                    <TableCell className="font-medium">{r.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {r.name}
+                      {r.saldoCartao == null && (
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-500 inline-block ml-1" aria-label="Saldo pendente" />
+                      )}
+                    </TableCell>
                     <TableCell className="text-xs">{r.sector}</TableCell>
                     <TableCell className="text-center">{r.passagensDia}</TableCell>
                     <TableCell className="text-center">{r.diasMes}</TableCell>
@@ -435,12 +448,12 @@ export default function ValeTransporte() {
                     </TableCell>
                     <TableCell className="text-right p-1">
                       <Input
-                        className="h-7 w-24 text-right text-xs ml-auto"
+                        className={`h-7 w-24 text-right text-xs ml-auto ${r.saldoCartao == null ? 'border-amber-400 bg-amber-50' : ''}`}
                         value={r.saldoStr}
                         onChange={e => handleSaldoChange(r.id, e.target.value)}
                         onBlur={() => handleSaldoBlur(r)}
                         onKeyDown={e => { if (e.key === 'Enter') handleSaldoBlur(r); }}
-                        placeholder="0,00"
+                        placeholder={r.saldoCartao == null ? 'Preencher' : '0,00'}
                       />
                     </TableCell>
                     <TableCell className="text-right">
