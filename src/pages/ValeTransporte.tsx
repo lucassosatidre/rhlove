@@ -44,9 +44,14 @@ export default function ValeTransporte() {
     if (vtConfig) setValorPassagem(String(vtConfig.valor_passagem));
   }, [vtConfig]);
 
-  // Collaborators with VT active
+  // Collaborators with VT active (sorted alphabetically by full name, pt-BR)
   const vtCollabs = useMemo(() =>
-    collaborators.filter(c => c.status !== 'DESLIGADO' && (c as any).vt_ativo === true),
+    collaborators
+      .filter(c => c.status !== 'DESLIGADO' && (c as any).vt_ativo === true)
+      .slice()
+      .sort((a, b) =>
+        (a.collaborator_name || '').localeCompare(b.collaborator_name || '', 'pt-BR', { sensitivity: 'base' })
+      ),
     [collaborators]
   );
 
