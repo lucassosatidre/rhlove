@@ -31,7 +31,7 @@ export default function ValeTransporte() {
   const { data: collaborators = [] } = useCollaborators();
   const { data: vtMonthly = [], isLoading } = useVtMonthly(selectedMonth, selectedYear);
   const upsertVt = useUpsertVtMonthly();
-  const updateSaldo = useUpdateVtMonthlySaldo();
+  // updateSaldo removido: agora usamos upsert sempre, para incluir colaboradores sem registro prévio
 
   const [valorPassagem, setValorPassagem] = useState('');
   const [localSaldos, setLocalSaldos] = useState<Record<string, string>>({});
