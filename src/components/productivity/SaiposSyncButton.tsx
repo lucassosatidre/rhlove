@@ -17,7 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { RefreshCw, Settings } from 'lucide-react';
+import { RefreshCw, Settings, Clock, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const MAX_DAYS_PER_BLOCK = 14;
@@ -41,6 +41,18 @@ interface DayTotals {
   faturamento_total: number;
   pedidos_totais: number;
   total_sales: number;
+}
+
+interface AuditRow {
+  date: string;
+  stored_total: number;
+  stored_pedidos: number;
+  api_total: number;
+  api_pedidos: number;
+  api_sales: number;
+  diff_total: number;
+  diff_pedidos: number;
+  status: 'ok' | 'mismatch' | 'missing_in_api' | 'missing_in_db';
 }
 
 function getYesterdayBRT(): string {
@@ -143,6 +155,12 @@ export default function SaiposSyncButton() {
   const [repairDialogOpen, setRepairDialogOpen] = useState(false);
   const [repairStart, setRepairStart] = useState('');
   const [repairEnd, setRepairEnd] = useState('');
+  const [auditDialogOpen, setAuditDialogOpen] = useState(false);
+  const [auditStart, setAuditStart] = useState('2024-02-16');
+  const [auditEnd, setAuditEnd] = useState(getYesterdayBRT());
+  const [auditReport, setAuditReport] = useState<AuditRow[] | null>(null);
+  const [applyingFixes, setApplyingFixes] = useState(false);
+  const [cronStatus, setCronStatus] = useState<Array<{ jobname: string; schedule: string; active: boolean }> | null>(null);
 
   if (!usuario || usuario.perfil !== 'admin') return null;
 
@@ -471,6 +489,174 @@ export default function SaiposSyncButton() {
     }
   }
 
+  async function handleAudit() {
+    if (!auditStart || !auditEnd) return;
+    if (auditStart > auditEnd) {
+      toast({ title: 'Datas inválidas', description: 'Início deve ser ≤ fim.', variant: 'destructive' });
+      return;
+    }
+    setSyncing(true);
+    setAuditReport(null);
+    try {
+      const { proxyUrl, anonKey } = await getProxyConfig();
+      const blocks = splitIntoBlocks(auditStart, auditEnd);
+
+      // 1. Busca todas as vendas via proxy (browser-side, evita geo-block)
+      const apiByDay = new Map<string, DayTotals>();
+      for (let i = 0; i < blocks.length; i++) {
+        const block = blocks[i];
+        setProgress(`Auditando ${block.start} → ${block.end} (${i + 1}/${blocks.length})`);
+        const res = await fetchWithRetry(
+          proxyUrl,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${anonKey}`,
+              'apikey': anonKey,
+            },
+            body: JSON.stringify({ mode: 'raw', start_date: block.start, end_date: block.end }),
+          },
+          setProgress,
+          `Auditoria ${block.start}→${block.end}`,
+        );
+        const responseData = await res.json();
+        const sales: SaiposSale[] = responseData.sales || responseData || [];
+        const byDay = aggregateByDay(sales);
+        for (const [day, totals] of byDay.entries()) {
+          if (day >= auditStart && day <= auditEnd) apiByDay.set(day, totals);
+        }
+      }
+
+      // 2. Carrega tudo de daily_sales no range
+      setProgress('Carregando valores armazenados...');
+      const { data: storedRows, error: storedErr } = await supabase
+        .from('daily_sales')
+        .select('date, faturamento_total, pedidos_totais')
+        .gte('date', auditStart)
+        .lte('date', auditEnd);
+      if (storedErr) throw storedErr;
+      const storedByDay = new Map<string, { faturamento_total: number; pedidos_totais: number }>();
+      for (const r of storedRows ?? []) {
+        storedByDay.set(r.date, { faturamento_total: Number(r.faturamento_total), pedidos_totais: Number(r.pedidos_totais) });
+      }
+
+      // 3. Compara dia a dia
+      const report: AuditRow[] = [];
+      const startD = new Date(auditStart + 'T00:00:00Z');
+      const endD = new Date(auditEnd + 'T00:00:00Z');
+      for (let d = new Date(startD); d <= endD; d.setDate(d.getDate() + 1)) {
+        const dayStr = d.toISOString().slice(0, 10);
+        const api = apiByDay.get(dayStr);
+        const stored = storedByDay.get(dayStr);
+
+        const apiTotal = api?.faturamento_total ?? 0;
+        const apiPed = api?.pedidos_totais ?? 0;
+        const apiSales = api?.total_sales ?? 0;
+        const storedTotal = stored?.faturamento_total ?? 0;
+        const storedPed = stored?.pedidos_totais ?? 0;
+        const diffTot = Math.round((apiTotal - storedTotal) * 100) / 100;
+        const diffPed = apiPed - storedPed;
+
+        let status: AuditRow['status'] = 'ok';
+        if (!stored && apiSales > 0) status = 'missing_in_db';
+        else if (apiSales === 0 && storedPed > 0) status = 'missing_in_api';
+        else if (Math.abs(diffTot) >= 0.01 || diffPed !== 0) status = 'mismatch';
+
+        report.push({
+          date: dayStr,
+          stored_total: storedTotal,
+          stored_pedidos: storedPed,
+          api_total: apiTotal,
+          api_pedidos: apiPed,
+          api_sales: apiSales,
+          diff_total: diffTot,
+          diff_pedidos: diffPed,
+          status,
+        });
+      }
+
+      setAuditReport(report);
+      setProgress('');
+      const divergences = report.filter((r) => r.status !== 'ok').length;
+      toast({
+        title: divergences === 0 ? '✅ Tudo bate' : `⚠️ ${divergences} divergência(s)`,
+        description: `${report.length} dias auditados de ${auditStart} a ${auditEnd}.`,
+      });
+    } catch (err: any) {
+      console.error('Audit error:', err);
+      setProgress('');
+      toast({ title: 'Erro na auditoria', description: err.message?.slice(0, 200), variant: 'destructive' });
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function handleApplyAuditFixes() {
+    if (!auditReport) return;
+    const toFix = auditReport.filter((r) => r.status === 'mismatch' || r.status === 'missing_in_db');
+    if (toFix.length === 0) {
+      toast({ title: 'Nada a corrigir', description: 'Todas as divergências são "missing_in_api" e não devem sobrescrever.' });
+      return;
+    }
+    setApplyingFixes(true);
+    try {
+      const { proxyUrl, anonKey } = await getProxyConfig();
+      // Re-busca exatamente os dias divergentes em blocos
+      const dates = toFix.map((r) => r.date).sort();
+      const minDate = dates[0];
+      const maxDate = dates[dates.length - 1];
+      const result = await syncDayRange(proxyUrl, anonKey, minDate, maxDate, 0, splitIntoBlocks(minDate, maxDate).length);
+      queryClient.invalidateQueries({ queryKey: ['daily_sales'] });
+      toast({
+        title: '✅ Correções aplicadas',
+        description: `${result.days} dias re-sincronizados | ${result.sales} vendas`,
+      });
+      // Limpa o report pra forçar nova auditoria
+      setAuditReport(null);
+    } catch (err: any) {
+      toast({ title: 'Erro ao aplicar', description: err.message?.slice(0, 200), variant: 'destructive' });
+    } finally {
+      setApplyingFixes(false);
+    }
+  }
+
+  async function handleScheduleCrons() {
+    setSyncing(true);
+    try {
+      const { proxyUrl, anonKey } = await getProxyConfig();
+      // proxyUrl normalmente é tipo https://<ref>.supabase.co/functions/v1/<name>
+      // Extraímos a base
+      const m = proxyUrl.match(/^(https?:\/\/[^/]+\/functions\/v1)/);
+      const functionsBase = m ? m[1] : proxyUrl.split('/functions/v1')[0] + '/functions/v1';
+
+      const { data, error } = await supabase.rpc('schedule_saipos_jobs' as any, {
+        p_functions_url: functionsBase,
+        p_auth_key: anonKey,
+      });
+      if (error) throw error;
+      toast({
+        title: '✅ Crons agendados',
+        description: 'Daily 06h BRT + Weekly Domingo 07h BRT',
+      });
+      void handleListCrons();
+    } catch (err: any) {
+      toast({ title: 'Erro ao agendar', description: err.message?.slice(0, 200), variant: 'destructive' });
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  async function handleListCrons() {
+    try {
+      const { data, error } = await supabase.rpc('list_saipos_jobs' as any);
+      if (error) throw error;
+      setCronStatus((data as any[]) || []);
+    } catch (err: any) {
+      toast({ title: 'Erro ao listar crons', description: err.message?.slice(0, 200), variant: 'destructive' });
+    }
+  }
+
   return (
     <>
       <div className="flex items-center gap-1">
@@ -515,6 +701,56 @@ export default function SaiposSyncButton() {
             >
               Reparar período específico
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-xs"
+              disabled={syncing}
+              onClick={() => {
+                setAuditReport(null);
+                setAuditDialogOpen(true);
+              }}
+            >
+              Auditar período (vs Saipos)
+            </Button>
+            <div className="border-t my-1" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-xs"
+              disabled={syncing}
+              onClick={handleScheduleCrons}
+            >
+              <Clock className="w-3 h-3 mr-1.5" />
+              Agendar crons (06h + Dom 07h)
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-xs"
+              onClick={handleListCrons}
+            >
+              Ver status dos crons
+            </Button>
+            {cronStatus && (
+              <div className="px-2 py-1.5 text-[10px] space-y-0.5 border-t mt-1">
+                {cronStatus.length === 0 ? (
+                  <p className="text-muted-foreground">Nenhum cron agendado</p>
+                ) : (
+                  cronStatus.map((j) => (
+                    <div key={j.jobname} className="flex items-center gap-1">
+                      {j.active ? (
+                        <CheckCircle2 className="w-2.5 h-2.5 text-emerald-500" />
+                      ) : (
+                        <AlertTriangle className="w-2.5 h-2.5 text-amber-500" />
+                      )}
+                      <span className="font-mono">{j.jobname}</span>
+                      <span className="text-muted-foreground">{j.schedule}</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
           </PopoverContent>
         </Popover>
       </div>
@@ -568,6 +804,105 @@ export default function SaiposSyncButton() {
             >
               Reparar
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={auditDialogOpen} onOpenChange={setAuditDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Auditar período vs Saipos</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs">Início</Label>
+                <Input type="date" value={auditStart} onChange={e => setAuditStart(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Fim</Label>
+                <Input type="date" value={auditEnd} onChange={e => setAuditEnd(e.target.value)} />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Re-baixa do Saipos pelo navegador (evita geo-block) e compara com{' '}
+              <code>daily_sales</code>. Não escreve nada — só mostra divergências.
+            </p>
+            {syncing && progress && (
+              <p className="text-xs text-amber-600 font-mono">{progress}</p>
+            )}
+
+            {auditReport && (
+              <div className="border rounded-md overflow-hidden">
+                <div className="bg-muted px-3 py-2 text-xs font-medium flex justify-between">
+                  <span>{auditReport.length} dias</span>
+                  <span>
+                    {auditReport.filter((r) => r.status === 'mismatch').length} mismatch ·{' '}
+                    {auditReport.filter((r) => r.status === 'missing_in_db').length} faltando no banco ·{' '}
+                    {auditReport.filter((r) => r.status === 'missing_in_api').length} faltando na API ·{' '}
+                    {auditReport.filter((r) => r.status === 'ok').length} OK
+                  </span>
+                </div>
+                <div className="max-h-96 overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-background sticky top-0 border-b">
+                      <tr>
+                        <th className="text-left p-2">Data</th>
+                        <th className="text-right p-2">Banco</th>
+                        <th className="text-right p-2">Saipos</th>
+                        <th className="text-right p-2">Diff R$</th>
+                        <th className="text-right p-2">Diff Ped.</th>
+                        <th className="text-left p-2">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {auditReport
+                        .filter((r) => r.status !== 'ok')
+                        .map((r) => (
+                          <tr key={r.date} className="border-b">
+                            <td className="p-2 font-mono">{r.date}</td>
+                            <td className="text-right p-2">R$ {r.stored_total.toFixed(2)} ({r.stored_pedidos})</td>
+                            <td className="text-right p-2">R$ {r.api_total.toFixed(2)} ({r.api_pedidos})</td>
+                            <td className={`text-right p-2 font-medium ${Math.abs(r.diff_total) >= 0.01 ? 'text-amber-600' : ''}`}>
+                              {r.diff_total > 0 ? '+' : ''}{r.diff_total.toFixed(2)}
+                            </td>
+                            <td className="text-right p-2">{r.diff_pedidos > 0 ? '+' : ''}{r.diff_pedidos}</td>
+                            <td className="p-2">
+                              {r.status === 'mismatch' && <span className="text-amber-600">⚠ divergente</span>}
+                              {r.status === 'missing_in_db' && <span className="text-red-600">✗ falta no banco</span>}
+                              {r.status === 'missing_in_api' && <span className="text-blue-600">∅ vazio na API</span>}
+                            </td>
+                          </tr>
+                        ))}
+                      {auditReport.filter((r) => r.status !== 'ok').length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="p-4 text-center text-emerald-600">
+                            ✅ Todos os {auditReport.length} dias batem com Saipos.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              disabled={syncing}
+              onClick={handleAudit}
+            >
+              {syncing ? 'Auditando...' : auditReport ? 'Re-auditar' : 'Iniciar auditoria'}
+            </Button>
+            {auditReport && auditReport.some((r) => r.status === 'mismatch' || r.status === 'missing_in_db') && (
+              <Button
+                disabled={applyingFixes || syncing}
+                onClick={handleApplyAuditFixes}
+              >
+                {applyingFixes ? 'Aplicando...' : 'Aplicar correções (sobrescrever banco)'}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

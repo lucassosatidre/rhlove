@@ -55,6 +55,10 @@ function splitIntoBlocks(start: string, end: string): Array<{ start: string; end
   return blocks;
 }
 
+const MAX_RETRIES = 4;
+const BACKOFF_MS = [2000, 5000, 12000, 25000];
+const THROTTLE_BETWEEN_PAGES_MS = 350; // respeita ~3req/s, fica longe do 500/5min
+
 async function fetchSalesPage(
   token: string,
   dateStart: string,
@@ -75,22 +79,34 @@ async function fetchSalesPage(
     ? `${proxyBase}${encodeURIComponent(directUrl)}`
     : directUrl;
 
-  console.log(`[DEBUG] URL: ${url}`);
-  console.log(`[DEBUG] Proxy: ${proxyBase ? 'YES' : 'NO'}`);
-
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    console.error(`[DEBUG] Status: ${res.status}, Body: ${body}`);
-    const tokenPrefix = token.substring(0, 20);
-    return { sales: [], debug: { status: res.status, body, url, tokenPrefix } };
+  let lastStatus = 0;
+  let lastBody = "";
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      lastStatus = res.status;
+      if (res.ok) {
+        const data = await res.json();
+        return { sales: data };
+      }
+      lastBody = await res.text().catch(() => "");
+      // 4xx exceto 429 → não retenta (token inválido, etc)
+      if (res.status < 500 && res.status !== 429 && res.status !== 408) break;
+      console.warn(`[saipos] HTTP ${res.status} attempt ${attempt + 1}/${MAX_RETRIES} — backing off ${BACKOFF_MS[attempt]}ms`);
+    } catch (e: any) {
+      lastBody = e?.message ?? String(e);
+      console.warn(`[saipos] network error attempt ${attempt + 1}/${MAX_RETRIES}: ${lastBody}`);
+    }
+    if (attempt < MAX_RETRIES - 1) {
+      await new Promise((r) => setTimeout(r, BACKOFF_MS[attempt]));
+    }
   }
-
-  const data = await res.json();
-  return { sales: data };
+  return {
+    sales: [],
+    debug: { status: lastStatus, body: lastBody.slice(0, 500), url, tokenPrefix: token.substring(0, 20) },
+  };
 }
 
 async function fetchAllSales(
@@ -109,6 +125,7 @@ async function fetchAllSales(
     all.push(...result.sales);
     if (result.sales.length < PAGE_LIMIT) break;
     offset += PAGE_LIMIT;
+    await new Promise((r) => setTimeout(r, THROTTLE_BETWEEN_PAGES_MS));
   }
 
   return { sales: all };
@@ -221,6 +238,139 @@ Deno.serve(async (req) => {
           total_fetched: allSales.length,
           type3_count: type3Sales.length,
           type3_samples: type3Sales,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Mode: audit — compara stored daily_sales vs Saipos sem escrever
+    // Mode: weekly_verify — re-baixa últimos N dias e atualiza divergências
+    if (mode === "audit" || mode === "weekly_verify") {
+      const isAudit = mode === "audit";
+      let startDate: string;
+      let endDate: string;
+      const yesterdayStr = getYesterdayBRT();
+      if (isAudit) {
+        if (!body.start_date || !body.end_date) {
+          throw new Error("audit requires start_date and end_date");
+        }
+        startDate = body.start_date;
+        endDate = body.end_date;
+      } else {
+        const days = Math.max(1, Math.min(31, Number(body.days_back) || 7));
+        const end = new Date(yesterdayStr + "T00:00:00Z");
+        const start = new Date(end);
+        start.setDate(start.getDate() - (days - 1));
+        startDate = start.toISOString().slice(0, 10);
+        endDate = yesterdayStr;
+      }
+
+      const blocks = splitIntoBlocks(startDate, endDate);
+      const apiByDay = new Map<string, DayTotals>();
+
+      for (const block of blocks) {
+        const fetchResult = await fetchAllSales(saiposToken, block.start, block.end);
+        if (fetchResult.debug) {
+          return new Response(
+            JSON.stringify({ success: false, mode, error: "Saipos API error", debug: fetchResult.debug }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        const byDay = aggregateByDay(fetchResult.sales);
+        for (const [day, totals] of byDay.entries()) apiByDay.set(day, totals);
+      }
+
+      // Buscar tudo que está armazenado no range
+      const { data: storedRows, error: storedErr } = await supabase
+        .from("daily_sales")
+        .select("date, faturamento_total, pedidos_totais, faturamento_salao, pedidos_salao, faturamento_tele, pedidos_tele")
+        .gte("date", startDate)
+        .lte("date", endDate);
+      if (storedErr) throw storedErr;
+      const storedByDay = new Map<string, any>();
+      for (const r of storedRows ?? []) storedByDay.set(r.date, r);
+
+      const report: Array<{
+        date: string;
+        stored: { faturamento_total: number; pedidos_totais: number } | null;
+        api: { faturamento_total: number; pedidos_totais: number; total_sales: number };
+        diff_faturamento: number;
+        diff_pedidos: number;
+        action: "ok" | "updated" | "would_update" | "missing_in_api";
+      }> = [];
+      let updates = 0;
+
+      const startD = new Date(startDate + "T00:00:00Z");
+      const endD = new Date(endDate + "T00:00:00Z");
+      for (let d = new Date(startD); d <= endD; d.setDate(d.getDate() + 1)) {
+        const dayStr = d.toISOString().slice(0, 10);
+        const apiTotals = apiByDay.get(dayStr) || {
+          faturamento_salao: 0, pedidos_salao: 0,
+          faturamento_tele: 0, pedidos_tele: 0,
+          faturamento_total: 0, pedidos_totais: 0, total_sales: 0,
+        };
+        const stored = storedByDay.get(dayStr) ?? null;
+        const storedTotal = Number(stored?.faturamento_total ?? 0);
+        const storedPedidos = Number(stored?.pedidos_totais ?? 0);
+        const diffFat = Math.round((apiTotals.faturamento_total - storedTotal) * 100) / 100;
+        const diffPed = apiTotals.pedidos_totais - storedPedidos;
+        const matches = Math.abs(diffFat) < 0.01 && diffPed === 0;
+
+        let action: "ok" | "updated" | "would_update" | "missing_in_api" = "ok";
+        if (apiTotals.total_sales === 0 && (stored?.pedidos_totais ?? 0) > 0) {
+          // API zerou mas já tinha dados → não sobrescreve (provável hiccup)
+          action = "missing_in_api";
+        } else if (!matches) {
+          action = isAudit ? "would_update" : "updated";
+          if (!isAudit && apiTotals.total_sales > 0) {
+            await supabase
+              .from("daily_sales")
+              .upsert({
+                date: dayStr,
+                faturamento_total: apiTotals.faturamento_total,
+                pedidos_totais: apiTotals.pedidos_totais,
+                faturamento_salao: apiTotals.faturamento_salao,
+                pedidos_salao: apiTotals.pedidos_salao,
+                faturamento_tele: apiTotals.faturamento_tele,
+                pedidos_tele: apiTotals.pedidos_tele,
+              }, { onConflict: "date" });
+            await supabase.from("saipos_sync_log").insert({
+              sync_date: dayStr,
+              mode: "weekly_verify",
+              total_sales: apiTotals.total_sales,
+              faturamento_total: apiTotals.faturamento_total,
+              pedidos_totais: apiTotals.pedidos_totais,
+              status: "success",
+              error_message: `Atualizado por verificação semanal (diff R$ ${diffFat}, ${diffPed} pedidos)`,
+            });
+            updates++;
+          }
+        }
+
+        report.push({
+          date: dayStr,
+          stored: stored ? { faturamento_total: storedTotal, pedidos_totais: storedPedidos } : null,
+          api: {
+            faturamento_total: apiTotals.faturamento_total,
+            pedidos_totais: apiTotals.pedidos_totais,
+            total_sales: apiTotals.total_sales,
+          },
+          diff_faturamento: diffFat,
+          diff_pedidos: diffPed,
+          action,
+        });
+      }
+
+      const divergences = report.filter((r) => r.action !== "ok").length;
+      return new Response(
+        JSON.stringify({
+          success: true,
+          mode,
+          range: { start: startDate, end: endDate },
+          days: report.length,
+          divergences,
+          updates,
+          report,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
