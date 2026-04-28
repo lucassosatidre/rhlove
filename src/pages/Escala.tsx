@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useFreelancers } from '@/hooks/useFreelancers';
 import { useFreelancerEntries, useAddFreelancerEntry, useDeleteFreelancerEntry } from '@/hooks/useFreelancerEntries';
