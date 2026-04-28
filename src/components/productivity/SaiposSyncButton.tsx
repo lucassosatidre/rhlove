@@ -242,13 +242,17 @@ export default function SaiposSyncButton() {
           });
         }
 
+        const isSuspiciousZero = t.total_sales === 0;
         await supabase.from('saipos_sync_log').insert({
           sync_date: dayStr,
           mode: 'auto',
           total_sales: t.total_sales,
           faturamento_total: t.faturamento_total,
           pedidos_totais: t.pedidos_totais,
-          status: 'success',
+          status: isSuspiciousZero ? 'warning' : 'success',
+          error_message: isSuspiciousZero
+            ? 'Zero vendas retornadas pela API — turno provavelmente ainda não consolidado, será re-tentado'
+            : null,
         } as any);
 
         totalDays++;
