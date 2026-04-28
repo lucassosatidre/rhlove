@@ -1041,7 +1041,7 @@ function EscalaInner() {
                               {names.map((rawName, idx) => {
                                 const cleanName = rawName.replace(/ \(EXPERIÊNCIA VENCENDO\)/, '').replace(/ \(AVISO TERMINANDO\)/, '');
                                 const hasAlert = isAlertName(rawName);
-                                const collab = collabByName[cleanName];
+                                const collab = resolveCollab(cleanName, sector);
                                 const collabEvents = collab ? (eventsMap[todayKey]?.[collab.id] || []) : [];
                                 const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
                                 const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
