@@ -537,6 +537,36 @@ export default function SaiposSyncButton() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={repairDialogOpen} onOpenChange={setRepairDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Reparar período específico</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Data início</Label>
+              <Input type="date" value={repairStart} onChange={e => setRepairStart(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Data fim</Label>
+              <Input type="date" value={repairEnd} onChange={e => setRepairEnd(e.target.value)} />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Re-sincroniza esse intervalo direto da API Saipos, sobrescrevendo os valores
+              atuais em <code>daily_sales</code>. Use pra reparar dias com 0 vendas ou faturamento incompleto.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              disabled={!repairStart || !repairEnd || syncing}
+              onClick={handleRepair}
+            >
+              Reparar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
