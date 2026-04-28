@@ -498,6 +498,19 @@ export default function SaiposSyncButton() {
             >
               Inspecionar vendas (sample)
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-xs"
+              disabled={syncing}
+              onClick={() => {
+                setRepairStart('');
+                setRepairEnd('');
+                setRepairDialogOpen(true);
+              }}
+            >
+              Reparar período específico
+            </Button>
           </PopoverContent>
         </Popover>
       </div>
