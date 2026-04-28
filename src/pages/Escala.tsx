@@ -624,7 +624,7 @@ function EscalaInner() {
                         const numbered = rawName ? `${idx + 1} - ${rawName}` : '';
                         
                         const dateKey = formatDateKey(d.date);
-                        const collab = cleanName ? collabByName[cleanName] : null;
+                        const collab = cleanName ? resolveCollab(cleanName, sector) : null;
                         const collabEvents = collab ? (eventsMap[dateKey]?.[collab.id] || []) : [];
                         const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
                         const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
