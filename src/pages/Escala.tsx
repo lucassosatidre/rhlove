@@ -671,8 +671,9 @@ function EscalaInner() {
                         const dateKey = formatDateKey(d.date);
                         const namedFrees = freelancerEntriesMap[`${dateKey}|${sector}`] || [];
                         const entry = namedFrees[idx];
-                        const baseNames = d.collaboratorsBySector[sector] || [];
-                        const num = baseNames.length + idx + 1;
+                        // Count only present effectives (skip faltas/atestados/compensações), matching dayNumbers logic
+                        const presentCount = (dayNumbers[di] || []).reduce((acc, n) => acc + (n !== null ? 1 : 0), 0);
+                        const num = presentCount + idx + 1;
 
                         return (
                           <td
