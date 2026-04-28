@@ -283,7 +283,10 @@ Deno.serve(async (req) => {
             { onConflict: "date" }
           );
 
-        const syncStatus = upsertErr ? "error" : "success";
+        const isSuspiciousZero = t.total_sales === 0;
+        const syncStatus = upsertErr
+          ? "error"
+          : (isSuspiciousZero ? "warning" : "success");
 
         await supabase.from("saipos_sync_log").insert({
           sync_date: dayStr,
@@ -292,7 +295,8 @@ Deno.serve(async (req) => {
           faturamento_total: t.faturamento_total,
           pedidos_totais: t.pedidos_totais,
           status: syncStatus,
-          error_message: upsertErr?.message || null,
+          error_message: upsertErr?.message
+            || (isSuspiciousZero ? "Zero vendas retornadas pela API — verificar manualmente" : null),
         });
 
         results.push({
