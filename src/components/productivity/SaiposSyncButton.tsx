@@ -624,21 +624,43 @@ export default function SaiposSyncButton() {
       return;
     }
     setApplyingFixes(true);
+    const dates = toFix.map((r) => r.date).sort();
+    const succeeded: string[] = [];
+    const failed: Array<{ date: string; error: string }> = [];
     try {
       const { proxyUrl, anonKey } = await getProxyConfig();
-      // Re-busca exatamente os dias divergentes em blocos
-      const dates = toFix.map((r) => r.date).sort();
-      const minDate = dates[0];
-      const maxDate = dates[dates.length - 1];
-      const result = await syncDayRange(proxyUrl, anonKey, minDate, maxDate, 0, splitIntoBlocks(minDate, maxDate).length);
+      // Re-baixa cada dia divergente isoladamente (window 1 dia = bem mais leve,
+      // evita 504 PGRST003 que rola em windows grandes na Saipos)
+      for (let i = 0; i < dates.length; i++) {
+        const date = dates[i];
+        setProgress(`Corrigindo ${date} (${i + 1}/${dates.length})...`);
+        try {
+          const result = await syncDayRange(proxyUrl, anonKey, date, date, 0, 1);
+          if (result.sales > 0 || result.days > 0) succeeded.push(date);
+          else failed.push({ date, error: 'API retornou vazio' });
+        } catch (e: any) {
+          failed.push({ date, error: e.message?.slice(0, 150) ?? 'erro' });
+        }
+        // throttle leve entre dias pra dar respiro pro pool de conexões da Saipos
+        if (i < dates.length - 1) await new Promise(r => setTimeout(r, 800));
+      }
       queryClient.invalidateQueries({ queryKey: ['daily_sales'] });
-      toast({
-        title: '✅ Correções aplicadas',
-        description: `${result.days} dias re-sincronizados | ${result.sales} vendas`,
-      });
-      // Limpa o report pra forçar nova auditoria
-      setAuditReport(null);
+      setProgress('');
+      if (failed.length === 0) {
+        toast({
+          title: '✅ Correções aplicadas',
+          description: `${succeeded.length} dia(s) re-sincronizado(s): ${succeeded.join(', ')}`,
+        });
+        setAuditReport(null);
+      } else {
+        toast({
+          title: succeeded.length > 0 ? `⚠️ Parcial: ${succeeded.length}/${dates.length}` : '❌ Nada aplicado',
+          description: `Falharam: ${failed.map(f => `${f.date} (${f.error})`).join(' | ')}. Tenta de novo "Aplicar correções" — só os que faltam serão re-tentados se "Re-auditar" antes.`,
+          variant: 'destructive',
+        });
+      }
     } catch (err: any) {
+      setProgress('');
       toast({ title: 'Erro ao aplicar', description: err.message?.slice(0, 200), variant: 'destructive' });
     } finally {
       setApplyingFixes(false);
