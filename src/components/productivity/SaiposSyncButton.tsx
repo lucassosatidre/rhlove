@@ -326,6 +326,38 @@ export default function SaiposSyncButton() {
     }
   }
 
+  async function handleRepair() {
+    if (!repairStart || !repairEnd) return;
+    if (repairStart > repairEnd) {
+      toast({ title: 'Datas inválidas', description: 'Início deve ser ≤ fim.', variant: 'destructive' });
+      return;
+    }
+    setRepairDialogOpen(false);
+    setSyncing(true);
+    setProgress(`Reparando ${repairStart} a ${repairEnd}...`);
+    try {
+      const { proxyUrl, anonKey } = await getProxyConfig();
+      const blocks = splitIntoBlocks(repairStart, repairEnd);
+      const result = await syncDayRange(proxyUrl, anonKey, repairStart, repairEnd, 0, blocks.length);
+      setProgress('');
+      queryClient.invalidateQueries({ queryKey: ['daily_sales'] });
+      toast({
+        title: '✅ Reparado!',
+        description: `${result.days} dia(s) re-sincronizado(s) | ${result.sales} vendas`,
+      });
+    } catch (err: any) {
+      console.error('Saipos repair error:', err);
+      setProgress('');
+      toast({
+        title: 'Erro ao reparar',
+        description: err.message?.slice(0, 200),
+        variant: 'destructive',
+      });
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   async function handleSaveManualToken() {
     if (!manualToken.trim()) return;
     try {
