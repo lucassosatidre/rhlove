@@ -159,7 +159,7 @@ export default function SaiposSyncButton() {
   const [repairStart, setRepairStart] = useState('');
   const [repairEnd, setRepairEnd] = useState('');
   const [auditDialogOpen, setAuditDialogOpen] = useState(false);
-  const [auditStart, setAuditStart] = useState('2024-02-16');
+  const [auditStart, setAuditStart] = useState('2026-02-16');
   const [auditEnd, setAuditEnd] = useState(getYesterdayBRT());
   const [auditReport, setAuditReport] = useState<AuditRow[] | null>(null);
   const [applyingFixes, setApplyingFixes] = useState(false);
