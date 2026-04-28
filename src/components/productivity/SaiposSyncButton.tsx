@@ -140,6 +140,9 @@ export default function SaiposSyncButton() {
   const [progress, setProgress] = useState('');
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
   const [manualToken, setManualToken] = useState('');
+  const [repairDialogOpen, setRepairDialogOpen] = useState(false);
+  const [repairStart, setRepairStart] = useState('');
+  const [repairEnd, setRepairEnd] = useState('');
 
   if (!usuario || usuario.perfil !== 'admin') return null;
 
