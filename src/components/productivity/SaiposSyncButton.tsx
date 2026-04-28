@@ -521,7 +521,14 @@ export default function SaiposSyncButton() {
           `Auditoria ${block.start}→${block.end}`,
         );
         const responseData = await res.json();
-        const sales: SaiposSale[] = responseData.sales || responseData || [];
+        if (responseData?.success === false) {
+          throw new Error(`API erro no bloco ${block.start}→${block.end}: ${responseData?.debug?.body?.slice(0, 200) || responseData?.error || 'desconhecido'}`);
+        }
+        const rawSales = responseData?.sales ?? responseData;
+        if (!Array.isArray(rawSales)) {
+          throw new Error(`Resposta inválida no bloco ${block.start}→${block.end}: esperava array, veio ${typeof rawSales}. Verifique se a edge function tem o handler mode='raw'.`);
+        }
+        const sales: SaiposSale[] = rawSales;
         const byDay = aggregateByDay(sales);
         for (const [day, totals] of byDay.entries()) {
           if (day >= auditStart && day <= auditEnd) apiByDay.set(day, totals);

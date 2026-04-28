@@ -243,6 +243,24 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Mode: raw — devolve o array bruto de vendas (usado pelo browser pra
+    // contornar geo-block; aceita start_date/end_date até 14 dias)
+    if (mode === "raw") {
+      const startDate: string = body.start_date || getYesterdayBRT();
+      const endDate: string = body.end_date || startDate;
+      const fetchResult = await fetchAllSales(saiposToken, startDate, endDate);
+      if (fetchResult.debug) {
+        return new Response(
+          JSON.stringify({ success: false, mode: "raw", error: "Saipos API error", debug: fetchResult.debug, sales: [] }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ success: true, mode: "raw", sales: fetchResult.sales }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Mode: audit — compara stored daily_sales vs Saipos sem escrever
     // Mode: weekly_verify — re-baixa últimos N dias e atualiza divergências
     if (mode === "audit" || mode === "weekly_verify") {
