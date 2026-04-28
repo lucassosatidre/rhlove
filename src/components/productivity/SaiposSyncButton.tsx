@@ -22,8 +22,9 @@ import { useToast } from '@/hooks/use-toast';
 
 const MAX_DAYS_PER_BLOCK = 14;
 const BACKFILL_START = '2026-03-23';
-const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 3000;
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 5000;
+const RETRY_STATUSES = [403, 408, 429, 500, 502, 503, 504];
 
 interface SaiposSale {
   id_sale_type: number;
@@ -124,9 +125,10 @@ async function fetchWithRetry(
     try {
       const res = await fetch(url, options);
       if (res.ok) return res;
-      if (attempt < MAX_RETRIES && [403, 500, 502, 503].includes(res.status)) {
-        setProgress(`${blockLabel} — Erro ${res.status}, tentativa ${attempt + 1}/${MAX_RETRIES}...`);
-        await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+      if (attempt < MAX_RETRIES && RETRY_STATUSES.includes(res.status)) {
+        const wait = RETRY_DELAY_MS * attempt; // backoff progressivo: 5s, 10s, 15s, 20s
+        setProgress(`${blockLabel} — Erro ${res.status} (Saipos sobrecarregado), aguardando ${wait/1000}s e tentando ${attempt + 1}/${MAX_RETRIES}...`);
+        await new Promise(r => setTimeout(r, wait));
         continue;
       }
       const body = await res.text();
@@ -134,8 +136,9 @@ async function fetchWithRetry(
     } catch (err: any) {
       if (err.message?.startsWith('Proxy ')) throw err;
       if (attempt < MAX_RETRIES) {
-        setProgress(`${blockLabel} — Erro de rede, tentativa ${attempt + 1}/${MAX_RETRIES}...`);
-        await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+        const wait = RETRY_DELAY_MS * attempt;
+        setProgress(`${blockLabel} — Erro de rede, aguardando ${wait/1000}s e tentando ${attempt + 1}/${MAX_RETRIES}...`);
+        await new Promise(r => setTimeout(r, wait));
         continue;
       }
       throw new Error(`Falha após ${MAX_RETRIES} tentativas: ${err.message}`);
@@ -503,36 +506,44 @@ export default function SaiposSyncButton() {
 
       // 1. Busca todas as vendas via proxy (browser-side, evita geo-block)
       const apiByDay = new Map<string, DayTotals>();
+      const failedBlocks: Array<{ start: string; end: string; error: string }> = [];
       for (let i = 0; i < blocks.length; i++) {
         const block = blocks[i];
         setProgress(`Auditando ${block.start} → ${block.end} (${i + 1}/${blocks.length})`);
-        const res = await fetchWithRetry(
-          proxyUrl,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${anonKey}`,
-              'apikey': anonKey,
+        try {
+          const res = await fetchWithRetry(
+            proxyUrl,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${anonKey}`,
+                'apikey': anonKey,
+              },
+              body: JSON.stringify({ mode: 'raw', start_date: block.start, end_date: block.end }),
             },
-            body: JSON.stringify({ mode: 'raw', start_date: block.start, end_date: block.end }),
-          },
-          setProgress,
-          `Auditoria ${block.start}→${block.end}`,
-        );
-        const responseData = await res.json();
-        if (responseData?.success === false) {
-          throw new Error(`API erro no bloco ${block.start}→${block.end}: ${responseData?.debug?.body?.slice(0, 200) || responseData?.error || 'desconhecido'}`);
+            setProgress,
+            `Auditoria ${block.start}→${block.end}`,
+          );
+          const responseData = await res.json();
+          if (responseData?.success === false) {
+            throw new Error(responseData?.debug?.body?.slice(0, 200) || responseData?.error || 'desconhecido');
+          }
+          const rawSales = responseData?.sales ?? responseData;
+          if (!Array.isArray(rawSales)) {
+            throw new Error(`esperava array, veio ${typeof rawSales}`);
+          }
+          const sales: SaiposSale[] = rawSales;
+          const byDay = aggregateByDay(sales);
+          for (const [day, totals] of byDay.entries()) {
+            if (day >= auditStart && day <= auditEnd) apiByDay.set(day, totals);
+          }
+        } catch (blockErr: any) {
+          console.warn(`[audit] bloco ${block.start}→${block.end} falhou após retries:`, blockErr.message);
+          failedBlocks.push({ start: block.start, end: block.end, error: blockErr.message?.slice(0, 200) ?? 'erro' });
         }
-        const rawSales = responseData?.sales ?? responseData;
-        if (!Array.isArray(rawSales)) {
-          throw new Error(`Resposta inválida no bloco ${block.start}→${block.end}: esperava array, veio ${typeof rawSales}. Verifique se a edge function tem o handler mode='raw'.`);
-        }
-        const sales: SaiposSale[] = rawSales;
-        const byDay = aggregateByDay(sales);
-        for (const [day, totals] of byDay.entries()) {
-          if (day >= auditStart && day <= auditEnd) apiByDay.set(day, totals);
-        }
+        // throttle entre blocos pra não sobrecarregar Saipos
+        if (i < blocks.length - 1) await new Promise(r => setTimeout(r, 500));
       }
 
       // 2. Carrega tudo de daily_sales no range
@@ -586,9 +597,15 @@ export default function SaiposSyncButton() {
       setAuditReport(report);
       setProgress('');
       const divergences = report.filter((r) => r.status !== 'ok').length;
+      const baseDesc = `${report.length} dias auditados de ${auditStart} a ${auditEnd}.`;
+      const failedDesc = failedBlocks.length > 0
+        ? ` ⚠️ ${failedBlocks.length} lote(s) falharam (${failedBlocks.map(f => `${f.start}→${f.end}`).join(', ')}). Re-auditar pra tentar de novo.`
+        : '';
       toast({
-        title: divergences === 0 ? '✅ Tudo bate' : `⚠️ ${divergences} divergência(s)`,
-        description: `${report.length} dias auditados de ${auditStart} a ${auditEnd}.`,
+        title: divergences === 0 && failedBlocks.length === 0
+          ? '✅ Tudo bate'
+          : `⚠️ ${divergences} divergência(s)${failedBlocks.length > 0 ? ` + ${failedBlocks.length} lote(s) sem resposta` : ''}`,
+        description: baseDesc + failedDesc,
       });
     } catch (err: any) {
       console.error('Audit error:', err);
