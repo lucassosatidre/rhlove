@@ -1,70 +1,38 @@
-## Objetivo
+## Diagnóstico final
 
-Recuperar os dados de faturamento dos dias **11, 18 e 19/04/2026** que estão quebrados (zerados ou subdimensionados) e adicionar uma proteção contra novas falhas silenciosas do sync do Saipos.
+Em 14/04/2026 o total de 6 pessoas na cozinha está **correto** segundo a regra que você confirmou: só desconta quando há FALTA/ATESTADO/COMPENSAÇÃO **lançada manualmente**, ou quando o colaborador controla ponto e não bateu (sem justificativa).
 
-## Diagnóstico
+- LUCAS GRINGO tem `controla_ponto = false` → não pode ser inferido como falta.
+- Nenhuma FALTA manual foi lançada para ele em 14/04 (verificado em `schedule_events` e `afastamentos`).
+- O motor de Produtividade está certo: 6 pessoas (11 ativos − 3 folgas semanais de terça − Diego com FALTA manual − DINHO em férias).
 
-| Data | Faturamento atual | Pedidos | Diagnóstico |
-|------|-------------------|---------|-------------|
-| 11/04 (sáb) | R$ 8.957,44 | 75 | Sincronizado em 12/04 às **08:00** — provavelmente antes do Saipos consolidar o turno (que vai até 03:00). Sábado normal faz R$ 25k+ |
-| 18/04 (sáb) | R$ 0,00 | 0 | Cron diário falhou. Backfill manual em 20/04 pegou 0 vendas da API |
-| 19/04 (dom) | R$ 0,00 | 0 | Mesma causa do 18/04 |
+O problema é só visual: a grade da Escala mostra o badge "FALTA" indevidamente na linha do Lucas. Causa raiz: existem **4 colaboradores ativos com `display_name = "Lucas"`** (LUCAS GRINGO/cozinha, Lucas Souza/salão, Lucas Menezes/ADM, Lucas Tidre/ADM). O lookup `collabByName[displayName]` na Escala usa apenas o nome curto como chave, então um sobrescreve o outro. Quando a célula da cozinha pergunta "quem é o Lucas?", a grade entrega um Lucas de outro setor (que controla ponto e não bateu) → badge "FALTA" aparece em cima do GRINGO.
 
-Os 3 dias têm o mesmo padrão: o sync rodou cedo demais ou falhou, gravou valores incompletos/zerados com `status: success`, e ninguém percebeu.
+## Correção
 
-## Etapas
+### 1. `src/pages/Escala.tsx` — lookup com escopo de setor
 
-### 1. Re-rodar backfill dos 3 dias
+- Trocar `collabByName: Record<displayName, Collaborator>` por um lookup que considera o **setor da célula** atual: `collabByNameAndSector[`${displayName}|${sector}`]`.
+- Manter o lookup por nome simples como fallback **apenas quando não houver colisão** para aquele nome.
+- Nos três pontos onde a célula é resolvida (linhas ~541, ~598, ~1015), passar o `sector` da coluna/linha atual para o lookup.
 
-Chamar a edge function `sync-saipos-sales` via curl com:
-```json
-{ "mode": "backfill", "start_date": "2026-04-11", "end_date": "2026-04-11" }
-```
-e depois:
-```json
-{ "mode": "backfill", "start_date": "2026-04-18", "end_date": "2026-04-19" }
-```
+Resultado: a célula da cozinha resolve para LUCAS GRINGO (controla_ponto=false), o badge "FALTA" desaparece, contagem visual passa a bater com o motor de Produtividade.
 
-O upsert (`onConflict: "date"`) sobrescreve os valores atuais. Como hoje (28/04) já passou tempo suficiente, o Saipos deve ter os dados consolidados.
+### 2. (Opcional) Aviso de colisão no console em dev
 
-### 2. Verificar resultado e reportar
+Logar uma vez quando dois colaboradores ativos compartilharem `display_name`, para que o admin saiba que precisa diferenciar (ex.: "Lucas G.", "Lucas S.").
 
-Rodar SELECT em `daily_sales` pros 3 dias e comparar com os valores antigos. Se algum continuar zerado/baixo, é sinal que o problema está no PDV (turno não fechado no Saipos) e a Luana precisa abrir manualmente no Saipos.
+### Não vamos mexer
 
-### 3. Adicionar proteção: detectar "0 vendas suspeito"
+- `productivityEngine.ts` — já está correto.
+- Banco de dados — sem migrations.
+- Regra de inferência de FALTA — mantida exatamente como está (só infere para quem controla ponto, e só se não houver justificativa).
 
-Editar `supabase/functions/sync-saipos-sales/index.ts` na parte que insere em `saipos_sync_log`:
+### Validação após o fix
 
-```typescript
-const isSuspiciousZero = t.total_sales === 0;
-const finalStatus = upsertErr 
-  ? 'error' 
-  : (isSuspiciousZero ? 'warning' : 'success');
-
-await supabase.from("saipos_sync_log").insert({
-  // ...
-  status: finalStatus,
-  error_message: upsertErr?.message 
-    || (isSuspiciousZero ? 'Zero vendas retornadas pela API — verificar manualmente' : null),
-});
-```
-
-Pizzaria abre todos os dias, então 0 vendas = sempre suspeito.
-
-### 4. Mudar horário do cron diário
-
-O sync `yesterday` está rodando às 08:00, mas o turno do Saipos vai até 03:00 da madrugada. Risco de pegar dados parciais se o sync rodar antes da última venda da madrugada ser registrada. Mover pra rodar mais tarde (ex: às 12:00) dá margem de segurança.
-
-Investigar via `cron.job` qual é o agendamento atual e ajustar pra rodar ao meio-dia em vez de 8h.
-
-## Fora de escopo
-
-- Não mexer na lógica de cálculo de faturamento (taxa de serviço já está em outro plano)
-- Não criar UI nova de alerta — `status: warning` no log basta pra detectar via query
-- Não mexer no botão de sync do Dashboard
-
-## Entregáveis
-
-1. Valores corretos de 11, 18 e 19/04 em `daily_sales` (ou diagnóstico claro se a API ainda devolver zero/parcial)
-2. Edge function com detecção de "0 vendas suspeito" → `status: warning`
-3. Cron movido pra horário seguro (após consolidação do turno)
+Abrir 14/04 na Escala da cozinha:
+- 5 cozinheiros presentes (Cicero, Davi, Elionel, Javier, Sheyla)
+- Diego: badge "faltou" (FALTA manual) — riscado
+- Lucas: presente, **sem** badge FALTA
+- DINHO: ausente (em férias)
+- Total esperado na Produtividade: 6 ✅

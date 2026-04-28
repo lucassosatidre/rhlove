@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useCallback } from 'react';
 import { useCollaborators } from '@/hooks/useCollaborators';
 import { useFreelancers } from '@/hooks/useFreelancers';
 import { useFreelancerEntries, useAddFreelancerEntry, useDeleteFreelancerEntry } from '@/hooks/useFreelancerEntries';
@@ -154,17 +154,46 @@ function EscalaInner() {
     [allScheduleEvents]
   );
 
-  // Lookup: short display name (used in the grid) → collaborator object
-  const collabByName = useMemo(() => {
-    const map: Record<string, typeof collaborators[0]> = {};
+  // Lookup: short display name (used in the grid) → collaborator object.
+  // We index by both `name|sector` (preferred, avoids collisions when multiple
+  // collaborators share the same display_name like "Lucas") and by bare `name`
+  // as a fallback only when there is no ambiguity for that name.
+  const { collabByNameAndSector, collabByName } = useMemo(() => {
+    const bySector: Record<string, typeof collaborators[0]> = {};
+    const byName: Record<string, typeof collaborators[0]> = {};
+    const counts: Record<string, number> = {};
     for (const c of collaborators) {
       const short = (c.display_name && c.display_name.trim())
         || (c.collaborator_name || '').trim().split(/\s+/)[0]
         || c.collaborator_name;
-      map[short] = c;
+      bySector[`${short}|${c.sector}`] = c;
+      counts[short] = (counts[short] || 0) + 1;
     }
-    return map;
+    for (const c of collaborators) {
+      const short = (c.display_name && c.display_name.trim())
+        || (c.collaborator_name || '').trim().split(/\s+/)[0]
+        || c.collaborator_name;
+      // Only keep the bare-name lookup when unambiguous.
+      if (counts[short] === 1) byName[short] = c;
+    }
+    if (import.meta.env.DEV) {
+      const collisions = Object.entries(counts).filter(([, n]) => n > 1);
+      if (collisions.length > 0) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[Escala] display_name colisions detected — grid will resolve by sector. Consider differentiating the names:',
+          collisions.map(([name, n]) => `${name} (${n})`).join(', ')
+        );
+      }
+    }
+    return { collabByNameAndSector: bySector, collabByName: byName };
   }, [collaborators]);
+
+  const resolveCollab = useCallback(
+    (name: string, sector: string) =>
+      collabByNameAndSector[`${name}|${sector}`] ?? collabByName[name] ?? null,
+    [collabByNameAndSector, collabByName]
+  );
 
   // Punch records: build Set of "collabId|date" with punches and find lastPunchUpdateDate
   const { punchSet, lastPunchDate } = useMemo(() => {
@@ -538,7 +567,7 @@ function EscalaInner() {
               const rawName = names[idx] || '';
               if (!rawName) return null;
               const cleanName = rawName.replace(/ \(EXPERIÊNCIA VENCENDO\)/, '').replace(/ \(AVISO TERMINANDO\)/, '');
-              const collab = collabByName[cleanName];
+              const collab = resolveCollab(cleanName, sector);
               const collabEvents = collab ? (eventsMap[dateKey]?.[collab.id] || []) : [];
               const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
               const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
@@ -595,7 +624,7 @@ function EscalaInner() {
                         const numbered = rawName ? `${idx + 1} - ${rawName}` : '';
                         
                         const dateKey = formatDateKey(d.date);
-                        const collab = cleanName ? collabByName[cleanName] : null;
+                        const collab = cleanName ? resolveCollab(cleanName, sector) : null;
                         const collabEvents = collab ? (eventsMap[dateKey]?.[collab.id] || []) : [];
                         const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
                         const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
@@ -1012,7 +1041,7 @@ function EscalaInner() {
                               {names.map((rawName, idx) => {
                                 const cleanName = rawName.replace(/ \(EXPERIÊNCIA VENCENDO\)/, '').replace(/ \(AVISO TERMINANDO\)/, '');
                                 const hasAlert = isAlertName(rawName);
-                                const collab = collabByName[cleanName];
+                                const collab = resolveCollab(cleanName, sector);
                                 const collabEvents = collab ? (eventsMap[todayKey]?.[collab.id] || []) : [];
                                 const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
                                 const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
