@@ -567,7 +567,7 @@ function EscalaInner() {
               const rawName = names[idx] || '';
               if (!rawName) return null;
               const cleanName = rawName.replace(/ \(EXPERIÊNCIA VENCENDO\)/, '').replace(/ \(AVISO TERMINANDO\)/, '');
-              const collab = collabByName[cleanName];
+              const collab = resolveCollab(cleanName, sector);
               const collabEvents = collab ? (eventsMap[dateKey]?.[collab.id] || []) : [];
               const hasFalta = collabEvents.some(e => e.event_type === 'FALTA');
               const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
