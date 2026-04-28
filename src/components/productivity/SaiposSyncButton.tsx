@@ -140,6 +140,9 @@ export default function SaiposSyncButton() {
   const [progress, setProgress] = useState('');
   const [tokenDialogOpen, setTokenDialogOpen] = useState(false);
   const [manualToken, setManualToken] = useState('');
+  const [repairDialogOpen, setRepairDialogOpen] = useState(false);
+  const [repairStart, setRepairStart] = useState('');
+  const [repairEnd, setRepairEnd] = useState('');
 
   if (!usuario || usuario.perfil !== 'admin') return null;
 
@@ -323,6 +326,38 @@ export default function SaiposSyncButton() {
     }
   }
 
+  async function handleRepair() {
+    if (!repairStart || !repairEnd) return;
+    if (repairStart > repairEnd) {
+      toast({ title: 'Datas inválidas', description: 'Início deve ser ≤ fim.', variant: 'destructive' });
+      return;
+    }
+    setRepairDialogOpen(false);
+    setSyncing(true);
+    setProgress(`Reparando ${repairStart} a ${repairEnd}...`);
+    try {
+      const { proxyUrl, anonKey } = await getProxyConfig();
+      const blocks = splitIntoBlocks(repairStart, repairEnd);
+      const result = await syncDayRange(proxyUrl, anonKey, repairStart, repairEnd, 0, blocks.length);
+      setProgress('');
+      queryClient.invalidateQueries({ queryKey: ['daily_sales'] });
+      toast({
+        title: '✅ Reparado!',
+        description: `${result.days} dia(s) re-sincronizado(s) | ${result.sales} vendas`,
+      });
+    } catch (err: any) {
+      console.error('Saipos repair error:', err);
+      setProgress('');
+      toast({
+        title: 'Erro ao reparar',
+        description: err.message?.slice(0, 200),
+        variant: 'destructive',
+      });
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   async function handleSaveManualToken() {
     if (!manualToken.trim()) return;
     try {
@@ -463,6 +498,19 @@ export default function SaiposSyncButton() {
             >
               Inspecionar vendas (sample)
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-xs"
+              disabled={syncing}
+              onClick={() => {
+                setRepairStart('');
+                setRepairEnd('');
+                setRepairDialogOpen(true);
+              }}
+            >
+              Reparar período específico
+            </Button>
           </PopoverContent>
         </Popover>
       </div>
@@ -485,6 +533,36 @@ export default function SaiposSyncButton() {
           <DialogFooter>
             <Button disabled={!manualToken.trim()} onClick={handleSaveManualToken}>
               Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={repairDialogOpen} onOpenChange={setRepairDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Reparar período específico</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Data início</Label>
+              <Input type="date" value={repairStart} onChange={e => setRepairStart(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Data fim</Label>
+              <Input type="date" value={repairEnd} onChange={e => setRepairEnd(e.target.value)} />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Re-sincroniza esse intervalo direto da API Saipos, sobrescrevendo os valores
+              atuais em <code>daily_sales</code>. Use pra reparar dias com 0 vendas ou faturamento incompleto.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              disabled={!repairStart || !repairEnd || syncing}
+              onClick={handleRepair}
+            >
+              Reparar
             </Button>
           </DialogFooter>
         </DialogContent>
