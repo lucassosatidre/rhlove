@@ -1663,6 +1663,20 @@ export type Database = {
     Functions: {
       auto_finalize_vacation_status: { Args: never; Returns: undefined }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      list_saipos_jobs: {
+        Args: never
+        Returns: {
+          active: boolean
+          jobid: number
+          jobname: string
+          schedule: string
+        }[]
+      }
+      schedule_saipos_jobs: {
+        Args: { p_auth_key: string; p_functions_url: string }
+        Returns: Json
+      }
+      unschedule_saipos_jobs: { Args: never; Returns: Json }
     }
     Enums: {
       [_ in never]: never
