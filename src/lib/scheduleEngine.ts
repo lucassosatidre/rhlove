@@ -3,6 +3,18 @@ import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
 import { isOnScheduledVacation } from '@/hooks/useScheduledVacations';
 import type { Afastamento } from '@/hooks/useAfastamentos';
 import { isOnAfastamento } from '@/hooks/useAfastamentos';
+import type { FolgasResolver } from '@/hooks/useFolgasResolver';
+
+let _fallbackWarned = false;
+function warnFallback(collabId: string) {
+  if (_fallbackWarned) return;
+  _fallbackWarned = true;
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[scheduleEngine] FolgasResolver ausente — usando fallback collaborator.folgas_semanais (id=${collabId}). ` +
+    `Passe o resolver de useFolgasResolver() para respeitar o histórico de folgas.`
+  );
+}
 
 export interface ScheduleWeek {
   weekNumber: number;
