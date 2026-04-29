@@ -183,7 +183,7 @@ export default function Produtividade() {
       if (dateStr < INTEGRATION_START_DATE || dateStr > maxPunchDate) continue;
       const date = new Date(dateStr + 'T00:00:00');
       const collaboratorsBySector = getScheduledCollaboratorIdsBySectorOnDate(
-        collaborators, date, scheduledVacations, swapOverrides, afastamentos
+        collaborators, date, scheduledVacations, swapOverrides, afastamentos, folgasResolver
       );
       const absentIds = absentCollaboratorIdsByDate.get(dateStr);
 
