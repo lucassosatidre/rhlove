@@ -114,6 +114,7 @@ export default function Produtividade() {
   const { toast } = useToast();
 
   const { data: collaborators = [] } = useCollaborators();
+  const { resolver: folgasResolver } = useFolgasResolver();
   const { data: salesData = [], isLoading } = useDailySales(startDate, endDate);
   const { data: freelancersData = [] } = useFreelancers(startDate, endDate);
   const { data: freelancerEntriesData = [] } = useFreelancerEntries(startDate, endDate);
