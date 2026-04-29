@@ -104,7 +104,8 @@ export function generateProductivityData(
   afastamentos: Afastamento[] = [],
   absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
   freelancerEntries: FreelancerEntry[] = [],
-  punchFaltaSet?: PunchFaltaSet
+  punchFaltaSet?: PunchFaltaSet,
+  resolver?: FolgasResolver
 ): ProductivityRow[] {
   const rows: ProductivityRow[] = [];
   const scheduledCountMap = buildScheduledCountMap(
@@ -114,7 +115,8 @@ export function generateProductivityData(
     dayOffOverrides,
     afastamentos,
     absentCollaboratorIdsByDate,
-    punchFaltaSet
+    punchFaltaSet,
+    resolver
   );
 
   const getScheduledCount = (date: string, sector: string) => scheduledCountMap[`${date}|${sector}`] || 0;
