@@ -156,7 +156,7 @@ function getDisplayName(
   if (dayOffOverride?.addDays.includes(dayKey)) return null;
 
   // STEP 3 — FOLGAS SEMANAIS (with override removeDays)
-  if (collab.folgas_semanais.includes(dayKey)) {
+  if (folgasSemanais.includes(dayKey)) {
     // If override removes this day-off, collaborator works today
     if (dayOffOverride?.removeDays.includes(dayKey)) {
       // Continue — don't return null, they work today
@@ -166,9 +166,9 @@ function getDisplayName(
   }
 
   // STEP 4 — DOMINGO DO MÊS (with override removeDays) — only if sunday_n > 0
-  if (dayKey === 'DOMINGO' && collab.sunday_n > 0) {
+  if (dayKey === 'DOMINGO' && sundayN > 0) {
     const sundayNum = getSundayNumber(sd);
-    if (collab.sunday_n === sundayNum) {
+    if (sundayN === sundayNum) {
       if (dayOffOverride?.removeDays.includes('DOMINGO')) {
         // Override removes this Sunday off, collaborator works
       } else {
