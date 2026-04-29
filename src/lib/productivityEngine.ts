@@ -74,7 +74,8 @@ export function countPeopleBySectorOnDate(
   dayOffOverrides?: DayOffOverridesMap,
   afastamentos: Afastamento[] = [],
   absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
-  punchFaltaSet?: PunchFaltaSet
+  punchFaltaSet?: PunchFaltaSet,
+  resolver?: FolgasResolver
 ): number {
   const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   const absentCollaboratorIds = absentCollaboratorIdsByDate?.get(dateKey);
@@ -83,7 +84,8 @@ export function countPeopleBySectorOnDate(
     date,
     scheduledVacations,
     dayOffOverrides,
-    afastamentos
+    afastamentos,
+    resolver
   );
 
   return (collaboratorsBySector[sector] ?? []).filter(id => {
