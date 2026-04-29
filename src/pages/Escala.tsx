@@ -496,7 +496,7 @@ function EscalaInner() {
     const dateKey = formatDateKey(date);
     if (!lastPunchDate || dateKey < INTEGRATION_START_DATE || dateKey > lastPunchDate) return 0;
     const collaboratorsBySector = getScheduledCollaboratorIdsBySectorOnDate(
-      collaborators, date, scheduledVacations, swapOverrides, afastamentos
+      collaborators, date, scheduledVacations, swapOverrides, afastamentos, folgasResolver
     );
     const absentIds = absentCollaboratorIdsByDate.get(dateKey);
     const scheduledIds = (collaboratorsBySector[sector] || []).filter(id => !absentIds?.has(id));
