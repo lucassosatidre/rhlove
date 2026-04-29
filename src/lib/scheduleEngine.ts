@@ -91,10 +91,29 @@ function getDisplayName(
   scheduleDate: Date,
   scheduledVacations: ScheduledVacation[] = [],
   dayOffOverride?: DayOffOverride,
-  afastamentos: Afastamento[] = []
+  afastamentos: Afastamento[] = [],
+  resolver?: FolgasResolver
 ): string | null {
   const sd = dateOnly(scheduleDate);
   const dayKey = JS_DAY_TO_KEY[sd.getDay()];
+
+  // Resolve folgas vigentes na data — fallback defensivo aos campos do collaborator
+  let folgasSemanais: DayOfWeek[];
+  let sundayN: number;
+  if (resolver) {
+    const resolved = resolver(collab.id, sd);
+    if (resolved) {
+      folgasSemanais = resolved.folgas_semanais;
+      sundayN = resolved.sunday_n;
+    } else {
+      folgasSemanais = collab.folgas_semanais;
+      sundayN = collab.sunday_n;
+    }
+  } else {
+    warnFallback(collab.id);
+    folgasSemanais = collab.folgas_semanais;
+    sundayN = collab.sunday_n;
+  }
 
   // STEP 0 — EMPRESA PERIOD
   const inicioEmpresa = parseDate(collab.inicio_na_empresa);
