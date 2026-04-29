@@ -443,6 +443,47 @@ export type Database = {
         }
         Relationships: []
       }
+      collaborator_folgas_history: {
+        Row: {
+          collaborator_id: string
+          created_at: string
+          created_by: string | null
+          folgas_semanais: string[]
+          id: string
+          motivo: string | null
+          sunday_n: number
+          vigente_desde: string
+        }
+        Insert: {
+          collaborator_id: string
+          created_at?: string
+          created_by?: string | null
+          folgas_semanais: string[]
+          id?: string
+          motivo?: string | null
+          sunday_n?: number
+          vigente_desde: string
+        }
+        Update: {
+          collaborator_id?: string
+          created_at?: string
+          created_by?: string | null
+          folgas_semanais?: string[]
+          id?: string
+          motivo?: string | null
+          sunday_n?: number
+          vigente_desde?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaborator_folgas_history_collaborator_id_fkey"
+            columns: ["collaborator_id"]
+            isOneToOne: false
+            referencedRelation: "collaborators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       collaborators: {
         Row: {
           aviso_previo_reducao: number | null
@@ -1662,6 +1703,13 @@ export type Database = {
     }
     Functions: {
       auto_finalize_vacation_status: { Args: never; Returns: undefined }
+      get_folgas_at: {
+        Args: { p_collaborator_id: string; p_date: string }
+        Returns: {
+          folgas_semanais: string[]
+          sunday_n: number
+        }[]
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       list_saipos_jobs: {
         Args: never
