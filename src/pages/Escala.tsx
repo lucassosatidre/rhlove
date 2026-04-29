@@ -72,6 +72,7 @@ function EscalaInner() {
   const { data: afastamentos = [] } = useAfastamentos();
   const { data: holidays = [] } = useHolidays();
   const { data: punchRecords = [] } = usePunchRecords(undefined, undefined, dateRange.start, dateRange.end);
+  const { resolver: folgasResolver } = useFolgasResolver();
 
   // Fetch Folga BH records for displayed grid range (includes overflow days)
   const { data: folgasBH = [] } = useQuery({
