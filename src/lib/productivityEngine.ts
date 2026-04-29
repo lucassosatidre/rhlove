@@ -7,6 +7,7 @@ import type { Afastamento } from '@/hooks/useAfastamentos';
 import type { DayOffOverridesMap } from '@/lib/scheduleEngine';
 import { getScheduledCollaboratorIdsBySectorOnDate } from '@/lib/scheduleEngine';
 import type { AbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
+import type { FolgasResolver } from '@/hooks/useFolgasResolver';
 
 /** Set of "collaboratorId|date" keys for punch-confirmed faltas */
 export type PunchFaltaSet = Set<string>;
@@ -36,7 +37,8 @@ function buildScheduledCountMap(
   dayOffOverrides?: DayOffOverridesMap,
   afastamentos: Afastamento[] = [],
   absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
-  punchFaltaSet?: PunchFaltaSet
+  punchFaltaSet?: PunchFaltaSet,
+  resolver?: FolgasResolver
 ): Record<string, number> {
   const map: Record<string, number> = {};
 
@@ -48,7 +50,8 @@ function buildScheduledCountMap(
       date,
       scheduledVacations,
       dayOffOverrides,
-      afastamentos
+      afastamentos,
+      resolver
     );
 
     for (const [sector, collaboratorIds] of Object.entries(collaboratorsBySector)) {
@@ -71,7 +74,8 @@ export function countPeopleBySectorOnDate(
   dayOffOverrides?: DayOffOverridesMap,
   afastamentos: Afastamento[] = [],
   absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
-  punchFaltaSet?: PunchFaltaSet
+  punchFaltaSet?: PunchFaltaSet,
+  resolver?: FolgasResolver
 ): number {
   const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   const absentCollaboratorIds = absentCollaboratorIdsByDate?.get(dateKey);
@@ -80,7 +84,8 @@ export function countPeopleBySectorOnDate(
     date,
     scheduledVacations,
     dayOffOverrides,
-    afastamentos
+    afastamentos,
+    resolver
   );
 
   return (collaboratorsBySector[sector] ?? []).filter(id => {
@@ -99,7 +104,8 @@ export function generateProductivityData(
   afastamentos: Afastamento[] = [],
   absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
   freelancerEntries: FreelancerEntry[] = [],
-  punchFaltaSet?: PunchFaltaSet
+  punchFaltaSet?: PunchFaltaSet,
+  resolver?: FolgasResolver
 ): ProductivityRow[] {
   const rows: ProductivityRow[] = [];
   const scheduledCountMap = buildScheduledCountMap(
@@ -109,7 +115,8 @@ export function generateProductivityData(
     dayOffOverrides,
     afastamentos,
     absentCollaboratorIdsByDate,
-    punchFaltaSet
+    punchFaltaSet,
+    resolver
   );
 
   const getScheduledCount = (date: string, sector: string) => scheduledCountMap[`${date}|${sector}`] || 0;

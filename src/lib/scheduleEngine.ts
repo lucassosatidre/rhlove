@@ -3,6 +3,18 @@ import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
 import { isOnScheduledVacation } from '@/hooks/useScheduledVacations';
 import type { Afastamento } from '@/hooks/useAfastamentos';
 import { isOnAfastamento } from '@/hooks/useAfastamentos';
+import type { FolgasResolver } from '@/hooks/useFolgasResolver';
+
+let _fallbackWarned = false;
+function warnFallback(collabId: string) {
+  if (_fallbackWarned) return;
+  _fallbackWarned = true;
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[scheduleEngine] FolgasResolver ausente — usando fallback collaborator.folgas_semanais (id=${collabId}). ` +
+    `Passe o resolver de useFolgasResolver() para respeitar o histórico de folgas.`
+  );
+}
 
 export interface ScheduleWeek {
   weekNumber: number;
@@ -79,10 +91,29 @@ function getDisplayName(
   scheduleDate: Date,
   scheduledVacations: ScheduledVacation[] = [],
   dayOffOverride?: DayOffOverride,
-  afastamentos: Afastamento[] = []
+  afastamentos: Afastamento[] = [],
+  resolver?: FolgasResolver
 ): string | null {
   const sd = dateOnly(scheduleDate);
   const dayKey = JS_DAY_TO_KEY[sd.getDay()];
+
+  // Resolve folgas vigentes na data — fallback defensivo aos campos do collaborator
+  let folgasSemanais: DayOfWeek[];
+  let sundayN: number;
+  if (resolver) {
+    const resolved = resolver(collab.id, sd);
+    if (resolved) {
+      folgasSemanais = resolved.folgas_semanais;
+      sundayN = resolved.sunday_n;
+    } else {
+      folgasSemanais = collab.folgas_semanais;
+      sundayN = collab.sunday_n;
+    }
+  } else {
+    warnFallback(collab.id);
+    folgasSemanais = collab.folgas_semanais;
+    sundayN = collab.sunday_n;
+  }
 
   // STEP 0 — EMPRESA PERIOD
   const inicioEmpresa = parseDate(collab.inicio_na_empresa);
@@ -125,7 +156,7 @@ function getDisplayName(
   if (dayOffOverride?.addDays.includes(dayKey)) return null;
 
   // STEP 3 — FOLGAS SEMANAIS (with override removeDays)
-  if (collab.folgas_semanais.includes(dayKey)) {
+  if (folgasSemanais.includes(dayKey)) {
     // If override removes this day-off, collaborator works today
     if (dayOffOverride?.removeDays.includes(dayKey)) {
       // Continue — don't return null, they work today
@@ -135,9 +166,9 @@ function getDisplayName(
   }
 
   // STEP 4 — DOMINGO DO MÊS (with override removeDays) — only if sunday_n > 0
-  if (dayKey === 'DOMINGO' && collab.sunday_n > 0) {
+  if (dayKey === 'DOMINGO' && sundayN > 0) {
     const sundayNum = getSundayNumber(sd);
-    if (collab.sunday_n === sundayNum) {
+    if (sundayN === sundayNum) {
       if (dayOffOverride?.removeDays.includes('DOMINGO')) {
         // Override removes this Sunday off, collaborator works
       } else {
@@ -185,7 +216,8 @@ export function getScheduledCollaboratorIdsBySectorOnDate(
   date: Date,
   scheduledVacations: ScheduledVacation[] = [],
   dayOffOverrides?: DayOffOverridesMap,
-  afastamentos: Afastamento[] = []
+  afastamentos: Afastamento[] = [],
+  resolver?: FolgasResolver
 ): Record<string, string[]> {
   const normalizedDate = dateOnly(date);
   const mondayOffset = normalizedDate.getDay() === 0 ? -6 : 1 - normalizedDate.getDay();
@@ -197,7 +229,7 @@ export function getScheduledCollaboratorIdsBySectorOnDate(
   for (const collab of collaborators) {
     const overrideKey = `${weekStartKey}|${collab.id}`;
     const override = dayOffOverrides?.get(overrideKey);
-    const displayName = getDisplayName(collab, normalizedDate, scheduledVacations, override, afastamentos);
+    const displayName = getDisplayName(collab, normalizedDate, scheduledVacations, override, afastamentos, resolver);
     if (!displayName) continue;
 
     if (!collaboratorsBySector[collab.sector]) {
@@ -215,7 +247,8 @@ export function generateSchedule(
   month: number,
   scheduledVacations: ScheduledVacation[] = [],
   dayOffOverrides?: DayOffOverridesMap,
-  afastamentos: Afastamento[] = []
+  afastamentos: Afastamento[] = [],
+  resolver?: FolgasResolver
 ): ScheduleWeek[] {
   const firstMonday = getFirstMondayOfMonthGrid(year, month);
   const totalWeeks = getWeekCount(year, month);
@@ -242,7 +275,7 @@ export function generateSchedule(
         const overrideKey = `${weekStartKey}|${collab.id}`;
         const override = dayOffOverrides?.get(overrideKey);
 
-        const displayName = getDisplayName(collab, date, scheduledVacations, override, afastamentos);
+        const displayName = getDisplayName(collab, date, scheduledVacations, override, afastamentos, resolver);
         if (!displayName) continue;
 
         if (!collaboratorsBySector[collab.sector]) {
@@ -271,7 +304,8 @@ export function getMonthLabel(year: number, month: number): string {
 export function isCollaboratorScheduledOnDate(
   collab: Collaborator,
   date: Date,
-  scheduledVacations: ScheduledVacation[] = []
+  scheduledVacations: ScheduledVacation[] = [],
+  resolver?: FolgasResolver
 ): boolean {
-  return getDisplayName(collab, date, scheduledVacations) !== null;
+  return getDisplayName(collab, date, scheduledVacations, undefined, [], resolver) !== null;
 }

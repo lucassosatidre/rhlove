@@ -13,6 +13,7 @@ import {
   type HolidayCompensationInput,
 } from '@/hooks/useHolidayCompensations';
 import { isCollaboratorScheduledOnDate } from '@/lib/scheduleEngine';
+import { useFolgasResolver } from '@/hooks/useFolgasResolver';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,6 +40,7 @@ function formatDateBRFull(dateStr: string) {
 export default function Compensacoes() {
   const { data: collaborators = [] } = useCollaborators();
   const { data: scheduledVacations = [] } = useScheduledVacations();
+  const { resolver: folgasResolver } = useFolgasResolver();
   const { data: holidays = [], isLoading: loadingHolidays } = useHolidays();
   const { data: compensations = [], isLoading: loadingComps } = useHolidayCompensations();
   const createHoliday = useCreateHoliday();
@@ -87,7 +89,7 @@ export default function Compensacoes() {
         const key = `${collab.id}|${holiday.date}`;
         if (compMap.has(key)) continue; // already exists
 
-        const scheduled = isCollaboratorScheduledOnDate(collab, hDate, scheduledVacations);
+        const scheduled = isCollaboratorScheduledOnDate(collab, hDate, scheduledVacations, folgasResolver);
         newRecords.push({
           collaborator_id: collab.id,
           collaborator_name: collab.collaborator_name,

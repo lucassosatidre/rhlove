@@ -12,6 +12,7 @@ import { INTEGRATION_START_DATE } from '@/lib/constants';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { generateSchedule, getMonthLabel, getFirstMondayOfMonthGrid, getWeekCount, getScheduledCollaboratorIdsBySectorOnDate, type ScheduleWeek } from '@/lib/scheduleEngine';
+import { useFolgasResolver } from '@/hooks/useFolgasResolver';
 import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { DraftModeProvider, useDraftMode, type DraftSalesEntry } from '@/contexts/DraftModeContext';
 
@@ -71,6 +72,7 @@ function EscalaInner() {
   const { data: afastamentos = [] } = useAfastamentos();
   const { data: holidays = [] } = useHolidays();
   const { data: punchRecords = [] } = usePunchRecords(undefined, undefined, dateRange.start, dateRange.end);
+  const { resolver: folgasResolver } = useFolgasResolver();
 
   // Fetch Folga BH records for displayed grid range (includes overflow days)
   const { data: folgasBH = [] } = useQuery({
@@ -131,8 +133,8 @@ function EscalaInner() {
 
   // Generate schedule WITH day-off overrides applied
   const weeks = useMemo(
-    () => generateSchedule(collaborators, year, month, scheduledVacations, swapOverrides, afastamentos),
-    [collaborators, year, month, scheduledVacations, swapOverrides, afastamentos]
+    () => generateSchedule(collaborators, year, month, scheduledVacations, swapOverrides, afastamentos, folgasResolver),
+    [collaborators, year, month, scheduledVacations, swapOverrides, afastamentos, folgasResolver]
   );
 
   // Auto-select the week containing today when weeks change
@@ -482,7 +484,8 @@ function EscalaInner() {
       date,
       scheduledVacations,
       swapOverrides,
-      afastamentos
+      afastamentos,
+      folgasResolver
     );
 
     return (collaboratorsBySector[sector] || []).filter(id => !absentIds?.has(id)).length;
@@ -493,7 +496,7 @@ function EscalaInner() {
     const dateKey = formatDateKey(date);
     if (!lastPunchDate || dateKey < INTEGRATION_START_DATE || dateKey > lastPunchDate) return 0;
     const collaboratorsBySector = getScheduledCollaboratorIdsBySectorOnDate(
-      collaborators, date, scheduledVacations, swapOverrides, afastamentos
+      collaborators, date, scheduledVacations, swapOverrides, afastamentos, folgasResolver
     );
     const absentIds = absentCollaboratorIdsByDate.get(dateKey);
     const scheduledIds = (collaboratorsBySector[sector] || []).filter(id => !absentIds?.has(id));

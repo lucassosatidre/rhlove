@@ -11,6 +11,7 @@ import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { INTEGRATION_START_DATE } from '@/lib/constants';
 import { supabase } from '@/integrations/supabase/client';
 import { getScheduledCollaboratorIdsBySectorOnDate } from '@/lib/scheduleEngine';
+import { useFolgasResolver } from '@/hooks/useFolgasResolver';
 import { generateProductivityData, formatCurrency, formatDecimal, formatDateBR, getSectorOrder } from '@/lib/productivityEngine';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -113,6 +114,7 @@ export default function Produtividade() {
   const { toast } = useToast();
 
   const { data: collaborators = [] } = useCollaborators();
+  const { resolver: folgasResolver } = useFolgasResolver();
   const { data: salesData = [], isLoading } = useDailySales(startDate, endDate);
   const { data: freelancersData = [] } = useFreelancers(startDate, endDate);
   const { data: freelancerEntriesData = [] } = useFreelancerEntries(startDate, endDate);
@@ -181,7 +183,7 @@ export default function Produtividade() {
       if (dateStr < INTEGRATION_START_DATE || dateStr > maxPunchDate) continue;
       const date = new Date(dateStr + 'T00:00:00');
       const collaboratorsBySector = getScheduledCollaboratorIdsBySectorOnDate(
-        collaborators, date, scheduledVacations, swapOverrides, afastamentos
+        collaborators, date, scheduledVacations, swapOverrides, afastamentos, folgasResolver
       );
       const absentIds = absentCollaboratorIdsByDate.get(dateStr);
 
@@ -202,7 +204,7 @@ export default function Produtividade() {
       }
     }
     return set;
-  }, [punchRecordsForRange, salesData, prevSalesData, collaborators, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, eventsMap]);
+  }, [punchRecordsForRange, salesData, prevSalesData, collaborators, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, eventsMap, folgasResolver]);
 
   const upsertMut = useUpsertDailySales();
   const bulkMut = useBulkInsertDailySales();
@@ -211,13 +213,13 @@ export default function Produtividade() {
   const bulkFreeEntriesMut = useBulkInsertFreelancerEntries();
 
   const productivityRows = useMemo(
-    () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, freelancerEntriesData, punchFaltaSet),
-    [salesData, collaborators, freelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, freelancerEntriesData, punchFaltaSet]
+    () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, freelancerEntriesData, punchFaltaSet, folgasResolver),
+    [salesData, collaborators, freelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, freelancerEntriesData, punchFaltaSet, folgasResolver]
   );
 
   const prevProductivityRows = useMemo(
-    () => generateProductivityData(prevSalesData, collaborators, prevFreelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, prevFreelancerEntriesData, punchFaltaSet),
-    [prevSalesData, collaborators, prevFreelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, prevFreelancerEntriesData, punchFaltaSet]
+    () => generateProductivityData(prevSalesData, collaborators, prevFreelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, prevFreelancerEntriesData, punchFaltaSet, folgasResolver),
+    [prevSalesData, collaborators, prevFreelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, prevFreelancerEntriesData, punchFaltaSet, folgasResolver]
   );
 
   const groupedByDate = useMemo(() => {
