@@ -247,7 +247,8 @@ export function generateSchedule(
   month: number,
   scheduledVacations: ScheduledVacation[] = [],
   dayOffOverrides?: DayOffOverridesMap,
-  afastamentos: Afastamento[] = []
+  afastamentos: Afastamento[] = [],
+  resolver?: FolgasResolver
 ): ScheduleWeek[] {
   const firstMonday = getFirstMondayOfMonthGrid(year, month);
   const totalWeeks = getWeekCount(year, month);
@@ -274,7 +275,7 @@ export function generateSchedule(
         const overrideKey = `${weekStartKey}|${collab.id}`;
         const override = dayOffOverrides?.get(overrideKey);
 
-        const displayName = getDisplayName(collab, date, scheduledVacations, override, afastamentos);
+        const displayName = getDisplayName(collab, date, scheduledVacations, override, afastamentos, resolver);
         if (!displayName) continue;
 
         if (!collaboratorsBySector[collab.sector]) {
@@ -303,7 +304,8 @@ export function getMonthLabel(year: number, month: number): string {
 export function isCollaboratorScheduledOnDate(
   collab: Collaborator,
   date: Date,
-  scheduledVacations: ScheduledVacation[] = []
+  scheduledVacations: ScheduledVacation[] = [],
+  resolver?: FolgasResolver
 ): boolean {
-  return getDisplayName(collab, date, scheduledVacations) !== null;
+  return getDisplayName(collab, date, scheduledVacations, undefined, [], resolver) !== null;
 }
