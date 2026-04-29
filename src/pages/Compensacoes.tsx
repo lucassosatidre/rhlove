@@ -13,6 +13,7 @@ import {
   type HolidayCompensationInput,
 } from '@/hooks/useHolidayCompensations';
 import { isCollaboratorScheduledOnDate } from '@/lib/scheduleEngine';
+import { useFolgasResolver } from '@/hooks/useFolgasResolver';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
