@@ -484,7 +484,8 @@ function EscalaInner() {
       date,
       scheduledVacations,
       swapOverrides,
-      afastamentos
+      afastamentos,
+      folgasResolver
     );
 
     return (collaboratorsBySector[sector] || []).filter(id => !absentIds?.has(id)).length;
