@@ -133,8 +133,8 @@ function EscalaInner() {
 
   // Generate schedule WITH day-off overrides applied
   const weeks = useMemo(
-    () => generateSchedule(collaborators, year, month, scheduledVacations, swapOverrides, afastamentos),
-    [collaborators, year, month, scheduledVacations, swapOverrides, afastamentos]
+    () => generateSchedule(collaborators, year, month, scheduledVacations, swapOverrides, afastamentos, folgasResolver),
+    [collaborators, year, month, scheduledVacations, swapOverrides, afastamentos, folgasResolver]
   );
 
   // Auto-select the week containing today when weeks change
