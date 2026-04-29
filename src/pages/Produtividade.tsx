@@ -11,6 +11,7 @@ import { buildAbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { INTEGRATION_START_DATE } from '@/lib/constants';
 import { supabase } from '@/integrations/supabase/client';
 import { getScheduledCollaboratorIdsBySectorOnDate } from '@/lib/scheduleEngine';
+import { useFolgasResolver } from '@/hooks/useFolgasResolver';
 import { generateProductivityData, formatCurrency, formatDecimal, formatDateBR, getSectorOrder } from '@/lib/productivityEngine';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
