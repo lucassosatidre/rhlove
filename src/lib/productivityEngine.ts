@@ -7,6 +7,7 @@ import type { Afastamento } from '@/hooks/useAfastamentos';
 import type { DayOffOverridesMap } from '@/lib/scheduleEngine';
 import { getScheduledCollaboratorIdsBySectorOnDate } from '@/lib/scheduleEngine';
 import type { AbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
+import type { FolgasResolver } from '@/hooks/useFolgasResolver';
 
 /** Set of "collaboratorId|date" keys for punch-confirmed faltas */
 export type PunchFaltaSet = Set<string>;
