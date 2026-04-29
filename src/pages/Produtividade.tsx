@@ -204,7 +204,7 @@ export default function Produtividade() {
       }
     }
     return set;
-  }, [punchRecordsForRange, salesData, prevSalesData, collaborators, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, eventsMap]);
+  }, [punchRecordsForRange, salesData, prevSalesData, collaborators, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, eventsMap, folgasResolver]);
 
   const upsertMut = useUpsertDailySales();
   const bulkMut = useBulkInsertDailySales();
@@ -213,13 +213,13 @@ export default function Produtividade() {
   const bulkFreeEntriesMut = useBulkInsertFreelancerEntries();
 
   const productivityRows = useMemo(
-    () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, freelancerEntriesData, punchFaltaSet),
-    [salesData, collaborators, freelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, freelancerEntriesData, punchFaltaSet]
+    () => generateProductivityData(salesData, collaborators, freelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, freelancerEntriesData, punchFaltaSet, folgasResolver),
+    [salesData, collaborators, freelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, freelancerEntriesData, punchFaltaSet, folgasResolver]
   );
 
   const prevProductivityRows = useMemo(
-    () => generateProductivityData(prevSalesData, collaborators, prevFreelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, prevFreelancerEntriesData, punchFaltaSet),
-    [prevSalesData, collaborators, prevFreelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, prevFreelancerEntriesData, punchFaltaSet]
+    () => generateProductivityData(prevSalesData, collaborators, prevFreelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, prevFreelancerEntriesData, punchFaltaSet, folgasResolver),
+    [prevSalesData, collaborators, prevFreelancersData, scheduledVacations, swapOverrides, afastamentos, absentCollaboratorIdsByDate, prevFreelancerEntriesData, punchFaltaSet, folgasResolver]
   );
 
   const groupedByDate = useMemo(() => {
