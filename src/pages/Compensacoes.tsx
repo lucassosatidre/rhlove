@@ -40,6 +40,7 @@ function formatDateBRFull(dateStr: string) {
 export default function Compensacoes() {
   const { data: collaborators = [] } = useCollaborators();
   const { data: scheduledVacations = [] } = useScheduledVacations();
+  const { resolver: folgasResolver } = useFolgasResolver();
   const { data: holidays = [], isLoading: loadingHolidays } = useHolidays();
   const { data: compensations = [], isLoading: loadingComps } = useHolidayCompensations();
   const createHoliday = useCreateHoliday();
