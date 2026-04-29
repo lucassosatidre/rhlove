@@ -79,3 +79,19 @@ export interface JornadaEspecial {
   saida: string;
   ch: string;
 }
+
+export type CollaboratorFolgasHistoryEntry = {
+  id: string;
+  collaborator_id: string;
+  folgas_semanais: string[];
+  sunday_n: number;
+  vigente_desde: string; // ISO YYYY-MM-DD
+  motivo: string | null;
+  created_at: string;
+  created_by: string | null;
+};
+
+export type FolgasAtDate = {
+  folgas_semanais: string[];
+  sunday_n: number;
+};
