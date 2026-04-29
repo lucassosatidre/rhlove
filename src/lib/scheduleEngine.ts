@@ -216,7 +216,8 @@ export function getScheduledCollaboratorIdsBySectorOnDate(
   date: Date,
   scheduledVacations: ScheduledVacation[] = [],
   dayOffOverrides?: DayOffOverridesMap,
-  afastamentos: Afastamento[] = []
+  afastamentos: Afastamento[] = [],
+  resolver?: FolgasResolver
 ): Record<string, string[]> {
   const normalizedDate = dateOnly(date);
   const mondayOffset = normalizedDate.getDay() === 0 ? -6 : 1 - normalizedDate.getDay();
@@ -228,7 +229,7 @@ export function getScheduledCollaboratorIdsBySectorOnDate(
   for (const collab of collaborators) {
     const overrideKey = `${weekStartKey}|${collab.id}`;
     const override = dayOffOverrides?.get(overrideKey);
-    const displayName = getDisplayName(collab, normalizedDate, scheduledVacations, override, afastamentos);
+    const displayName = getDisplayName(collab, normalizedDate, scheduledVacations, override, afastamentos, resolver);
     if (!displayName) continue;
 
     if (!collaboratorsBySector[collab.sector]) {
