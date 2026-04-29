@@ -89,7 +89,7 @@ export default function Compensacoes() {
         const key = `${collab.id}|${holiday.date}`;
         if (compMap.has(key)) continue; // already exists
 
-        const scheduled = isCollaboratorScheduledOnDate(collab, hDate, scheduledVacations);
+        const scheduled = isCollaboratorScheduledOnDate(collab, hDate, scheduledVacations, folgasResolver);
         newRecords.push({
           collaborator_id: collab.id,
           collaborator_name: collab.collaborator_name,
