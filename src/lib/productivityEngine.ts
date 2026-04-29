@@ -37,7 +37,8 @@ function buildScheduledCountMap(
   dayOffOverrides?: DayOffOverridesMap,
   afastamentos: Afastamento[] = [],
   absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
-  punchFaltaSet?: PunchFaltaSet
+  punchFaltaSet?: PunchFaltaSet,
+  resolver?: FolgasResolver
 ): Record<string, number> {
   const map: Record<string, number> = {};
 
@@ -49,7 +50,8 @@ function buildScheduledCountMap(
       date,
       scheduledVacations,
       dayOffOverrides,
-      afastamentos
+      afastamentos,
+      resolver
     );
 
     for (const [sector, collaboratorIds] of Object.entries(collaboratorsBySector)) {
