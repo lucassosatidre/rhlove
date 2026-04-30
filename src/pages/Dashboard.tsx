@@ -16,6 +16,7 @@ import MetricBlock from '@/components/dashboard/MetricBlock';
 import MonthlyComparison from '@/components/dashboard/MonthlyComparison';
 import HRCalendar from '@/components/dashboard/HRCalendar';
 import { computeBlockMetrics, type BlockMetrics } from '@/lib/dashboardEngine';
+import { useFolgasResolver } from '@/hooks/useFolgasResolver';
 
 function fmt(d: Date): string {
   return d.toISOString().slice(0, 10);
