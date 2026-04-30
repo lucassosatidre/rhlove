@@ -220,14 +220,33 @@ function EscalaInner() {
   const { punchSet, lastPunchDate } = useMemo(() => {
     const set = new Set<string>();
     let maxDate = '';
+
+    // Local date key (BRT) from a timestamptz string — only presence matters
+    const toLocalDateKey = (ts: string): string => {
+      const d = new Date(ts);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
+    // Physical clock / AFD / Excel imports
     for (const p of punchRecords) {
       if (p.entrada) {
         set.add(`${p.collaborator_id}|${p.date}`);
         if (p.date > maxDate) maxDate = p.date;
       }
     }
+
+    // Online punches (mobile app) — at least 1 punch counts as presence
+    for (const op of onlinePunches as Array<{ collaborator_id: string; punch_time: string }>) {
+      const dateKey = toLocalDateKey(op.punch_time);
+      set.add(`${op.collaborator_id}|${dateKey}`);
+      if (dateKey > maxDate) maxDate = dateKey;
+    }
+
     return { punchSet: set, lastPunchDate: maxDate || null };
-  }, [punchRecords]);
+  }, [punchRecords, onlinePunches]);
 
   const addFreelancerEntry = useAddFreelancerEntry();
   const deleteFreelancerEntry = useDeleteFreelancerEntry();
