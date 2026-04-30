@@ -53,6 +53,7 @@ export function useAddFolgasHistoryEntry() {
     },
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: ['folgas-history', vars.collaborator_id] });
+      qc.invalidateQueries({ queryKey: ['folgas-history-all'] });
     },
   });
 }
@@ -70,6 +71,7 @@ export function useDeleteFolgasHistoryEntry() {
     },
     onSuccess: ({ collaborator_id }) => {
       qc.invalidateQueries({ queryKey: ['folgas-history', collaborator_id] });
+      qc.invalidateQueries({ queryKey: ['folgas-history-all'] });
     },
   });
 }
