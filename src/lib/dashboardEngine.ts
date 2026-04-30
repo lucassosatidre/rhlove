@@ -5,6 +5,7 @@ import type { FreelancerEntry } from '@/hooks/useFreelancerEntries';
 import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
 import type { AbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { countPeopleBySectorOnDate } from '@/lib/productivityEngine';
+import type { FolgasResolver } from '@/hooks/useFolgasResolver';
 
 const SECTORS = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'] as const;
 
@@ -20,12 +21,13 @@ function getTotalPeopleForDate(
   freelancerEntries: FreelancerEntry[],
   scheduledVacations: ScheduledVacation[],
   dateStr: string,
-  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
+  resolver?: FolgasResolver
 ): number {
   const d = new Date(dateStr + 'T00:00:00');
   let total = 0;
   for (const s of SECTORS) {
-    total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate);
+    total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate, undefined, resolver);
     total += getFreelancerCount(freelancers, freelancerEntries, dateStr, s);
   }
   return total;
@@ -38,10 +40,11 @@ function getSectorPeopleForDate(
   scheduledVacations: ScheduledVacation[],
   dateStr: string,
   sector: string,
-  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
+  resolver?: FolgasResolver
 ): number {
   const d = new Date(dateStr + 'T00:00:00');
-  return countPeopleBySectorOnDate(collaborators, sector, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate) +
+  return countPeopleBySectorOnDate(collaborators, sector, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate, undefined, resolver) +
     getFreelancerCount(freelancers, freelancerEntries, dateStr, sector);
 }
 
