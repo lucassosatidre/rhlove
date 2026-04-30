@@ -69,7 +69,7 @@ const emptyForm: FormData = {
   sunday_n: 1,
   status: 'ATIVO',
   genero: 'M',
-  inicio_na_empresa: new Date().toISOString().slice(0, 10),
+  inicio_na_empresa: todayLocalISO(),
   data_desligamento: '',
   inicio_periodo: '',
   fim_periodo: '',
@@ -100,6 +100,8 @@ export default function Colaboradores() {
   const updateMut = useUpdateCollaborator();
   const deleteMut = useDeleteCollaborator();
   const bulkMut = useBulkInsertCollaborators();
+  const addFolgasHistoryMut = useAddFolgasHistoryEntry();
+  const { session } = useAuth();
   const { toast } = useToast();
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -110,10 +112,16 @@ export default function Colaboradores() {
   const [pisImportOpen, setPisImportOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'ATIVOS' | 'DESLIGADOS'>('ATIVOS');
 
+  // Snapshot das folgas do colaborador no momento em que o form foi aberto.
+  // Usado pra detectar mudança e pra preservar valores antigos quando vigência é futura.
+  const [originalFolgas, setOriginalFolgas] = useState<{ folgas: DayOfWeek[]; sundayN: number } | null>(null);
+  const [vigenciaDialogOpen, setVigenciaDialogOpen] = useState(false);
+
   const openNew = () => {
     setEditingId(null);
     setForm(emptyForm);
     setDisplayNameTouched(false);
+    setOriginalFolgas(null);
     setDialogOpen(true);
   };
 
