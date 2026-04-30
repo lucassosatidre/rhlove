@@ -5,6 +5,7 @@ import type { FreelancerEntry } from '@/hooks/useFreelancerEntries';
 import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
 import type { AbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { countPeopleBySectorOnDate } from '@/lib/productivityEngine';
+import type { FolgasResolver } from '@/hooks/useFolgasResolver';
 
 const SECTORS = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'] as const;
 
@@ -20,12 +21,13 @@ function getTotalPeopleForDate(
   freelancerEntries: FreelancerEntry[],
   scheduledVacations: ScheduledVacation[],
   dateStr: string,
-  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
+  resolver?: FolgasResolver
 ): number {
   const d = new Date(dateStr + 'T00:00:00');
   let total = 0;
   for (const s of SECTORS) {
-    total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate);
+    total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate, undefined, resolver);
     total += getFreelancerCount(freelancers, freelancerEntries, dateStr, s);
   }
   return total;
@@ -38,10 +40,11 @@ function getSectorPeopleForDate(
   scheduledVacations: ScheduledVacation[],
   dateStr: string,
   sector: string,
-  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
+  resolver?: FolgasResolver
 ): number {
   const d = new Date(dateStr + 'T00:00:00');
-  return countPeopleBySectorOnDate(collaborators, sector, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate) +
+  return countPeopleBySectorOnDate(collaborators, sector, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate, undefined, resolver) +
     getFreelancerCount(freelancers, freelancerEntries, dateStr, sector);
 }
 
@@ -105,7 +108,8 @@ export function computeBlockMetrics(
   scheduledVacations: ScheduledVacation[],
   absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
   freelancerEntries: FreelancerEntry[] = [],
-  prevFreelancerEntries: FreelancerEntry[] = []
+  prevFreelancerEntries: FreelancerEntry[] = [],
+  resolver?: FolgasResolver
 ): BlockMetrics {
   const days = sales.length || 1;
   const prevDays = prevSales.length || 1;
@@ -115,7 +119,7 @@ export function computeBlockMetrics(
   const ped = sales.reduce((a, s) => a + Number(s.pedidos_totais), 0);
   let totalPeople = 0;
   for (const s of sales) {
-    totalPeople += getTotalPeopleForDate(collaborators, freelancers, freelancerEntries, scheduledVacations, s.date, absentCollaboratorIdsByDate);
+    totalPeople += getTotalPeopleForDate(collaborators, freelancers, freelancerEntries, scheduledVacations, s.date, absentCollaboratorIdsByDate, resolver);
   }
   const avgPeople = totalPeople / days;
   const pct = avgPeople > 0 ? (ped / days) / avgPeople : 0;
@@ -125,7 +129,7 @@ export function computeBlockMetrics(
   const prevPed = prevSales.reduce((a, s) => a + Number(s.pedidos_totais), 0);
   let prevTotalPeople = 0;
   for (const s of prevSales) {
-    prevTotalPeople += getTotalPeopleForDate(collaborators, prevFreelancers, prevFreelancerEntries, scheduledVacations, s.date, absentCollaboratorIdsByDate);
+    prevTotalPeople += getTotalPeopleForDate(collaborators, prevFreelancers, prevFreelancerEntries, scheduledVacations, s.date, absentCollaboratorIdsByDate, resolver);
   }
   const prevAvgPeople = prevTotalPeople / prevDays;
   const prevPct = prevAvgPeople > 0 ? (prevPed / prevDays) / prevAvgPeople : 0;
@@ -135,7 +139,7 @@ export function computeBlockMetrics(
   const sectors: SectorMetric[] = SECTORS.map(sector => {
     let sectorPeople = 0, sectorPed = 0, sectorFat = 0;
     for (const sale of sales) {
-      sectorPeople += getSectorPeopleForDate(collaborators, freelancers, freelancerEntries, scheduledVacations, sale.date, sector, absentCollaboratorIdsByDate);
+      sectorPeople += getSectorPeopleForDate(collaborators, freelancers, freelancerEntries, scheduledVacations, sale.date, sector, absentCollaboratorIdsByDate, resolver);
       const ss = getSectorSales(sale, sector);
       sectorPed += ss.pedidos;
       sectorFat += ss.faturamento;
@@ -144,7 +148,7 @@ export function computeBlockMetrics(
     
     let prevSectorPeople = 0, prevSectorPed = 0, prevSectorFat = 0;
     for (const sale of prevSales) {
-      prevSectorPeople += getSectorPeopleForDate(collaborators, prevFreelancers, prevFreelancerEntries, scheduledVacations, sale.date, sector, absentCollaboratorIdsByDate);
+      prevSectorPeople += getSectorPeopleForDate(collaborators, prevFreelancers, prevFreelancerEntries, scheduledVacations, sale.date, sector, absentCollaboratorIdsByDate, resolver);
       const ss = getSectorSales(sale, sector);
       prevSectorPed += ss.pedidos;
       prevSectorFat += ss.faturamento;

@@ -7,6 +7,7 @@ import type { FreelancerEntry } from '@/hooks/useFreelancerEntries';
 import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
 import type { AbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { countPeopleBySectorOnDate } from '@/lib/productivityEngine';
+import { useFolgasResolver, type FolgasResolver } from '@/hooks/useFolgasResolver';
 
 const SECTORS = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'] as const;
 
@@ -22,12 +23,13 @@ function getTotalPeople(
   freelancerEntries: FreelancerEntry[],
   scheduledVacations: ScheduledVacation[],
   dateStr: string,
-  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
+  resolver?: FolgasResolver
 ): number {
   const d = new Date(dateStr + 'T00:00:00');
   let total = 0;
   for (const s of SECTORS) {
-    total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate);
+    total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate, undefined, resolver);
     total += getFreelancerCount(freelancers, freelancerEntries, dateStr, s);
   }
   return total;
@@ -37,21 +39,22 @@ function getCollaboratorsOnly(
   collaborators: Collaborator[],
   scheduledVacations: ScheduledVacation[],
   dateStr: string,
-  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
+  resolver?: FolgasResolver
 ): number {
   const d = new Date(dateStr + 'T00:00:00');
   let total = 0;
   for (const s of SECTORS) {
-    total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate);
+    total += countPeopleBySectorOnDate(collaborators, s, d, scheduledVacations, undefined, undefined, absentCollaboratorIdsByDate, undefined, resolver);
   }
   return total;
 }
 
 interface MonthlyKPIs {
-  tmp: number; // Ticket Médio por Pedido = faturamento / pedidos
-  ppp: number; // Pedidos por Pessoa = pedidos / pessoas (colab + free)
-  tmt: number; // Ticket Médio por Trabalhador = faturamento / pessoas
-  pcs: number; // Pedidos por Colaborador = pedidos / colaboradores (sem free)
+  tmp: number;
+  ppp: number;
+  tmt: number;
+  pcs: number;
   hasDays: boolean;
 }
 
@@ -61,7 +64,8 @@ function computeMonthlyKPIs(
   freelancers: Freelancer[],
   freelancerEntries: FreelancerEntry[],
   scheduledVacations: ScheduledVacation[],
-  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate
+  absentCollaboratorIdsByDate?: AbsentCollaboratorIdsByDate,
+  resolver?: FolgasResolver
 ): MonthlyKPIs {
   if (sales.length === 0) return { tmp: 0, ppp: 0, tmt: 0, pcs: 0, hasDays: false };
 
@@ -70,8 +74,8 @@ function computeMonthlyKPIs(
   for (const sale of sales) {
     totalFat += Number(sale.faturamento_total);
     totalPed += Number(sale.pedidos_totais);
-    totalPeople += getTotalPeople(collaborators, freelancers, freelancerEntries, scheduledVacations, sale.date, absentCollaboratorIdsByDate);
-    totalColabs += getCollaboratorsOnly(collaborators, scheduledVacations, sale.date, absentCollaboratorIdsByDate);
+    totalPeople += getTotalPeople(collaborators, freelancers, freelancerEntries, scheduledVacations, sale.date, absentCollaboratorIdsByDate, resolver);
+    totalColabs += getCollaboratorsOnly(collaborators, scheduledVacations, sale.date, absentCollaboratorIdsByDate, resolver);
   }
 
   const days = sales.length;
@@ -163,6 +167,7 @@ interface Props {
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
 export default function MonthlyComparison({ allSales, collaborators, freelancers, freelancerEntries = [], scheduledVacations, absentCollaboratorIdsByDate }: Props) {
+  const { resolver: folgasResolver } = useFolgasResolver();
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth();
@@ -184,8 +189,8 @@ export default function MonthlyComparison({ allSales, collaborators, freelancers
   const currentFe = freelancerEntries.filter(f => f.date.startsWith(currentPrefix));
   const prevFe = freelancerEntries.filter(f => f.date.startsWith(prevPrefix));
 
-  const curr = computeMonthlyKPIs(currentSales, collaborators, currentFl, currentFe, scheduledVacations, absentCollaboratorIdsByDate);
-  const prev = computeMonthlyKPIs(prevSales, collaborators, prevFl, prevFe, scheduledVacations, absentCollaboratorIdsByDate);
+  const curr = computeMonthlyKPIs(currentSales, collaborators, currentFl, currentFe, scheduledVacations, absentCollaboratorIdsByDate, folgasResolver);
+  const prev = computeMonthlyKPIs(prevSales, collaborators, prevFl, prevFe, scheduledVacations, absentCollaboratorIdsByDate, folgasResolver);
 
   const currentMonthLabel = MONTH_NAMES[currentMonth];
   const prevMonthLabel = MONTH_NAMES[prevMonth];
