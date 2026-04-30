@@ -74,6 +74,25 @@ function EscalaInner() {
   const { data: punchRecords = [] } = usePunchRecords(undefined, undefined, dateRange.start, dateRange.end);
   const { resolver: folgasResolver } = useFolgasResolver();
 
+  // Online punches (mobile app) — only need (collaborator_id, local date) for presence
+  const { data: onlinePunches = [] } = useQuery({
+    queryKey: ['online_punches_for_schedule', dateRange.start, dateRange.end],
+    queryFn: async () => {
+      // Pad +1 day on the upper bound to cover BRT timezone offset and the 03:00–02:59 work-day rule
+      const endPlusOne = new Date(dateRange.end + 'T00:00:00');
+      endPlusOne.setDate(endPlusOne.getDate() + 1);
+      const endIso = endPlusOne.toISOString().slice(0, 10);
+      const { data, error } = await supabase
+        .from('online_punch_records')
+        .select('collaborator_id, punch_time')
+        .gte('punch_time', dateRange.start)
+        .lte('punch_time', endIso);
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 30_000,
+  });
+
   // Fetch Folga BH records for displayed grid range (includes overflow days)
   const { data: folgasBH = [] } = useQuery({
     queryKey: ['bank_hours_folgas_escala', dateRange.start, dateRange.end],
@@ -201,14 +220,33 @@ function EscalaInner() {
   const { punchSet, lastPunchDate } = useMemo(() => {
     const set = new Set<string>();
     let maxDate = '';
+
+    // Local date key (BRT) from a timestamptz string — only presence matters
+    const toLocalDateKey = (ts: string): string => {
+      const d = new Date(ts);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
+    // Physical clock / AFD / Excel imports
     for (const p of punchRecords) {
       if (p.entrada) {
         set.add(`${p.collaborator_id}|${p.date}`);
         if (p.date > maxDate) maxDate = p.date;
       }
     }
+
+    // Online punches (mobile app) — at least 1 punch counts as presence
+    for (const op of onlinePunches as Array<{ collaborator_id: string; punch_time: string }>) {
+      const dateKey = toLocalDateKey(op.punch_time);
+      set.add(`${op.collaborator_id}|${dateKey}`);
+      if (dateKey > maxDate) maxDate = dateKey;
+    }
+
     return { punchSet: set, lastPunchDate: maxDate || null };
-  }, [punchRecords]);
+  }, [punchRecords, onlinePunches]);
 
   const addFreelancerEntry = useAddFreelancerEntry();
   const deleteFreelancerEntry = useDeleteFreelancerEntry();
