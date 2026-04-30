@@ -163,6 +163,7 @@ export default function Colaboradores() {
     });
     // Editing: only auto-sync if the current display matches the first-token (i.e. wasn't customized)
     setDisplayNameTouched(currentDisplay !== firstToken(c.collaborator_name));
+    setOriginalFolgas({ folgas: c.folgas_semanais, sundayN: c.sunday_n });
     setDialogOpen(true);
   };
 
