@@ -222,15 +222,75 @@ export default function Colaboradores() {
     }
     try {
       if (editingId) {
+        // CASO B/C: edição. Detecta mudança em folgas_semanais ou sunday_n.
+        const changed =
+          originalFolgas !== null &&
+          folgasMudaram(originalFolgas.folgas, originalFolgas.sundayN, form.folgas_semanais, form.sunday_n);
+
+        if (changed) {
+          // CASO C: abre diálogo de vigência. Salvamento ocorre em handleConfirmVigencia.
+          setVigenciaDialogOpen(true);
+          return;
+        }
+
+        // CASO B: sem mudança em folga → update normal.
         await updateMut.mutateAsync({ id: editingId, ...toInput(form) });
         toast({ title: 'Colaborador atualizado' });
+        setDialogOpen(false);
       } else {
-        await createMut.mutateAsync(toInput(form));
+        // CASO A: criação. Insere colaborador + entrada inicial no histórico.
+        const created = await createMut.mutateAsync(toInput(form));
+        const vigenteDesde = form.inicio_na_empresa || todayLocalISO();
+        try {
+          await addFolgasHistoryMut.mutateAsync({
+            collaborator_id: created.id,
+            folgas_semanais: form.folgas_semanais,
+            sunday_n: form.sunday_n,
+            vigente_desde: vigenteDesde,
+            motivo: 'Cadastro inicial',
+            created_by: session?.user?.id ?? null,
+          });
+        } catch (err) {
+          console.error('[folgas-history] Falha ao criar entrada inicial', err);
+        }
         toast({ title: 'Colaborador cadastrado' });
+        setDialogOpen(false);
       }
-      setDialogOpen(false);
     } catch {
       toast({ title: 'Erro ao salvar', variant: 'destructive' });
+    }
+  };
+
+  const handleConfirmVigencia = async (vigenteDesde: string, motivo: string | null) => {
+    if (!editingId || !originalFolgas) return;
+    try {
+      // 1. Insere entrada no histórico (sempre).
+      await addFolgasHistoryMut.mutateAsync({
+        collaborator_id: editingId,
+        folgas_semanais: form.folgas_semanais,
+        sunday_n: form.sunday_n,
+        vigente_desde: vigenteDesde,
+        motivo,
+        created_by: session?.user?.id ?? null,
+      });
+
+      // 2. Atualiza colaborador. Se vigência é FUTURA, preserva valores ANTIGOS
+      //    em folgas_semanais/sunday_n (cache reflete o vigente HOJE).
+      const today = todayLocalISO();
+      const isFuture = vigenteDesde > today;
+      const inputData = toInput(form);
+      if (isFuture) {
+        inputData.folgas_semanais = originalFolgas.folgas;
+        inputData.sunday_n = originalFolgas.sundayN;
+      }
+      await updateMut.mutateAsync({ id: editingId, ...inputData });
+
+      toast({ title: 'Folga atualizada com vigência registrada' });
+      setVigenciaDialogOpen(false);
+      setDialogOpen(false);
+    } catch (err) {
+      console.error('[folgas-history] Falha ao salvar vigência', err);
+      toast({ title: 'Erro ao salvar vigência', variant: 'destructive' });
     }
   };
 
