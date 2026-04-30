@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useCollaborators, useCreateCollaborator, useUpdateCollaborator, useDeleteCollaborator, useBulkInsertCollaborators } from '@/hooks/useCollaborators';
 import type { CollaboratorInput } from '@/hooks/useCollaborators';
 import { useAddFolgasHistoryEntry } from '@/hooks/useCollaboratorFolgasHistory';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { folgasMudaram, todayLocalISO } from '@/lib/folgasUtils';
 import FolgasVigenciaDialog from '@/components/colaboradores/FolgasVigenciaDialog';
@@ -264,7 +265,30 @@ export default function Colaboradores() {
   const handleConfirmVigencia = async (vigenteDesde: string, motivo: string | null) => {
     if (!editingId || !originalFolgas) return;
     try {
-      // 1. Insere entrada no histórico (sempre).
+      // 0. Garante que colaboradores "legados" tenham uma entrada baseline no histórico.
+      //    Sem ela, datas anteriores à vigente_desde cairiam no fallback collab.folgas_semanais
+      //    (já atualizado) e mostrariam a folga NOVA no passado — causando FALTAs espúrias.
+      const { data: existingHistory, error: histCheckError } = await supabase
+        .from('collaborator_folgas_history' as any)
+        .select('id')
+        .eq('collaborator_id', editingId)
+        .limit(1);
+      if (histCheckError) throw histCheckError;
+
+      if (!existingHistory || existingHistory.length === 0) {
+        const collab = collaborators.find(c => c.id === editingId);
+        const baselineDate = collab?.inicio_na_empresa || '2000-01-01';
+        await addFolgasHistoryMut.mutateAsync({
+          collaborator_id: editingId,
+          folgas_semanais: originalFolgas.folgas,
+          sunday_n: originalFolgas.sundayN,
+          vigente_desde: baselineDate,
+          motivo: 'Registro inicial retroativo',
+          created_by: session?.user?.id ?? null,
+        });
+      }
+
+      // 1. Insere entrada no histórico com a nova vigência.
       await addFolgasHistoryMut.mutateAsync({
         collaborator_id: editingId,
         folgas_semanais: form.folgas_semanais,
