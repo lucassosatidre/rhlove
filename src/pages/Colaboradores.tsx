@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { useCollaborators, useCreateCollaborator, useUpdateCollaborator, useDeleteCollaborator, useBulkInsertCollaborators } from '@/hooks/useCollaborators';
 import type { CollaboratorInput } from '@/hooks/useCollaborators';
+import { useAddFolgasHistoryEntry } from '@/hooks/useCollaboratorFolgasHistory';
+import { useAuth } from '@/contexts/AuthContext';
+import { folgasMudaram, todayLocalISO } from '@/lib/folgasUtils';
+import FolgasVigenciaDialog from '@/components/colaboradores/FolgasVigenciaDialog';
 import { DAYS_OF_WEEK, DAY_LABELS, SECTORS, STATUS_OPTIONS, STATUS_LABELS, TIPO_ESCALA, type Collaborator, type DayOfWeek, type TipoEscala, type CollaboratorStatus, type JornadaEspecial } from '@/types/collaborator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
