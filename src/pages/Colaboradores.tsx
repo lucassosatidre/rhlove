@@ -947,6 +947,19 @@ export default function Colaboradores() {
         onOpenChange={setPisImportOpen}
         collaborators={collaborators}
       />
+
+      {originalFolgas && (
+        <FolgasVigenciaDialog
+          open={vigenciaDialogOpen}
+          onOpenChange={setVigenciaDialogOpen}
+          collaboratorName={form.collaborator_name}
+          fromFolgas={originalFolgas.folgas}
+          fromSundayN={originalFolgas.sundayN}
+          toFolgas={form.folgas_semanais}
+          toSundayN={form.sunday_n}
+          onConfirm={handleConfirmVigencia}
+        />
+      )}
     </div>
   );
 }
