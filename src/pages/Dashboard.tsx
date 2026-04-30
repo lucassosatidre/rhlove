@@ -73,6 +73,7 @@ export default function Dashboard() {
   const { data: compensations = [], isLoading: loadingCompensations } = useHolidayCompensations();
 
   const loading = loadingSales || loadingCollab || loadingAvisos || loadingCompensations;
+  const { resolver: folgasResolver } = useFolgasResolver();
   const absentCollaboratorIdsByDate = useMemo(
     () => buildAbsentCollaboratorIdsByDate(scheduleEvents),
     [scheduleEvents]
