@@ -7,6 +7,7 @@ import type { FreelancerEntry } from '@/hooks/useFreelancerEntries';
 import type { ScheduledVacation } from '@/hooks/useScheduledVacations';
 import type { AbsentCollaboratorIdsByDate } from '@/lib/attendanceEvents';
 import { countPeopleBySectorOnDate } from '@/lib/productivityEngine';
+import { useFolgasResolver, type FolgasResolver } from '@/hooks/useFolgasResolver';
 
 const SECTORS = ['COZINHA', 'SALÃO', 'TELE - ENTREGA', 'DIURNO'] as const;
 
