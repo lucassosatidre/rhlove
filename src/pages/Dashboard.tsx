@@ -90,22 +90,22 @@ export default function Dashboard() {
   const yesterdayData = useMemo(() => {
     const curr = filterByRange(yesterdayStr, yesterdayStr);
     const prev = filterByRange(sameWeekdayPrevStr, sameWeekdayPrevStr);
-    return computeBlockMetrics(curr.sales, prev.sales, collaborators, curr.fl, prev.fl, scheduledVacations, absentCollaboratorIdsByDate, curr.fe, prev.fe);
-  }, [allSales, freelancers, freelancerEntries, collaborators, scheduledVacations, yesterdayStr, sameWeekdayPrevStr, absentCollaboratorIdsByDate]);
+    return computeBlockMetrics(curr.sales, prev.sales, collaborators, curr.fl, prev.fl, scheduledVacations, absentCollaboratorIdsByDate, curr.fe, prev.fe, folgasResolver);
+  }, [allSales, freelancers, freelancerEntries, collaborators, scheduledVacations, yesterdayStr, sameWeekdayPrevStr, absentCollaboratorIdsByDate, folgasResolver]);
 
   // 7-day avg metrics
   const avg7Data = useMemo(() => {
     const curr = filterByRange(fmt(start7), fmt(yesterday));
     const prev = filterByRange(fmt(prev7Start), fmt(prev7End));
-    return computeBlockMetrics(curr.sales, prev.sales, collaborators, curr.fl, prev.fl, scheduledVacations, absentCollaboratorIdsByDate, curr.fe, prev.fe);
-  }, [allSales, freelancers, freelancerEntries, collaborators, scheduledVacations, absentCollaboratorIdsByDate]);
+    return computeBlockMetrics(curr.sales, prev.sales, collaborators, curr.fl, prev.fl, scheduledVacations, absentCollaboratorIdsByDate, curr.fe, prev.fe, folgasResolver);
+  }, [allSales, freelancers, freelancerEntries, collaborators, scheduledVacations, absentCollaboratorIdsByDate, folgasResolver]);
 
   // 30-day avg metrics
   const avg30Data = useMemo(() => {
     const curr = filterByRange(fmt(start30), fmt(yesterday));
     const prev = filterByRange(fmt(prev30Start), fmt(prev30End));
-    return computeBlockMetrics(curr.sales, prev.sales, collaborators, curr.fl, prev.fl, scheduledVacations, absentCollaboratorIdsByDate, curr.fe, prev.fe);
-  }, [allSales, freelancers, freelancerEntries, collaborators, scheduledVacations, absentCollaboratorIdsByDate]);
+    return computeBlockMetrics(curr.sales, prev.sales, collaborators, curr.fl, prev.fl, scheduledVacations, absentCollaboratorIdsByDate, curr.fe, prev.fe, folgasResolver);
+  }, [allSales, freelancers, freelancerEntries, collaborators, scheduledVacations, absentCollaboratorIdsByDate, folgasResolver]);
 
   if (loading) {
     return (
