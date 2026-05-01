@@ -379,6 +379,19 @@ function EscalaInner() {
   const formatDateKey = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+  // For online-punch collaborators, FALTA gating uses yesterday as cutoff (no need to wait for AFD import).
+  // For physical-clock collaborators, gating still uses lastPunchDate (last imported punch date).
+  const yesterdayKey = useMemo(() => {
+    const y = new Date();
+    y.setHours(0, 0, 0, 0);
+    y.setDate(y.getDate() - 1);
+    return formatDateKey(y);
+  }, []);
+  const getFaltaCutoff = (collab: { ponto_online?: boolean | null } | undefined | null): string | null => {
+    if (!collab) return lastPunchDate;
+    return collab.ponto_online ? yesterdayKey : lastPunchDate;
+  };
+
   const getSectorSales = (sale: typeof salesData[0] | undefined, sector: string) => {
     if (!sale) return { vendas: 0, pedidos: 0 };
     const ft = Number(sale.faturamento_total) || 0;
