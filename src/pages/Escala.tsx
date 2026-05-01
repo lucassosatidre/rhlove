@@ -545,7 +545,7 @@ function EscalaInner() {
   /** Count punch-confirmed faltas for a sector on a date (collaborators scheduled but no punch, no event justification) */
   const getPunchFaltaCount = (date: Date, sector: string): number => {
     const dateKey = formatDateKey(date);
-    if (!lastPunchDate || dateKey < INTEGRATION_START_DATE || dateKey > lastPunchDate) return 0;
+    if (dateKey < INTEGRATION_START_DATE) return 0;
     const collaboratorsBySector = getScheduledCollaboratorIdsBySectorOnDate(
       collaborators, date, scheduledVacations, swapOverrides, afastamentos, folgasResolver
     );
@@ -555,6 +555,8 @@ function EscalaInner() {
     for (const id of scheduledIds) {
       const collab = collaborators.find(c => c.id === id);
       if (!collab || !collab.controla_ponto) continue;
+      const cutoff = getFaltaCutoff(collab);
+      if (!cutoff || dateKey > cutoff) continue;
       if (punchSet.has(`${id}|${dateKey}`)) continue;
       if (folgaBHSet.has(`${id}|${dateKey}`)) continue;
       // Check schedule events for this collaborator on this date
