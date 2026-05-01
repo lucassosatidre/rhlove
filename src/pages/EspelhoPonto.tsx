@@ -433,9 +433,15 @@ export default function EspelhoPonto() {
         tags = detectTags(entrada, saida, saidaInt, retornoInt);
         // Day without any punches on a working day
         if (!entrada && !saida && !saidaInt && !retornoInt && status.includes('Falta')) {
-          // If day <= lastPunchUpdateDate → confirmed absence (not inconsistency)
-          // If day > lastPunchUpdateDate → pending punch (inconsistency)
-          if (lastPunchUpdateDate && iso <= lastPunchUpdateDate && iso >= INTEGRATION_START_DATE) {
+          // Nunca marca o dia atual como FALTA (a pessoa pode simplesmente ainda não ter batido).
+          // Online: cutoff = ontem.
+          // Físico: cutoff = min(lastPunchUpdateDate, ontem).
+          const todayISO = format(today, 'yyyy-MM-dd');
+          const yesterdayISO = format(new Date(today.getTime() - 86400000), 'yyyy-MM-dd');
+          const effectiveFaltaCutoff = collab.ponto_online
+            ? yesterdayISO
+            : (lastPunchUpdateDate && lastPunchUpdateDate < todayISO ? lastPunchUpdateDate : yesterdayISO);
+          if (iso <= effectiveFaltaCutoff && iso >= INTEGRATION_START_DATE) {
             tags = ['falta'];
             status = '❌ Falta';
           } else {
