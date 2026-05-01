@@ -379,8 +379,9 @@ function EscalaInner() {
   const formatDateKey = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-  // For online-punch collaborators, FALTA gating uses yesterday as cutoff (no need to wait for AFD import).
-  // For physical-clock collaborators, gating still uses lastPunchDate (last imported punch date).
+  // FALTA gating: nunca marca o dia atual como falta (a pessoa pode simplesmente ainda não ter batido).
+  // Online: cutoff = ontem.
+  // Físico: cutoff = min(lastPunchDate, ontem) → mesmo que o AFD de hoje já tenha sido importado, não conta hoje como falta.
   const yesterdayKey = useMemo(() => {
     const y = new Date();
     y.setHours(0, 0, 0, 0);
@@ -388,8 +389,9 @@ function EscalaInner() {
     return formatDateKey(y);
   }, []);
   const getFaltaCutoff = (collab: { ponto_online?: boolean | null } | undefined | null): string | null => {
-    if (!collab) return lastPunchDate;
-    return collab.ponto_online ? yesterdayKey : lastPunchDate;
+    if (collab?.ponto_online) return yesterdayKey;
+    if (!lastPunchDate) return null;
+    return lastPunchDate < yesterdayKey ? lastPunchDate : yesterdayKey;
   };
 
   const getSectorSales = (sale: typeof salesData[0] | undefined, sector: string) => {
