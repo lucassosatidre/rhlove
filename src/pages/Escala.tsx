@@ -629,9 +629,10 @@ function EscalaInner() {
               const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
               const hasCompensacao = collabEvents.some(e => e.event_type === 'COMPENSACAO');
               const isFolgaBH = !!(collab && folgaBHSet.has(`${collab.id}|${dateKey}`));
+              const punchCutoff = getFaltaCutoff(collab);
               const isPunchFalta = !!(
-                collab && collab.controla_ponto && lastPunchDate &&
-                dateKey >= INTEGRATION_START_DATE && dateKey <= lastPunchDate &&
+                collab && collab.controla_ponto && punchCutoff &&
+                dateKey >= INTEGRATION_START_DATE && dateKey <= punchCutoff &&
                 !punchSet.has(`${collab.id}|${dateKey}`) &&
                 !hasFalta && !hasAtestado && !hasCompensacao && !isFolgaBH
               );
