@@ -379,6 +379,19 @@ function EscalaInner() {
   const formatDateKey = (d: Date) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+  // For online-punch collaborators, FALTA gating uses yesterday as cutoff (no need to wait for AFD import).
+  // For physical-clock collaborators, gating still uses lastPunchDate (last imported punch date).
+  const yesterdayKey = useMemo(() => {
+    const y = new Date();
+    y.setHours(0, 0, 0, 0);
+    y.setDate(y.getDate() - 1);
+    return formatDateKey(y);
+  }, []);
+  const getFaltaCutoff = (collab: { ponto_online?: boolean | null } | undefined | null): string | null => {
+    if (!collab) return lastPunchDate;
+    return collab.ponto_online ? yesterdayKey : lastPunchDate;
+  };
+
   const getSectorSales = (sale: typeof salesData[0] | undefined, sector: string) => {
     if (!sale) return { vendas: 0, pedidos: 0 };
     const ft = Number(sale.faturamento_total) || 0;
@@ -532,7 +545,7 @@ function EscalaInner() {
   /** Count punch-confirmed faltas for a sector on a date (collaborators scheduled but no punch, no event justification) */
   const getPunchFaltaCount = (date: Date, sector: string): number => {
     const dateKey = formatDateKey(date);
-    if (!lastPunchDate || dateKey < INTEGRATION_START_DATE || dateKey > lastPunchDate) return 0;
+    if (dateKey < INTEGRATION_START_DATE) return 0;
     const collaboratorsBySector = getScheduledCollaboratorIdsBySectorOnDate(
       collaborators, date, scheduledVacations, swapOverrides, afastamentos, folgasResolver
     );
@@ -542,6 +555,8 @@ function EscalaInner() {
     for (const id of scheduledIds) {
       const collab = collaborators.find(c => c.id === id);
       if (!collab || !collab.controla_ponto) continue;
+      const cutoff = getFaltaCutoff(collab);
+      if (!cutoff || dateKey > cutoff) continue;
       if (punchSet.has(`${id}|${dateKey}`)) continue;
       if (folgaBHSet.has(`${id}|${dateKey}`)) continue;
       // Check schedule events for this collaborator on this date
@@ -614,9 +629,10 @@ function EscalaInner() {
               const hasAtestado = collabEvents.some(e => e.event_type === 'ATESTADO');
               const hasCompensacao = collabEvents.some(e => e.event_type === 'COMPENSACAO');
               const isFolgaBH = !!(collab && folgaBHSet.has(`${collab.id}|${dateKey}`));
+              const punchCutoff = getFaltaCutoff(collab);
               const isPunchFalta = !!(
-                collab && collab.controla_ponto && lastPunchDate &&
-                dateKey >= INTEGRATION_START_DATE && dateKey <= lastPunchDate &&
+                collab && collab.controla_ponto && punchCutoff &&
+                dateKey >= INTEGRATION_START_DATE && dateKey <= punchCutoff &&
                 !punchSet.has(`${collab.id}|${dateKey}`) &&
                 !hasFalta && !hasAtestado && !hasCompensacao && !isFolgaBH
               );
@@ -674,7 +690,8 @@ function EscalaInner() {
 
                         // Check confirmed absence from punch records
                         const isFolgaBH = collab && folgaBHSet.has(`${collab.id}|${dateKey}`);
-                        const isPunchFalta = collab && collab.controla_ponto && lastPunchDate && dateKey >= INTEGRATION_START_DATE && dateKey <= lastPunchDate && !punchSet.has(`${collab.id}|${dateKey}`) && !hasFalta && !hasAtestado && !hasCompensacao && !isFolgaBH;
+                        const punchCutoff = getFaltaCutoff(collab);
+                        const isPunchFalta = collab && collab.controla_ponto && punchCutoff && dateKey >= INTEGRATION_START_DATE && dateKey <= punchCutoff && !punchSet.has(`${collab.id}|${dateKey}`) && !hasFalta && !hasAtestado && !hasCompensacao && !isFolgaBH;
 
                         const cellClasses = [
                           'border border-border px-2 text-left',
