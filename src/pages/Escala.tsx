@@ -690,7 +690,8 @@ function EscalaInner() {
 
                         // Check confirmed absence from punch records
                         const isFolgaBH = collab && folgaBHSet.has(`${collab.id}|${dateKey}`);
-                        const isPunchFalta = collab && collab.controla_ponto && lastPunchDate && dateKey >= INTEGRATION_START_DATE && dateKey <= lastPunchDate && !punchSet.has(`${collab.id}|${dateKey}`) && !hasFalta && !hasAtestado && !hasCompensacao && !isFolgaBH;
+                        const punchCutoff = getFaltaCutoff(collab);
+                        const isPunchFalta = collab && collab.controla_ponto && punchCutoff && dateKey >= INTEGRATION_START_DATE && dateKey <= punchCutoff && !punchSet.has(`${collab.id}|${dateKey}`) && !hasFalta && !hasAtestado && !hasCompensacao && !isFolgaBH;
 
                         const cellClasses = [
                           'border border-border px-2 text-left',
